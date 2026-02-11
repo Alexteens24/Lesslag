@@ -149,8 +149,6 @@ public class WorldChunkGuard {
      */
     private void analyzeSnapshots(List<WorldSnapshot> snapshots, double overloadMultiplier,
             int maxRetries, boolean notify, String evacuateWorldName) {
-        int totalUnloaded = 0;
-
         for (WorldSnapshot snap : snapshots) {
             int chunksPerPlayer = (snap.viewDistance * 2 + 1) * (snap.viewDistance * 2 + 1);
             int expectedMax = Math.max(snap.playerCount * chunksPerPlayer, 100);

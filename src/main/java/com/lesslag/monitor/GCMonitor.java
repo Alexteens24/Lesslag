@@ -176,10 +176,12 @@ public class GCMonitor {
             if (sb.length() > 0)
                 sb.append("\n");
 
-            CollectorStats stats = collectorStats.get(gc.getName());
-            sb.append("  &8▸ &f").append(gc.getName())
-                    .append(" &8| &7Collections: &e").append(gc.getCollectionCount())
-                    .append(" &8| &7Time: &e").append(gc.getCollectionTime()).append("ms");
+                CollectorStats stats = collectorStats.get(gc.getName());
+                long collections = stats != null ? stats.totalCollections : gc.getCollectionCount();
+                long timeMs = stats != null ? stats.totalTimeMs : gc.getCollectionTime();
+                sb.append("  &8▸ &f").append(gc.getName())
+                    .append(" &8| &7Collections: &e").append(collections)
+                    .append(" &8| &7Time: &e").append(timeMs).append("ms");
 
             if (stats != null && stats.worstPauseMs > 0) {
                 sb.append(" &8| &7Worst: &c").append(String.format("%.0f", stats.worstPauseMs)).append("ms");

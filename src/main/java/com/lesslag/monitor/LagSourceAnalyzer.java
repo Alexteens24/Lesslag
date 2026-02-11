@@ -117,14 +117,15 @@ public class LagSourceAnalyzer {
             int totalEntities = 0;
 
             for (Entity entity : world.getEntities()) {
-                entityCounts.merge(entity.getType().name(), 1, Integer::sum);
+                String typeName = entity.getType().name();
+                entityCounts.put(typeName, entityCounts.getOrDefault(typeName, 0) + 1);
                 totalEntities++;
 
                 // Track entity density per chunk
                 int cx = entity.getLocation().getBlockX() >> 4;
                 int cz = entity.getLocation().getBlockZ() >> 4;
                 long chunkKey = ((long) cx << 32) | (cz & 0xFFFFFFFFL);
-                chunkEntityCounts.merge(chunkKey, 1, Integer::sum);
+                chunkEntityCounts.put(chunkKey, chunkEntityCounts.getOrDefault(chunkKey, 0) + 1);
             }
 
             snapshots[i] = new WorldSnapshot(
@@ -144,7 +145,8 @@ public class LagSourceAnalyzer {
 
         for (BukkitTask task : pendingTasks) {
             Plugin owner = task.getOwner();
-            taskCounts.merge(owner.getName(), 1, Integer::sum);
+            String ownerName = owner.getName();
+            taskCounts.put(ownerName, taskCounts.getOrDefault(ownerName, 0) + 1);
         }
 
         return taskCounts.entrySet().stream()
