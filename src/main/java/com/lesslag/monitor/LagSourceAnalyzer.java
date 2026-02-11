@@ -54,6 +54,7 @@ public class LagSourceAnalyzer {
             try {
                 WorldSnapshot[] snapshots = takeWorldSnapshots();
                 TaskSnapshot[] taskSnapshots = takeTaskSnapshot();
+                AnalysisConfig config = takeConfigSnapshot();
                 long snapshotTime = System.currentTimeMillis();
 
                 // Process async
@@ -64,21 +65,21 @@ public class LagSourceAnalyzer {
 
                 try {
                     plugin.getAsyncExecutor().execute(() -> {
-                    try {
-                        List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime);
-                        lastAnalysis = results;
-                        lastAnalysisTime = snapshotTime;
+                        try {
+                            List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime, config);
+                            lastAnalysis = results;
+                            lastAnalysisTime = snapshotTime;
 
-                        // Update chunk count tracking for rate calculation
-                        for (WorldSnapshot ws : snapshots) {
-                            previousChunkCounts.put(ws.name, ws.loadedChunks);
+                            // Update chunk count tracking for rate calculation
+                            for (WorldSnapshot ws : snapshots) {
+                                previousChunkCounts.put(ws.name, ws.loadedChunks);
+                            }
+                            lastChunkSnapshotTime = snapshotTime;
+
+                            future.complete(results);
+                        } catch (Exception e) {
+                            future.completeExceptionally(e);
                         }
-                        lastChunkSnapshotTime = snapshotTime;
-
-                        future.complete(results);
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
                     });
                 } catch (Exception e) {
                     future.completeExceptionally(e);
@@ -154,18 +155,29 @@ public class LagSourceAnalyzer {
                 .toArray(TaskSnapshot[]::new);
     }
 
+    private AnalysisConfig takeConfigSnapshot() {
+        return new AnalysisConfig(
+                plugin.getConfig().getInt("lag-analysis.entity-warning-count", 500),
+                plugin.getConfig().getInt("lag-analysis.chunk-warning-count", 800),
+                plugin.getConfig().getInt("lag-analysis.task-warning-count", 20),
+                plugin.getConfig().getInt("lag-analysis.top-entities", 3),
+                plugin.getConfig().getInt("lag-analysis.density-threshold", 50),
+                plugin.getConfig().getDouble("lag-analysis.chunk-rate-warning", 10.0));
+    }
+
     // ══════════════════════════════════════════════════
     // Processing (runs async)
     // ══════════════════════════════════════════════════
 
-    private List<LagSource> processSnapshots(WorldSnapshot[] worlds, TaskSnapshot[] tasks, long snapshotTime) {
+    private List<LagSource> processSnapshots(WorldSnapshot[] worlds, TaskSnapshot[] tasks, long snapshotTime,
+            AnalysisConfig config) {
         List<LagSource> sources = new ArrayList<>();
-        int entityWarning = plugin.getConfig().getInt("lag-analysis.entity-warning-count", 500);
-        int chunkWarning = plugin.getConfig().getInt("lag-analysis.chunk-warning-count", 800);
-        int taskWarning = plugin.getConfig().getInt("lag-analysis.task-warning-count", 20);
-        int topN = plugin.getConfig().getInt("lag-analysis.top-entities", 3);
-        int densityThreshold = plugin.getConfig().getInt("lag-analysis.density-threshold", 50);
-        double chunkRateWarning = plugin.getConfig().getDouble("lag-analysis.chunk-rate-warning", 10.0);
+        int entityWarning = config.entityWarning;
+        int chunkWarning = config.chunkWarning;
+        int taskWarning = config.taskWarning;
+        int topN = config.topN;
+        int densityThreshold = config.densityThreshold;
+        double chunkRateWarning = config.chunkRateWarning;
 
         // Entity analysis per world
         for (WorldSnapshot world : worlds) {
@@ -464,6 +476,7 @@ public class LagSourceAnalyzer {
             try {
                 WorldSnapshot[] worldSnaps = takeWorldSnapshots();
                 TaskSnapshot[] taskSnaps = takeTaskSnapshot();
+                AnalysisConfig config = takeConfigSnapshot();
                 long snapshotTime = System.currentTimeMillis();
 
                 if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
@@ -473,21 +486,21 @@ public class LagSourceAnalyzer {
 
                 try {
                     plugin.getAsyncExecutor().execute(() -> {
-                    try {
-                        List<LagSource> results = processSnapshots(worldSnaps, taskSnaps, snapshotTime);
-                        lastAnalysis = results;
-                        lastAnalysisTime = snapshotTime;
+                        try {
+                            List<LagSource> results = processSnapshots(worldSnaps, taskSnaps, snapshotTime, config);
+                            lastAnalysis = results;
+                            lastAnalysisTime = snapshotTime;
 
-                        // Update chunk tracking
-                        for (WorldSnapshot ws : worldSnaps) {
-                            previousChunkCounts.put(ws.name, ws.loadedChunks);
+                            // Update chunk tracking
+                            for (WorldSnapshot ws : worldSnaps) {
+                                previousChunkCounts.put(ws.name, ws.loadedChunks);
+                            }
+                            lastChunkSnapshotTime = snapshotTime;
+
+                            future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps));
+                        } catch (Exception e) {
+                            future.completeExceptionally(e);
                         }
-                        lastChunkSnapshotTime = snapshotTime;
-
-                        future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps));
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
                     });
                 } catch (Exception e) {
                     future.completeExceptionally(e);
@@ -566,6 +579,25 @@ public class LagSourceAnalyzer {
         TaskSnapshot(String pluginName, int count) {
             this.pluginName = pluginName;
             this.count = count;
+        }
+    }
+
+    static class AnalysisConfig {
+        final int entityWarning;
+        final int chunkWarning;
+        final int taskWarning;
+        final int topN;
+        final int densityThreshold;
+        final double chunkRateWarning;
+
+        AnalysisConfig(int entityWarning, int chunkWarning, int taskWarning, int topN, int densityThreshold,
+                double chunkRateWarning) {
+            this.entityWarning = entityWarning;
+            this.chunkWarning = chunkWarning;
+            this.taskWarning = taskWarning;
+            this.topN = topN;
+            this.densityThreshold = densityThreshold;
+            this.chunkRateWarning = chunkRateWarning;
         }
     }
 }

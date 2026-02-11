@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Monitors garbage collection events and reports significant pauses.
@@ -28,7 +29,7 @@ public class GCMonitor {
     private long minDuration;
     private boolean notifyEnabled;
 
-    // Track previous GC stats to detect new collections
+    // Track previous GC stats to detect new collections (Timer thread only)
     private final Map<String, Long> lastCounts = new HashMap<>();
     private final Map<String, Long> lastTimes = new HashMap<>();
 
@@ -42,8 +43,8 @@ public class GCMonitor {
     private volatile double gcOverheadPercent = 0;
     private static final long OVERHEAD_WINDOW_MS = 60_000; // 60s rolling window
 
-    // Per-collector stats
-    private final Map<String, CollectorStats> collectorStats = new HashMap<>();
+    // Per-collector stats — ConcurrentHashMap for cross-thread safety
+    private final Map<String, CollectorStats> collectorStats = new ConcurrentHashMap<>();
 
     public GCMonitor(LessLag plugin) {
         this.plugin = plugin;
@@ -176,10 +177,10 @@ public class GCMonitor {
             if (sb.length() > 0)
                 sb.append("\n");
 
-                CollectorStats stats = collectorStats.get(gc.getName());
-                long collections = stats != null ? stats.totalCollections : gc.getCollectionCount();
-                long timeMs = stats != null ? stats.totalTimeMs : gc.getCollectionTime();
-                sb.append("  &8▸ &f").append(gc.getName())
+            CollectorStats stats = collectorStats.get(gc.getName());
+            long collections = stats != null ? stats.totalCollections : gc.getCollectionCount();
+            long timeMs = stats != null ? stats.totalTimeMs : gc.getCollectionTime();
+            sb.append("  &8▸ &f").append(gc.getName())
                     .append(" &8| &7Collections: &e").append(collections)
                     .append(" &8| &7Time: &e").append(timeMs).append("ms");
 
@@ -206,8 +207,8 @@ public class GCMonitor {
      * Per-collector statistics.
      */
     private static class CollectorStats {
-        long totalCollections = 0;
-        long totalTimeMs = 0;
-        double worstPauseMs = 0;
+        volatile long totalCollections = 0;
+        volatile long totalTimeMs = 0;
+        volatile double worstPauseMs = 0;
     }
 }

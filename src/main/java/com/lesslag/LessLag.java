@@ -114,6 +114,7 @@ public class LessLag extends JavaPlugin implements Listener {
         redstoneMonitor = new RedstoneMonitor(this);
         frustumCuller = new FrustumCuller(this);
         worldChunkGuard = new WorldChunkGuard(this);
+        memoryLeakDetector = new MemoryLeakDetector(this);
 
         // Start monitoring
         tpsMonitor.start();
@@ -123,6 +124,7 @@ public class LessLag extends JavaPlugin implements Listener {
         redstoneMonitor.start();
         frustumCuller.start();
         worldChunkGuard.start();
+        memoryLeakDetector.start();
 
         // Register commands
         LagCommand lagCommand = new LagCommand(this);
