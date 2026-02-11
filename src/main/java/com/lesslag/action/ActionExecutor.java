@@ -433,7 +433,8 @@ public class ActionExecutor {
                 for (org.bukkit.Chunk chunk : chunks) {
                     if (unloaded >= excess)
                         break;
-                    if (chunk.unload(false))
+                    // Use safe unload(true) to ensure data is saved
+                    if (chunk.unload(true))
                         unloaded++;
                 }
                 totalUnloaded += unloaded;
@@ -558,6 +559,9 @@ public class ActionExecutor {
                 byType.computeIfAbsent(entity.getType().name(), k -> new ArrayList<>()).add(entity);
             }
 
+            // Cache players list for this world
+            List<Player> players = world.getPlayers();
+
             for (Map.Entry<String, List<Entity>> entry : byType.entrySet()) {
                 String type = entry.getKey();
                 List<Entity> entities = entry.getValue();
@@ -577,11 +581,16 @@ public class ActionExecutor {
                 int excess = entities.size() - limit;
 
                 // Sort: remove entities furthest from nearest player first
-                List<Player> players = world.getPlayers();
                 if (!players.isEmpty()) {
+                    // Pre-calculate distances to avoid O(N*M) in sort
+                    Map<Entity, Double> distances = new HashMap<>();
+                    for (Entity entity : entities) {
+                        distances.put(entity, nearestPlayerDistSq(entity, players));
+                    }
+
                     entities.sort((a, b) -> {
-                        double distA = nearestPlayerDistSq(a, players);
-                        double distB = nearestPlayerDistSq(b, players);
+                        double distA = distances.get(a);
+                        double distB = distances.get(b);
                         return Double.compare(distB, distA); // furthest first
                     });
                 }

@@ -424,7 +424,18 @@ public class LessLag extends JavaPlugin implements Listener {
 
     private int parseIntSafe(String value) {
         try {
-            return Integer.parseInt(value);
+            // Handle versions like 1.20.4-R0.1
+            StringBuilder sb = new StringBuilder();
+            for (char c : value.toCharArray()) {
+                if (Character.isDigit(c)) {
+                    sb.append(c);
+                } else {
+                    break;
+                }
+            }
+            if (sb.length() == 0)
+                return 0;
+            return Integer.parseInt(sb.toString());
         } catch (NumberFormatException e) {
             return 0;
         }
