@@ -1,0 +1,429 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║                     LESSLAG v1.0                            ║
+# ║            Server Performance Guardian Plugin               ║
+# ║                                                             ║
+# ║  Sections:                                                  ║
+# ║    1. General          - Prefix, compatibility              ║
+# ║    2. TPS Monitoring   - Check interval, thresholds         ║
+# ║    3. Actions          - What to do when lag is detected    ║
+# ║    4. Entity Rules     - Limits, whitelist                  ║
+# ║    5. AI Optimization  - Distance AI, frustum culling       ║
+# ║    6. Chunk Management - Chunk limiter, world chunk guard   ║
+# ║    7. Redstone         - Lag machine suppression            ║
+# ║    8. Advanced         - Predictive, memory leak, GC        ║
+# ║    9. Reports & Alerts - Messages, notifications            ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  1. GENERAL                                                  │
+# └──────────────────────────────────────────────────────────────┘
+
+# Chat prefix shown before all plugin messages
+prefix: "&8[&c&lLessLag&8] &r"
+
+# Version compatibility
+compat:
+  min-version: "1.20.4"
+  allow-unsupported-versions: false
+
+# ─── Plugin & Fork Compatibility ───
+# LessLag auto-detects other performance plugins and adjusts itself.
+#
+# Options per plugin:
+#   "auto"   → Detect and auto-disable overlapping features (recommended)
+#   "ignore" → Don't detect, run LessLag features without checking
+#
+# Set mode to "off" to skip ALL compatibility checks.
+compatibility:
+  mode: auto                   # auto | off
+
+  # Pufferfish / DAB (Dynamic Activation of Brain)
+  # DAB already optimizes AI tick rates based on distance.
+  # If detected: disables frustum-culling, widens active-radius
+  pufferfish: auto             # auto | ignore
+
+  # ClearLag / ClearLag++
+  # Handles item clearing, redstone culling, mob clearing.
+  # If detected: disables redstone-suppressor, warns about clear actions
+  clearlag: auto               # auto | ignore
+
+  # MobFarmManager
+  # Manages mob farm limits per-chunk.
+  # If detected: raises chunk-limiter threshold and interval
+  mob-farm-manager: auto       # auto | ignore
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  2. TPS MONITORING                                           │
+# │                                                              │
+# │  How LessLag monitors server performance:                    │
+# │  - Measures TPS every tick, checks thresholds periodically   │
+# │  - When TPS stays below a threshold for 'trigger-count'      │
+# │    consecutive checks → executes that threshold's actions    │
+# └──────────────────────────────────────────────────────────────┘
+
+monitor:
+  check-interval: 5          # How often to check TPS (seconds)
+  trigger-count: 3           # Consecutive low TPS checks before acting
+                             # (prevents false-positives from short spikes)
+
+# Tick Monitor — alerts on individual tick spikes
+tick-monitor:
+  enabled: true
+  threshold-ms: 100          # Alert if a single tick exceeds this (ms)
+                             # Normal tick = 50ms
+  notify: true               # Notify admins on spike
+
+# Auto-recovery: restore settings when TPS stabilizes
+recovery:
+  enabled: true
+  tps-threshold: 18.0        # TPS must be >= this to start recovery
+  delay-seconds: 30          # TPS must stay stable this long
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  3. TPS THRESHOLDS                                           │
+# │                                                              │
+# │  Define what happens at each TPS level.                      │
+# │  You can add/remove/rename thresholds freely.                │
+# │                                                              │
+# │  Available actions:                                          │
+# │    clear-ground-items, clear-xp-orbs, clear-mobs,           │
+# │    kill-hostile-mobs, reduce-view-distance,                  │
+# │    reduce-simulation-distance, disable-mob-ai,               │
+# │    force-gc, chunk-clean, enforce-entity-limits              │
+# └──────────────────────────────────────────────────────────────┘
+
+thresholds:
+
+  # ─── Light lag ───
+  warning:
+    tps: 16.0
+    enabled: true
+    message: "&e⚠ TPS dropping: &f{tps} &7| &eCleaning up..."
+    actions:
+      - clear-ground-items
+      - clear-xp-orbs
+    notify:
+      chat: false
+      actionbar: true
+      sound: true
+      sound-type: BLOCK_NOTE_BLOCK_PLING
+      sound-pitch: 1.0
+
+  # ─── Heavy lag ───
+  critical:
+    tps: 12.0
+    enabled: true
+    message: "&c⚠ TPS critical: &f{tps} &7| &cOptimizing server..."
+    actions:
+      - clear-ground-items
+      - clear-xp-orbs
+      - clear-mobs
+      - reduce-view-distance
+      - disable-mob-ai
+    notify:
+      chat: true
+      actionbar: true
+      sound: true
+      sound-type: BLOCK_NOTE_BLOCK_BELL
+      sound-pitch: 0.8
+
+  # ─── Server dying ───
+  emergency:
+    tps: 8.0
+    enabled: true
+    message: "&4&l⚠ EMERGENCY! TPS: &f{tps} &7| &4Full rescue mode!"
+    broadcast: true
+    broadcast-message: "&c&l[!] &fServer is experiencing heavy lag, auto-fix in progress..."
+    actions:
+      - clear-ground-items
+      - clear-xp-orbs
+      - clear-mobs
+      - kill-hostile-mobs
+      - reduce-view-distance
+      - reduce-simulation-distance
+      - disable-mob-ai
+      - force-gc
+      - enforce-entity-limits
+    commands:
+      - "say &c[LessLag] Server TPS critically low ({tps}), running emergency fix!"
+    notify:
+      chat: true
+      actionbar: true
+      sound: true
+      sound-type: BLOCK_ANVIL_LAND
+      sound-volume: 1.0
+      sound-pitch: 0.5
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  4. ACTION SETTINGS                                          │
+# └──────────────────────────────────────────────────────────────┘
+
+action-settings:
+  # View distance reduction
+  min-view-distance: 4       # Won't go below this
+  view-distance-reduce-by: 2 # Chunks to reduce per trigger
+
+  # Simulation distance reduction
+  min-simulation-distance: 4
+  simulation-distance-reduce-by: 2
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  5. ENTITY RULES                                             │
+# │                                                              │
+# │  Controls which entities are protected and their limits.     │
+# └──────────────────────────────────────────────────────────────┘
+
+# ─── Entity whitelist ───
+# These entities will NEVER be removed during cleanup.
+# Applies to: clear-mobs, kill-hostile-mobs, chunk-clean
+entity-whitelist:
+  # Tamed / Companion
+  - HORSE
+  - DONKEY
+  - MULE
+  - WOLF
+  - CAT
+  - PARROT
+  - AXOLOTL
+  - CAMEL
+  - SNIFFER
+  # NPCs / Utility
+  - VILLAGER
+  - IRON_GOLEM
+  - WANDERING_TRADER
+  - TRADER_LLAMA
+  - ARMOR_STAND
+  # Farm / Nature
+  - BEE
+  - ALLAY
+
+# ─── Entity hard limits (per world) ───
+# When a type exceeds its limit, excess are force-removed.
+# Set to -1 to disable limit for that type.
+# Removal priority: furthest from players first.
+entity-limits:
+  # Bosses
+  ENDER_DRAGON: 1
+  WITHER: 4
+  WARDEN: 6
+  ELDER_GUARDIAN: 8
+
+  # Dangerous spam
+  PRIMED_TNT: 100
+  FALLING_BLOCK: 200
+  AREA_EFFECT_CLOUD: 50
+  EVOKER_FANGS: 50
+
+  # Hostile mobs
+  ZOMBIE: 100
+  SKELETON: 100
+  CREEPER: 80
+  SPIDER: 80
+  ENDERMAN: 50
+  PHANTOM: 30
+  WITHER_SKELETON: 30
+  BLAZE: 40
+  GHAST: 20
+  PIGLIN_BRUTE: 20
+
+  # Passive (uncomment to limit animal farms)
+  # CHICKEN: 200
+  # COW: 200
+  # PIG: 200
+  # SHEEP: 200
+  # VILLAGER: 100
+
+  # Projectiles
+  ARROW: 500
+  FIREBALL: 30
+  SMALL_FIREBALL: 50
+  DRAGON_FIREBALL: 10
+  SHULKER_BULLET: 30
+
+  # Default for unlisted types (-1 = unlimited)
+  default: -1
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  6. AI OPTIMIZATION                                          │
+# │                                                              │
+# │  Two systems working together:                               │
+# │    Distance AI  → mobs far from players lose AI              │
+# │    Frustum Cull → mobs BEHIND all players lose AI            │
+# │  Both respect the protected list below.                      │
+# └──────────────────────────────────────────────────────────────┘
+
+ai-optimization:
+
+  # Max distance to keep mob AI active (blocks)
+  active-radius: 48
+
+  # Frustum culling — disables AI for mobs outside FOV
+  frustum-culling:
+    enabled: true
+    interval-ticks: 40         # How often to recalculate (20 = 1 sec)
+    fov-degrees: 110           # View cone angle (MC FOV ~70 + buffer)
+    behind-safe-radius: 12     # Don't cull within this range
+                               # (player might turn around)
+
+  # Mobs that should NEVER have AI disabled
+  protected:
+    # Bosses (AI = fight mechanics)
+    - ENDER_DRAGON
+    - WITHER
+    - WARDEN
+    - ELDER_GUARDIAN
+    # NPCs (AI = trading, pathfinding)
+    - VILLAGER
+    - WANDERING_TRADER
+    - IRON_GOLEM
+    - SNOW_GOLEM
+    # Flyers (AI off = freeze mid-air or fall)
+    - BAT
+    - PHANTOM
+    - VEX
+    - GHAST
+    - BLAZE
+    - ALLAY
+    # Special behavior
+    - BEE              # pollination
+    - DOLPHIN          # swimming
+    - FOX              # sleeping, items
+    - ENDERMAN         # teleportation
+    - PIGLIN           # bartering
+    - PIGLIN_BRUTE     # guarding
+    - HOGLIN           # flee behavior
+    - SHULKER          # teleportation
+    - WITHER_SKELETON  # fortress patrol
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  7. CHUNK MANAGEMENT                                         │
+# └──────────────────────────────────────────────────────────────┘
+
+# ─── Smart Chunk Limiter ───
+# Limits entities PER CHUNK (not global). Only cleans overloaded chunks.
+chunk-limiter:
+  enabled: true
+  scan-interval: 30            # How often to scan (seconds)
+  max-entities-per-chunk: 50   # Trigger cleanup above this
+
+# ─── World Chunk Guard ───
+# Detects worlds with abnormally many loaded chunks and escalates:
+#   Stage 1: Soft unload (polite)
+#   Stage 2: Force unload (save + unload)
+#   Stage 3: Evacuate players and unload world
+world-chunk-guard:
+  enabled: true
+  check-interval: 10           # Check interval (seconds)
+  overload-multiplier: 2.0     # loadedChunks > expected × this = overloaded
+                               # expected = players × (viewDist×2+1)²
+  max-retry-before-evacuate: 3 # Failed unloads before evacuation
+  notify: true
+  evacuate-world: "world"      # Evacuation destination
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  8. REDSTONE SUPPRESSION                                     │
+# │                                                              │
+# │  Detects lag machines / redstone clocks and freezes them.    │
+# └──────────────────────────────────────────────────────────────┘
+
+redstone-suppressor:
+  enabled: true
+  window-seconds: 2            # Time window for counting activations
+  max-activations-per-chunk: 200  # Freeze if exceeded within window
+  cooldown-seconds: 10         # How long chunk stays frozen
+  notify: true
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  9. ADVANCED FEATURES                                        │
+# └──────────────────────────────────────────────────────────────┘
+
+# ─── Predictive Optimization ───
+# Detects RISING MSPT trends and triggers cleanup BEFORE TPS drops.
+# Uses weighted linear regression + sudden spike detection.
+predictive-optimization:
+  enabled: true
+  window-seconds: 10           # MSPT sample window size
+  slope-threshold: 3.0         # Min slope (ms/sec) to trigger
+                               # Higher = less sensitive
+  mspt-baseline: 30.0          # Only trigger if avg MSPT > this
+                               # Prevents false positives
+  cooldown-seconds: 60         # Cooldown between triggers
+  notify: true
+  actions:                     # Lighter actions than thresholds
+    - clear-ground-items
+    - clear-xp-orbs
+
+# ─── Memory Leak Detector ───
+# Tracks post-GC memory baselines using linear regression.
+# WARNING-ONLY mode — no automatic actions. May have false positives.
+memory-leak-detector:
+  enabled: true
+  check-interval: 30           # Sample interval (seconds)
+  window-size: 20              # Samples in sliding window
+  min-samples: 8               # Min samples before analysis
+  slope-threshold-mb-per-min: 5.0  # MB/min rise to flag as leak
+  alert-cooldown: 300          # Seconds between alerts
+  notify: true
+
+# ─── GC Monitor ───
+# Monitors garbage collection pauses and overhead.
+gc-monitor:
+  enabled: true
+  min-duration-ms: 50          # Only report pauses above this (ms)
+  notify: true
+
+# ─── Lag Source Analysis ───
+# Identifies WHAT is causing lag (entities, chunks, plugins).
+# Runs fully async alongside TPS alerts.
+lag-analysis:
+  enabled: true
+  report-on-alert: true        # Include in threshold notifications
+  entity-warning-count: 500    # Flag world with this many entities
+  chunk-warning-count: 800     # Flag world with this many chunks
+  task-warning-count: 20       # Flag plugin with this many tasks
+  top-entities: 3              # Show top N entity types per world
+  density-threshold: 50        # Flag chunks with 50+ entities
+  chunk-rate-warning: 10.0     # Flag if chunks/sec > this
+
+# ─── Health Report ───
+# Which sections to show in /lg health
+health-report:
+  tps: true
+  mspt: true
+  cpu: true
+  memory: true
+  disk: true
+  worlds: true
+  entity-breakdown: true
+
+
+# ┌──────────────────────────────────────────────────────────────┐
+# │  10. NOTIFICATIONS & MESSAGES                                │
+# └──────────────────────────────────────────────────────────────┘
+
+# Global notification defaults (can be overridden per threshold)
+notifications:
+  actionbar: true
+  sound: true
+  chat: true
+  cooldown: 10                 # Seconds between notifications
+
+# Plugin messages (supports {placeholders})
+messages:
+  recovery: "&a✔ TPS stabilized: &f{tps} &7| &aSettings restored."
+  broadcast-emergency: "&c&l[!] &fServer is experiencing lag, auto-fix in progress..."
+  items-cleared: "&7Cleared &e{count} &7ground items."
+  xp-cleared: "&7Cleared &e{count} &7XP orbs."
+  mobs-cleared: "&7Removed &e{count} &7excess mobs."
+  ai-disabled: "&7Disabled AI for &e{count} &7entities."
+  gc-complete: "&7Freed &e{freed}MB &7of memory."
+  tick-spike: "&e⚠ Tick spike: &f{duration}ms &7(normal: 50ms)"

@@ -1,0 +1,22 @@
+name: LessLag
+version: '${project.version}'
+main: com.lesslag.LessLag
+api-version: '1.20'
+description: Server performance guardian - automatic TPS rescue, diagnostics, and lag mitigation
+author: SuperezMC
+website: ''
+
+commands:
+  lg:
+    description: LessLag admin commands
+    usage: /lg <status|health|tps|gc|gcinfo|tickmonitor|entities|thresholds|sources|chunks|redstone|predictive|frustum|worldguard|memory|clear|ai|restore|reload>
+    permission: lesslag.admin
+    aliases: [lesslag, lesslagadmin]
+
+permissions:
+  lesslag.admin:
+    description: Full access to LessLag commands
+    default: op
+  lesslag.notify:
+    description: Receive TPS alerts, tick spikes, and GC notifications
+    default: op
