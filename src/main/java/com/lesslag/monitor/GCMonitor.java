@@ -5,12 +5,9 @@ import com.lesslag.util.NotificationHelper;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Monitors garbage collection events and reports significant pauses.
@@ -34,14 +31,13 @@ public class GCMonitor {
     private final Map<String, Long> lastTimes = new HashMap<>();
 
     // Cumulative stats
-    private long totalCollections = 0;
-    private long totalTimeMs = 0;
+    private final AtomicLong totalCollections = new AtomicLong(0);
+    private final AtomicLong totalTimeMs = new AtomicLong(0);
 
-    // GC overhead tracking
-    private long overheadWindowStartTime = 0;
-    private long overheadWindowGcTime = 0;
+    // GC overhead tracking (Rolling 60s window)
+    private final LinkedList<Long> gcTimeHistory = new LinkedList<>();
     private volatile double gcOverheadPercent = 0;
-    private static final long OVERHEAD_WINDOW_MS = 60_000; // 60s rolling window
+    private static final int ROLLING_WINDOW_SAMPLES = 30; // 30 samples * 2s = 60s
 
     // Per-collector stats — ConcurrentHashMap for cross-thread safety
     private final Map<String, CollectorStats> collectorStats = new ConcurrentHashMap<>();
@@ -67,8 +63,9 @@ public class GCMonitor {
             collectorStats.put(gc.getName(), new CollectorStats());
         }
 
-        overheadWindowStartTime = System.currentTimeMillis();
-        overheadWindowGcTime = 0;
+        synchronized (gcTimeHistory) {
+            gcTimeHistory.clear();
+        }
 
         // Use a Timer (not Bukkit scheduler) since GC can freeze the server
         timer = new Timer("LessLag-GCMonitor", true);
@@ -105,8 +102,8 @@ public class GCMonitor {
                 long newCollections = currentCount - prevCount;
                 long newTimeMs = currentTime - prevTime;
 
-                totalCollections += newCollections;
-                totalTimeMs += newTimeMs;
+                totalCollections.addAndGet(newCollections);
+                totalTimeMs.addAndGet(newTimeMs);
                 totalNewGcTime += newTimeMs;
 
                 // Update per-collector stats
@@ -135,29 +132,37 @@ public class GCMonitor {
             lastTimes.put(name, currentTime);
         }
 
-        // Update overhead calculation
-        overheadWindowGcTime += totalNewGcTime;
-        long now = System.currentTimeMillis();
-        long windowElapsed = now - overheadWindowStartTime;
+        // Update rolling overhead calculation
+        synchronized (gcTimeHistory) {
+            gcTimeHistory.addLast(totalNewGcTime);
+            if (gcTimeHistory.size() > ROLLING_WINDOW_SAMPLES) {
+                gcTimeHistory.removeFirst();
+            }
 
-        if (windowElapsed >= OVERHEAD_WINDOW_MS) {
-            // Calculate overhead % for the window and reset
-            gcOverheadPercent = (windowElapsed > 0)
-                    ? (overheadWindowGcTime * 100.0) / windowElapsed
-                    : 0;
-            overheadWindowStartTime = now;
-            overheadWindowGcTime = 0;
+            long sum = 0;
+            for (long val : gcTimeHistory) {
+                sum += val;
+            }
+
+            // Calculate overhead %: (GC Time / Wall Time) * 100
+            // Wall Time = samples * 2000ms
+            long windowSizeMs = gcTimeHistory.size() * 2000L;
+            if (windowSizeMs > 0) {
+                gcOverheadPercent = (sum * 100.0) / windowSizeMs;
+            } else {
+                gcOverheadPercent = 0;
+            }
         }
     }
 
     // ── Getters for health report ────────────────────────────
 
     public long getTotalCollections() {
-        return totalCollections;
+        return totalCollections.get();
     }
 
     public long getTotalTimeMs() {
-        return totalTimeMs;
+        return totalTimeMs.get();
     }
 
     /**

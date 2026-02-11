@@ -68,118 +68,34 @@ public class ChunkLimiter {
     }
 
     // ══════════════════════════════════════════════════
-    // Phase 1: ASYNC → SYNC snapshot
+    // Phase 1: Distributed Scan (Main Thread)
     // ══════════════════════════════════════════════════
 
     private void beginAsyncScan() {
         Set<String> whitelist = loadWhitelist();
-
-        // Brief SYNC snapshot
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            List<ChunkSnapshot> snapshots = collectSnapshot(whitelist);
-            if (snapshots.isEmpty())
-                return;
-
-            // Back to ASYNC for analysis
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                analyzeAndDispatch(snapshots, whitelist);
-            });
-        });
-    }
-
-    // ══════════════════════════════════════════════════
-    // Phase 2: SYNC — Quick snapshot
-    // ══════════════════════════════════════════════════
-
-    private List<ChunkSnapshot> collectSnapshot(Set<String> whitelist) {
-        List<ChunkSnapshot> snapshots = new ArrayList<>();
-
-        for (World world : Bukkit.getWorlds()) {
-            for (Chunk chunk : world.getLoadedChunks()) {
-                Entity[] entities = chunk.getEntities();
-                if (entities.length <= maxPerChunk)
-                    continue;
-
-                // This chunk is hot — snapshot its entities
-                List<EntitySnapshot> entitySnaps = new ArrayList<>();
-                for (Entity entity : entities) {
-                    if (entity instanceof Player)
-                        continue;
-                    if (isProtected(entity, whitelist))
-                        continue;
-
-                    EntityCategory cat;
-                    if (entity instanceof Item)
-                        cat = EntityCategory.ITEM;
-                    else if (entity instanceof ExperienceOrb)
-                        cat = EntityCategory.XP_ORB;
-                    else if (entity instanceof Monster)
-                        cat = EntityCategory.HOSTILE;
-                    else if (entity instanceof LivingEntity)
-                        cat = EntityCategory.PASSIVE;
-                    else
-                        continue;
-
-                    entitySnaps.add(new EntitySnapshot(entity.getUniqueId(), cat));
-                }
-
-                snapshots.add(new ChunkSnapshot(
-                        world.getName(), chunk.getX(), chunk.getZ(),
-                        entities.length, entitySnaps));
-            }
-        }
-
-        return snapshots;
-    }
-
-    // ══════════════════════════════════════════════════
-    // Phase 3: ASYNC — Analyze hot chunks
-    // ══════════════════════════════════════════════════
-
-    private void analyzeAndDispatch(List<ChunkSnapshot> snapshots, Set<String> whitelist) {
         lastHotChunks.set(0);
         lastEntitiesRemoved.set(0);
 
-        List<UUID> toRemove = new ArrayList<>();
-
-        for (ChunkSnapshot chunk : snapshots) {
-            int excess = chunk.totalEntities - maxPerChunk;
-            if (excess <= 0)
-                continue;
-
-            lastHotChunks.incrementAndGet();
-
-            // Sort by removal priority (ITEM > XP > HOSTILE > PASSIVE)
-            List<EntitySnapshot> removable = new ArrayList<>(chunk.entities);
-            removable.sort(Comparator.comparingInt(e -> e.category.ordinal()));
-
-            int toRemoveCount = Math.min(excess, removable.size());
-            for (int i = 0; i < toRemoveCount; i++) {
-                toRemove.add(removable.get(i).uuid);
-            }
-
-            plugin.getLogger().fine("[ChunkLimiter] Chunk (" + chunk.chunkX + ", " + chunk.chunkZ
-                    + ") in " + chunk.worldName + ": scheduling " + toRemoveCount + " removals");
-        }
-
-        if (toRemove.isEmpty()) {
-            lastScanTime = System.currentTimeMillis();
-            return;
-        }
-
-        // Dispatch removals to main thread via WorkloadDistributor
         Bukkit.getScheduler().runTask(plugin, () -> {
-            for (UUID uuid : toRemove) {
-                plugin.getWorkloadDistributor().addWorkload(() -> {
-                    Entity entity = Bukkit.getEntity(uuid);
-                    if (entity != null && entity.isValid() && !(entity instanceof Player)) {
-                        entity.remove();
-                        lastEntitiesRemoved.incrementAndGet();
-                    }
-                });
+            for (World world : Bukkit.getWorlds()) {
+                Chunk[] loadedChunks = world.getLoadedChunks();
+                if (loadedChunks.length == 0)
+                    continue;
+
+                // Process chunks in batches of 10 to avoid lag spikes
+                int batchSize = 10;
+                for (int i = 0; i < loadedChunks.length; i += batchSize) {
+                    final int start = i;
+                    final int end = Math.min(i + batchSize, loadedChunks.length);
+                    final Chunk[] chunks = loadedChunks;
+
+                    plugin.getWorkloadDistributor().addWorkload(() -> {
+                        processChunkBatch(chunks, start, end, whitelist);
+                    });
+                }
             }
 
-            // Final stats task
+            // Final reporting task
             plugin.getWorkloadDistributor().addWorkload(() -> {
                 lastScanTime = System.currentTimeMillis();
                 int removed = lastEntitiesRemoved.get();
@@ -189,6 +105,64 @@ public class ChunkLimiter {
                 }
             });
         });
+    }
+
+    private void processChunkBatch(Chunk[] chunks, int start, int end, Set<String> whitelist) {
+        for (int i = start; i < end; i++) {
+            Chunk chunk = chunks[i];
+            if (!chunk.isLoaded())
+                continue;
+
+            Entity[] entities = chunk.getEntities();
+            if (entities.length <= maxPerChunk)
+                continue;
+
+            // Hot chunk logic
+            processHotChunk(chunk, entities, whitelist);
+        }
+    }
+
+    private void processHotChunk(Chunk chunk, Entity[] entities, Set<String> whitelist) {
+        lastHotChunks.incrementAndGet();
+        int excess = entities.length - maxPerChunk;
+
+        List<Entity> removable = new ArrayList<>();
+        for (Entity entity : entities) {
+            if (entity instanceof Player || isProtected(entity, whitelist))
+                continue;
+
+            // Check if removable type
+            if (entity instanceof Item || entity instanceof ExperienceOrb || entity instanceof Monster
+                    || entity instanceof LivingEntity) {
+                removable.add(entity);
+            }
+        }
+
+        // Sort directly (ITEM > XP > HOSTILE > PASSIVE)
+        removable.sort((e1, e2) -> Integer.compare(getCategoryOrdinal(e1), getCategoryOrdinal(e2)));
+
+        int toRemoveCount = Math.min(excess, removable.size());
+        for (int i = 0; i < toRemoveCount; i++) {
+            removable.get(i).remove();
+            lastEntitiesRemoved.incrementAndGet();
+        }
+
+        if (toRemoveCount > 0) {
+            plugin.getLogger().fine("[ChunkLimiter] Chunk (" + chunk.getX() + ", " + chunk.getZ()
+                    + ") in " + chunk.getWorld().getName() + ": removed " + toRemoveCount + " entities");
+        }
+    }
+
+    private int getCategoryOrdinal(Entity entity) {
+        if (entity instanceof Item)
+            return 0;
+        if (entity instanceof ExperienceOrb)
+            return 1;
+        if (entity instanceof Monster)
+            return 2;
+        if (entity instanceof LivingEntity)
+            return 3; // Passive
+        return 4;
     }
 
     /**
@@ -230,39 +204,6 @@ public class ChunkLimiter {
         return set;
     }
 
-    // ══════════════════════════════════════════════════
-    // Data Classes
-    // ══════════════════════════════════════════════════
-
-    private enum EntityCategory {
-        ITEM, XP_ORB, HOSTILE, PASSIVE
-    }
-
-    private static class EntitySnapshot {
-        final UUID uuid;
-        final EntityCategory category;
-
-        EntitySnapshot(UUID uuid, EntityCategory category) {
-            this.uuid = uuid;
-            this.category = category;
-        }
-    }
-
-    private static class ChunkSnapshot {
-        final String worldName;
-        final int chunkX, chunkZ;
-        final int totalEntities;
-        final List<EntitySnapshot> entities;
-
-        ChunkSnapshot(String worldName, int chunkX, int chunkZ, int totalEntities,
-                List<EntitySnapshot> entities) {
-            this.worldName = worldName;
-            this.chunkX = chunkX;
-            this.chunkZ = chunkZ;
-            this.totalEntities = totalEntities;
-            this.entities = entities;
-        }
-    }
 
     // ══════════════════════════════════════════════════
     // Getters
