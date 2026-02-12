@@ -2,6 +2,7 @@ package com.lesslag.action;
 
 import com.lesslag.LessLag;
 import com.lesslag.WorkloadDistributor;
+import com.lesslag.util.NotificationHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -34,7 +35,8 @@ public class ActionExecutor {
             "force-gc",
             "chunk-clean",
             "enforce-entity-limits",
-            "unload-world-chunks");
+            "unload-world-chunks",
+            "notify-admin");
 
     /**
      * Sorted list for consistent display order.
@@ -50,7 +52,8 @@ public class ActionExecutor {
             "force-gc",
             "chunk-clean",
             "enforce-entity-limits",
-            "unload-world-chunks");
+            "unload-world-chunks",
+            "notify-admin");
 
     public ActionExecutor(LessLag plugin) {
         this.plugin = plugin;
@@ -235,6 +238,12 @@ public class ActionExecutor {
                 int unloaded = unloadWorldChunks();
                 if (unloaded > 0)
                     plugin.getLogger().info("[Action] Unloaded " + unloaded + " excess chunks across all worlds");
+                break;
+            }
+            case "notify-admin": {
+                // Predictive optimization sends its own detailed notification.
+                // This action exists to prevent errors when used as a default in config.
+                NotificationHelper.notifyAdminsAsync("&e⚠ &7[Action] &fAdmin notification triggered.");
                 break;
             }
             default: {

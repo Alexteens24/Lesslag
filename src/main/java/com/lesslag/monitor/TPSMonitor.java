@@ -364,8 +364,9 @@ public class TPSMonitor {
 
         double recoveryThreshold = config.getDouble("recovery.tps-threshold", 18.0);
         int delaySeconds = config.getInt("recovery.delay-seconds", 30);
-        int checkInterval = config.getInt("monitor.check-interval", 5);
-        int neededChecks = delaySeconds / checkInterval;
+        int checkIntervalTicks = config.getInt("system.tps-monitor.check-interval", 100);
+        int checkIntervalSeconds = Math.max(1, checkIntervalTicks / 20);
+        int neededChecks = delaySeconds / checkIntervalSeconds;
 
         if (currentTPS >= recoveryThreshold) {
             consecutiveGoodCount++;
