@@ -42,16 +42,16 @@ public class ChunkLimiter {
     }
 
     private void loadConfig() {
-        maxPerChunk = plugin.getConfig().getInt("chunk-limiter.max-entities-per-chunk", 50);
-        scanInterval = plugin.getConfig().getInt("chunk-limiter.scan-interval", 30);
+        maxPerChunk = plugin.getConfig().getInt("modules.entities.chunk-limiter.max-entities-per-chunk", 50);
+        scanInterval = plugin.getConfig().getInt("modules.entities.chunk-limiter.scan-interval", 30);
 
         cachedWhitelist = new HashSet<>();
-        for (String s : plugin.getConfig().getStringList("entity-whitelist"))
+        for (String s : plugin.getConfig().getStringList("modules.entities.chunk-limiter.whitelist"))
             cachedWhitelist.add(s.toUpperCase());
     }
 
     public void start() {
-        if (!plugin.getConfig().getBoolean("chunk-limiter.enabled", true))
+        if (!plugin.getConfig().getBoolean("modules.entities.chunk-limiter.enabled", true))
             return;
 
         // ASYNC periodic trigger

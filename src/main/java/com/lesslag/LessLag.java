@@ -69,8 +69,8 @@ public class LessLag extends JavaPlugin implements Listener {
         saveDefaultConfig();
         saveResource("messages.yml", false);
 
-        String minVersion = getConfig().getString("compat.min-version", "1.20.4");
-        boolean allowUnsupported = getConfig().getBoolean("compat.allow-unsupported-versions", false);
+        String minVersion = getConfig().getString("compatibility.min-version", "1.20.4");
+        boolean allowUnsupported = getConfig().getBoolean("compatibility.allow-unsupported-versions", false);
         if (!isVersionAtLeast(minVersion)) {
             if (!allowUnsupported) {
                 getLogger().severe("LessLag requires Minecraft " + minVersion + " or newer.");
@@ -351,7 +351,7 @@ public class LessLag extends JavaPlugin implements Listener {
     }
 
     public String getPrefix() {
-        return getConfig().getString("prefix", "&8[&c&lLessLag&8] &r");
+        return getConfig().getString("core.prefix", "&8[&c&lLessLag&8] &r");
     }
 
     @EventHandler

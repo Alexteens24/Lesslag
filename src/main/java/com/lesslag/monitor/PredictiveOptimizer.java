@@ -46,18 +46,18 @@ public class PredictiveOptimizer {
     }
 
     private void loadConfig() {
-        windowSize = plugin.getConfig().getInt("predictive-optimization.window-seconds", 10);
-        slopeThreshold = plugin.getConfig().getDouble("predictive-optimization.slope-threshold", 3.0);
-        msptBaseline = plugin.getConfig().getDouble("predictive-optimization.mspt-baseline", 30.0);
-        cooldownSeconds = plugin.getConfig().getInt("predictive-optimization.cooldown-seconds", 60);
-        notifyEnabled = plugin.getConfig().getBoolean("predictive-optimization.notify", true);
+        windowSize = plugin.getConfig().getInt("automation.predictive-optimization.window-seconds", 10); // Hidden
+        slopeThreshold = plugin.getConfig().getDouble("automation.predictive-optimization.slope-threshold", 3.0);
+        msptBaseline = plugin.getConfig().getDouble("automation.predictive-optimization.mspt-baseline", 30.0); // Hidden
+        cooldownSeconds = plugin.getConfig().getInt("automation.predictive-optimization.cooldown", 60);
+        notifyEnabled = plugin.getConfig().getBoolean("automation.predictive-optimization.notify", true); // Hidden
     }
 
     /**
      * Called by TPSMonitor every second with the latest average MSPT.
      */
     public void feed(double currentMSPT) {
-        if (!plugin.getConfig().getBoolean("predictive-optimization.enabled", true))
+        if (!plugin.getConfig().getBoolean("automation.predictive-optimization.enabled", true))
             return;
 
         synchronized (msptSamples) {
@@ -188,7 +188,18 @@ public class PredictiveOptimizer {
     }
 
     private void executeActions(String triggerType) {
-        List<String> actions = plugin.getConfig().getStringList("predictive-optimization.actions");
+        // Assuming default action is "notify-admin" as per new config "action:
+        // notify-admin".
+        // But original code supported a list of actions.
+        // I'll try to read `action` (single) and `actions` (list) for backward
+        // compatibility or future proofing.
+        List<String> actions = plugin.getConfig().getStringList("automation.predictive-optimization.actions");
+        String singleAction = plugin.getConfig().getString("automation.predictive-optimization.action");
+
+        if (singleAction != null && actions.isEmpty()) {
+            actions.add(singleAction);
+        }
+
         if (!actions.isEmpty()) {
             Bukkit.getScheduler().runTask(plugin, () -> actionExecutor.executeActions(actions));
         }

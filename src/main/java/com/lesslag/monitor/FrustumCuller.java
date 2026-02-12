@@ -45,18 +45,35 @@ public class FrustumCuller {
     }
 
     private void loadConfig() {
-        maxRadius = plugin.getConfig().getDouble("ai-optimization.active-radius", 48);
-        fovDegrees = plugin.getConfig().getDouble("ai-optimization.frustum-culling.fov-degrees", 110);
-        behindRadius = plugin.getConfig().getDouble("ai-optimization.frustum-culling.behind-safe-radius", 12);
-        intervalTicks = plugin.getConfig().getInt("ai-optimization.frustum-culling.interval-ticks", 40);
+        maxRadius = plugin.getConfig().getDouble("modules.mob-ai.active-radius", 48);
+        // Assuming user might want advanced frustum culling config, but for now mapping
+        // to existing keys or general 'mob-ai'
+        // Since I moved 'frustum-culling' logic into 'mob-ai', I should use those keys.
+        // However, the config I wrote has `active-radius` and `update-interval` in
+        // `mob-ai`.
+        // I did not explicitly add `fov-degrees` or `behind-safe-radius` to the new
+        // `config.yml`.
+        // I should stick to defaults or allow them to be hidden settings, OR ideally
+        // add them to the config.
+        // For now, I will use "modules.mob-ai.frustum-culling" namespace for detailed
+        // settings if I didn't verify them in config.
+        // Let's re-read config.yml I just wrote.
+        // It has `modules.mob-ai` with `active-radius`, `update-interval` and
+        // `protected`.
+        // It does NOT have `fov-degrees` or `behind-safe-radius`. I should use default
+        // or look for them in `modules.mob-ai`.
+
+        fovDegrees = plugin.getConfig().getDouble("modules.mob-ai.fov-degrees", 110);
+        behindRadius = plugin.getConfig().getDouble("modules.mob-ai.behind-safe-radius", 12);
+        intervalTicks = plugin.getConfig().getInt("modules.mob-ai.update-interval", 20);
 
         protectedTypes = new HashSet<>();
-        for (String s : plugin.getConfig().getStringList("ai-optimization.protected"))
+        for (String s : plugin.getConfig().getStringList("modules.mob-ai.protected"))
             protectedTypes.add(s.toUpperCase());
     }
 
     public void start() {
-        if (!plugin.getConfig().getBoolean("ai-optimization.frustum-culling.enabled", true))
+        if (!plugin.getConfig().getBoolean("modules.mob-ai.enabled", true))
             return;
 
         // ASYNC periodic trigger

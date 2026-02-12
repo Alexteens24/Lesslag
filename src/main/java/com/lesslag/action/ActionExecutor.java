@@ -63,11 +63,11 @@ public class ActionExecutor {
         entityWhitelist.clear();
         aiProtected.clear();
 
-        List<String> whitelist = plugin.getConfig().getStringList("entity-whitelist");
+        List<String> whitelist = plugin.getConfig().getStringList("modules.entities.chunk-limiter.whitelist");
         for (String entry : whitelist)
             entityWhitelist.add(entry.toUpperCase());
 
-        List<String> aiProt = plugin.getConfig().getStringList("ai-optimization.protected");
+        List<String> aiProt = plugin.getConfig().getStringList("modules.mob-ai.protected");
         for (String entry : aiProt)
             aiProtected.add(entry.toUpperCase());
 
@@ -336,7 +336,7 @@ public class ActionExecutor {
      * Disable AI for mobs far from players to reduce pathfinding load
      */
     public void disableMobAI() {
-        int radius = plugin.getConfig().getInt("ai-optimization.active-radius", 48);
+        int radius = plugin.getConfig().getInt("modules.mob-ai.active-radius", 48);
         int chunkRadius = (radius >> 4) + 1;
         WorkloadDistributor distributor = plugin.getWorkloadDistributor();
 
@@ -411,8 +411,8 @@ public class ActionExecutor {
      * Reduce view distance for all worlds
      */
     public void reduceViewDistance() {
-        int minVD = plugin.getConfig().getInt("action-settings.min-view-distance", 4);
-        int reduceBy = plugin.getConfig().getInt("action-settings.view-distance-reduce-by", 2);
+        int minVD = plugin.getConfig().getInt("modules.chunks.view-distance.min", 4);
+        int reduceBy = plugin.getConfig().getInt("modules.chunks.view-distance.reduce-by", 2);
         for (World world : Bukkit.getWorlds()) {
             int currentVD = world.getViewDistance();
             if (currentVD > minVD) {
@@ -427,8 +427,8 @@ public class ActionExecutor {
      * Reduce simulation distance for all worlds
      */
     public void reduceSimulationDistance() {
-        int minSD = plugin.getConfig().getInt("action-settings.min-simulation-distance", 4);
-        int reduceBy = plugin.getConfig().getInt("action-settings.simulation-distance-reduce-by", 2);
+        int minSD = plugin.getConfig().getInt("modules.chunks.simulation-distance.min", 4);
+        int reduceBy = plugin.getConfig().getInt("modules.chunks.simulation-distance.reduce-by", 2);
         if (!plugin.isSimulationDistanceSupported()) {
             plugin.getLogger().fine("Simulation distance API not available");
             return;
@@ -466,7 +466,7 @@ public class ActionExecutor {
             return 0;
 
         int totalScheduled = 0;
-        double overloadMultiplier = plugin.getConfig().getDouble("world-chunk-guard.overload-multiplier", 2.0);
+        double overloadMultiplier = plugin.getConfig().getDouble("modules.chunks.world-guard.overload-multiplier", 2.0);
         WorkloadDistributor distributor = plugin.getWorkloadDistributor();
 
         for (World world : Bukkit.getWorlds()) {
@@ -605,7 +605,7 @@ public class ActionExecutor {
      * architecture: SYNC snapshot -> ASYNC sort -> SYNC execution
      */
     public void enforceEntityLimits() {
-        var section = plugin.getConfig().getConfigurationSection("entity-limits");
+        var section = plugin.getConfig().getConfigurationSection("modules.entities.limits.per-world-limit");
         if (section == null)
             return;
 

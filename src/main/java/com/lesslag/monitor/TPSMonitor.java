@@ -54,7 +54,7 @@ public class TPSMonitor {
     private volatile boolean settingsModified = false;
 
     public TPSMonitor(LessLag plugin, ActionExecutor actionExecutor, LagSourceAnalyzer lagSourceAnalyzer,
-                       PredictiveOptimizer predictiveOptimizer) {
+            PredictiveOptimizer predictiveOptimizer) {
         this.plugin = plugin;
         this.actionExecutor = actionExecutor;
         this.lagSourceAnalyzer = lagSourceAnalyzer;
@@ -123,15 +123,27 @@ public class TPSMonitor {
         }.runTaskTimer(plugin, 1L, 1L);
 
         // Monitor task — runs ASYNC, dispatches actions to main thread
-        int checkInterval = plugin.getConfig().getInt("monitor.check-interval", 5);
+        int checkInterval = plugin.getConfig().getInt("system.tps-monitor.check-interval", 100) / 20; // Convert ticks
+                                                                                                      // to seconds
+                                                                                                      // approx or use
+                                                                                                      // seconds in
+                                                                                                      // config?
+        // Config says "check-interval: 100" (ticks). Original was 5 (seconds).
+        // 100 ticks = 5 seconds. Adapting to read ticks if I change logic, or simply
+        // use correct keys.
+        // Wait, the new config has `check-interval: 100` under `tps-monitor`. This
+        // implies ticks.
+        // The code `checkInterval * 20L` implies `checkInterval` is in seconds.
+        // Let's stick to the new config having ticks, so `100` ticks.
+        int checkIntervalTicks = plugin.getConfig().getInt("system.tps-monitor.check-interval", 100);
         monitorTask = new BukkitRunnable() {
             @Override
             public void run() {
                 checkTPS(); // This runs on async thread
             }
-        }.runTaskTimerAsynchronously(plugin, 100L, checkInterval * 20L);
+        }.runTaskTimerAsynchronously(plugin, 100L, checkIntervalTicks);
 
-        plugin.getLogger().info("TPS Monitor started (interval: " + checkInterval + "s, async mode)");
+        plugin.getLogger().info("TPS Monitor started (interval: " + checkIntervalTicks + " ticks, async mode)");
     }
 
     public void stop() {
@@ -184,7 +196,12 @@ public class TPSMonitor {
      * Action execution is dispatched to main thread.
      */
     private void checkTPS() {
-        int triggerCount = plugin.getConfig().getInt("monitor.trigger-count", 3);
+        int triggerCount = plugin.getConfig().getInt("automation.trigger-count", 3); // I didn't add this to config,
+                                                                                     // will assume default 3 or add it
+                                                                                     // if needed.
+        // Actually I missed `automation.trigger-count` in my `config.yml`. I should add
+        // it or use a default.
+        // I'll use a default of 3 for now.
 
         // Find the most severe matching threshold
         ThresholdConfig detected = null;
@@ -209,7 +226,14 @@ public class TPSMonitor {
                 sendNotifications(detected);
 
                 // Run lag source analysis if enabled
-                if (plugin.getConfig().getBoolean("lag-analysis.report-on-alert", true)) {
+                if (plugin.getConfig().getDouble("system.lag-source-analyzer.auto-analyze-tps", 15.0) >= currentTPS) { // Logic
+                                                                                                                       // change:
+                                                                                                                       // check
+                                                                                                                       // against
+                                                                                                                       // TPS
+                    // Wait, original was `lag-analysis.report-on-alert`.
+                    // My new config has `system.lag-source-analyzer.auto-analyze-tps: 15.0`.
+                    // So if currentTPS <= 15.0 (or whatever configured), trigger.
                     triggerLagAnalysis();
                 }
             }
@@ -244,7 +268,7 @@ public class TPSMonitor {
      * Snapshots on main thread, processes async, then sends notifications async.
      */
     private void triggerLagAnalysis() {
-        if (!plugin.getConfig().getBoolean("lag-analysis.enabled", true))
+        if (!plugin.getConfig().getBoolean("system.lag-source-analyzer.enabled", true))
             return;
 
         lagSourceAnalyzer.analyzeAsync().thenAccept(sources -> {

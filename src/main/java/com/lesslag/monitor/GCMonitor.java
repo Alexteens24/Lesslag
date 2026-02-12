@@ -51,12 +51,14 @@ public class GCMonitor {
     }
 
     private void loadConfig() {
-        minDuration = plugin.getConfig().getLong("gc-monitor.min-duration-ms", 50);
-        notifyEnabled = plugin.getConfig().getBoolean("gc-monitor.notify", true);
+        minDuration = plugin.getConfig().getLong("system.gc-monitor.warn-threshold-ms", 50); // Mapped min-duration to
+                                                                                             // warn-threshold-ms
+        notifyEnabled = plugin.getConfig().getBoolean("system.gc-monitor.notify", true); // Hidden key, keeping default
+                                                                                         // true
     }
 
     public void start() {
-        if (!plugin.getConfig().getBoolean("gc-monitor.enabled", true))
+        if (!plugin.getConfig().getBoolean("system.gc-monitor.enabled", true))
             return;
 
         // Cache GC beans

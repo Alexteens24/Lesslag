@@ -58,10 +58,13 @@ public class MemoryLeakDetector {
     }
 
     public void start() {
-        if (!plugin.getConfig().getBoolean("memory-leak-detector.enabled", true))
+        if (!plugin.getConfig().getBoolean("system.memory-leak-detection.enabled", true))
             return;
 
-        int intervalSeconds = plugin.getConfig().getInt("memory-leak-detector.check-interval", 30);
+        int intervalSeconds = plugin.getConfig().getInt("system.memory-leak-detection.check-interval-minutes", 10) * 60;
+        // Config has `check-interval-minutes: 10`. Code uses `check-interval`
+        // (seconds).
+        // I'll read minutes and multiply by 60.
 
         // Cache JMX beans
         cachedPools = ManagementFactory.getMemoryPoolMXBeans();
@@ -98,11 +101,11 @@ public class MemoryLeakDetector {
      * Take a sample: record post-GC baseline, update GC frequency, check for leak.
      */
     private void sample() {
-        int windowSize = plugin.getConfig().getInt("memory-leak-detector.window-size", 20);
-        double slopeThreshold = plugin.getConfig().getDouble("memory-leak-detector.slope-threshold-mb-per-min", 5.0);
-        int minSamples = plugin.getConfig().getInt("memory-leak-detector.min-samples", 8);
-        int alertCooldownSec = plugin.getConfig().getInt("memory-leak-detector.alert-cooldown", 300);
-        boolean notify = plugin.getConfig().getBoolean("memory-leak-detector.notify", true);
+        int windowSize = plugin.getConfig().getInt("system.memory-leak-detection.window-size", 20); // Hidden
+        double slopeThreshold = plugin.getConfig().getDouble("system.memory-leak-detection.warn-slope-threshold", 2.0); // Mapped
+        int minSamples = plugin.getConfig().getInt("system.memory-leak-detection.min-samples", 8); // Hidden
+        int alertCooldownSec = plugin.getConfig().getInt("system.memory-leak-detection.alert-cooldown", 300); // Hidden
+        boolean notify = plugin.getConfig().getBoolean("system.memory-leak-detection.notify", true); // Hidden
 
         // ── 1. Record post-GC baseline ──
         double postGCMB = getPostGCBaselineMB();

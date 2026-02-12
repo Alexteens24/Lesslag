@@ -2,8 +2,7 @@ package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
-import org.bukkit.entity.Entity;
+
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -43,7 +42,8 @@ public class LagSourceAnalyzer {
     }
 
     /**
-     * Run a full lag source analysis. Takes a snapshot incrementally on main thread,
+     * Run a full lag source analysis. Takes a snapshot incrementally on main
+     * thread,
      * then processes it async. Returns results via CompletableFuture.
      */
     public CompletableFuture<List<LagSource>> analyzeAsync() {
@@ -66,7 +66,8 @@ public class LagSourceAnalyzer {
                     try {
                         plugin.getAsyncExecutor().execute(() -> {
                             try {
-                                List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime, config);
+                                List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime,
+                                        config);
                                 lastAnalysis = results;
                                 lastAnalysisTime = snapshotTime;
 
@@ -127,12 +128,12 @@ public class LagSourceAnalyzer {
 
     private AnalysisConfig takeConfigSnapshot() {
         return new AnalysisConfig(
-                plugin.getConfig().getInt("lag-analysis.entity-warning-count", 500),
-                plugin.getConfig().getInt("lag-analysis.chunk-warning-count", 800),
-                plugin.getConfig().getInt("lag-analysis.task-warning-count", 20),
-                plugin.getConfig().getInt("lag-analysis.top-entities", 3),
-                plugin.getConfig().getInt("lag-analysis.density-threshold", 50),
-                plugin.getConfig().getDouble("lag-analysis.chunk-rate-warning", 10.0));
+                plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.entity-count", 500),
+                plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.chunk-count", 800),
+                plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.task-count", 20),
+                plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.top-entities", 3),
+                plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.density", 50),
+                plugin.getConfig().getDouble("system.lag-source-analyzer.thresholds.chunk-rate-warn", 10.0));
     }
 
     // ══════════════════════════════════════════════════
@@ -311,10 +312,10 @@ public class LagSourceAnalyzer {
     public List<String> formatFullReport(List<LagSource> sources, WorldSnapshot[] worldSnapshots,
             TaskSnapshot[] taskSnapshots) {
         List<String> lines = new ArrayList<>();
-        int entityWarning = plugin.getConfig().getInt("lag-analysis.entity-warning-count", 500);
-        int chunkWarning = plugin.getConfig().getInt("lag-analysis.chunk-warning-count", 800);
-        int taskWarning = plugin.getConfig().getInt("lag-analysis.task-warning-count", 20);
-        int topN = plugin.getConfig().getInt("lag-analysis.top-entities", 3);
+        int entityWarning = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.entity-count", 500);
+        int chunkWarning = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.chunk-count", 800);
+        int taskWarning = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.task-count", 20);
+        int topN = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.top-entities", 3);
 
         // ── TOP ENTITIES ──
         lines.add("  &e&lTOP ENTITIES");
@@ -342,7 +343,7 @@ public class LagSourceAnalyzer {
 
         // Entity density hotspots
         boolean hasDensity = false;
-        int densityThreshold = plugin.getConfig().getInt("lag-analysis.density-threshold", 50);
+        int densityThreshold = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.density", 50);
         for (WorldSnapshot world : worldSnapshots) {
             int hotspots = 0;
             int worst = 0;
@@ -378,7 +379,8 @@ public class LagSourceAnalyzer {
             long elapsed = System.currentTimeMillis() - lastChunkSnapshotTime;
             if (elapsed > 0) {
                 double elapsedSec = elapsed / 1000.0;
-                double rateWarning = plugin.getConfig().getDouble("lag-analysis.chunk-rate-warning", 10.0);
+                double rateWarning = plugin.getConfig()
+                        .getDouble("system.lag-source-analyzer.thresholds.chunk-rate-warn", 10.0);
                 for (WorldSnapshot world : worldSnapshots) {
                     int prev = previousChunkCounts.getOrDefault(world.name, world.loadedChunks);
                     int delta = world.loadedChunks - prev;

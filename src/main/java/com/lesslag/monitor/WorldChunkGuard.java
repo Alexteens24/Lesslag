@@ -48,10 +48,10 @@ public class WorldChunkGuard {
     }
 
     public void start() {
-        if (!plugin.getConfig().getBoolean("world-chunk-guard.enabled", true))
+        if (!plugin.getConfig().getBoolean("modules.chunks.world-guard.enabled", true))
             return;
 
-        int intervalSeconds = plugin.getConfig().getInt("world-chunk-guard.check-interval", 10);
+        int intervalSeconds = plugin.getConfig().getInt("modules.chunks.world-guard.check-interval", 10);
 
         // ── ASYNC periodic check ──
         checkTask = new BukkitRunnable() {
@@ -76,10 +76,10 @@ public class WorldChunkGuard {
     // ══════════════════════════════════════════════════
 
     private void beginAsyncCheck() {
-        double overloadMultiplier = plugin.getConfig().getDouble("world-chunk-guard.overload-multiplier", 2.0);
-        int maxRetries = plugin.getConfig().getInt("world-chunk-guard.max-retry-before-evacuate", 3);
-        boolean notify = plugin.getConfig().getBoolean("world-chunk-guard.notify", true);
-        String evacuateWorldName = plugin.getConfig().getString("world-chunk-guard.evacuate-world", "world");
+        double overloadMultiplier = plugin.getConfig().getDouble("modules.chunks.world-guard.overload-multiplier", 2.0);
+        int maxRetries = plugin.getConfig().getInt("modules.chunks.world-guard.max-retry-before-evacuate", 3);
+        boolean notify = plugin.getConfig().getBoolean("modules.chunks.world-guard.notify", true);
+        String evacuateWorldName = plugin.getConfig().getString("modules.chunks.world-guard.evacuate-world", "world");
 
         // Brief SYNC dispatch to collect world snapshots
         Bukkit.getScheduler().runTask(plugin, () -> {

@@ -39,17 +39,22 @@ public class CompatibilityManager {
      * Call this in onEnable() BEFORE starting monitors.
      */
     public void detect() {
-        String mode = plugin.getConfig().getString("compatibility.mode", "auto");
-        if (mode.equalsIgnoreCase("off")) {
+        boolean autoDetect = plugin.getConfig().getBoolean("compatibility.auto-detect", true);
+        if (!autoDetect) {
             plugin.getLogger().info("[Compat] Compatibility checks disabled.");
             return;
         }
 
-        boolean autoAdjust = mode.equalsIgnoreCase("auto");
+        // We assume auto-adjust is always desired if auto-detect is on,
+        // as per new config structure which relies on booleans to disable check
+        // entirely.
+        // Or we can say "auto-detect" is just detection, and "plugins.*" booleans
+        // control adjustment.
+        // Actually, config comment says "Automatically detect and adjust".
 
-        detectPufferfish(autoAdjust);
-        detectClearlag(autoAdjust);
-        detectMobFarmManager(autoAdjust);
+        detectPufferfish(true);
+        detectClearlag(true);
+        detectMobFarmManager(true);
 
         // Print summary
         if (!autoDisabled.isEmpty()) {
@@ -70,8 +75,8 @@ public class CompatibilityManager {
 
     private void detectPufferfish(boolean autoAdjust) {
         // Check config override first
-        String override = plugin.getConfig().getString("compatibility.pufferfish", "auto");
-        if (override.equalsIgnoreCase("ignore"))
+        boolean check = plugin.getConfig().getBoolean("compatibility.plugins.pufferfish-dab", true);
+        if (!check)
             return;
 
         // Detect Pufferfish by checking for its config file or server brand
@@ -88,16 +93,9 @@ public class CompatibilityManager {
 
         if (dabEnabled && autoAdjust) {
             // DAB handles AI optimization — disable LessLag's AI features
-            if (plugin.getConfig().getBoolean("ai-optimization.frustum-culling.enabled", true)) {
-                plugin.getConfig().set("ai-optimization.frustum-culling.enabled", false);
-                autoDisabled.add("Frustum Culling (DAB handles AI optimization)");
-            }
-
-            // Widen LessLag's active-radius since DAB already handles nearby AI
-            int currentRadius = plugin.getConfig().getInt("ai-optimization.active-radius", 48);
-            if (currentRadius < 64) {
-                plugin.getConfig().set("ai-optimization.active-radius", 64);
-                autoDisabled.add("AI active-radius raised to 64 (DAB handles close range)");
+            if (plugin.getConfig().getBoolean("modules.mob-ai.enabled", true)) {
+                plugin.getConfig().set("modules.mob-ai.enabled", false);
+                autoDisabled.add("Mob AI Module (DAB handles AI optimization)");
             }
         }
     }
@@ -125,8 +123,8 @@ public class CompatibilityManager {
     // ══════════════════════════════════════════════════
 
     private void detectClearlag(boolean autoAdjust) {
-        String override = plugin.getConfig().getString("compatibility.clearlag", "auto");
-        if (override.equalsIgnoreCase("ignore"))
+        boolean check = plugin.getConfig().getBoolean("compatibility.plugins.clearlag", true);
+        if (!check)
             return;
 
         clearlagDetected = Bukkit.getPluginManager().getPlugin("ClearLag") != null
@@ -141,8 +139,8 @@ public class CompatibilityManager {
 
         if (autoAdjust) {
             // ClearLag handles redstone culling — disable our suppressor
-            if (plugin.getConfig().getBoolean("redstone-suppressor.enabled", true)) {
-                plugin.getConfig().set("redstone-suppressor.enabled", false);
+            if (plugin.getConfig().getBoolean("modules.redstone.enabled", true)) {
+                plugin.getConfig().set("modules.redstone.enabled", false);
                 autoDisabled.add("Redstone Suppressor (ClearLag handles redstone culling)");
             }
 
@@ -158,8 +156,8 @@ public class CompatibilityManager {
     // ══════════════════════════════════════════════════
 
     private void detectMobFarmManager(boolean autoAdjust) {
-        String override = plugin.getConfig().getString("compatibility.mob-farm-manager", "auto");
-        if (override.equalsIgnoreCase("ignore"))
+        boolean check = plugin.getConfig().getBoolean("compatibility.plugins.mobfarmmanager", true);
+        if (!check)
             return;
 
         mobFarmManagerDetected = Bukkit.getPluginManager().getPlugin("MobFarmManager") != null;
@@ -171,16 +169,16 @@ public class CompatibilityManager {
 
         if (autoAdjust) {
             // MFM manages farm entities — raise our per-chunk limit to avoid conflict
-            int currentLimit = plugin.getConfig().getInt("chunk-limiter.max-entities-per-chunk", 50);
+            int currentLimit = plugin.getConfig().getInt("modules.entities.chunk-limiter.max-entities-per-chunk", 50);
             if (currentLimit < 75) {
-                plugin.getConfig().set("chunk-limiter.max-entities-per-chunk", 75);
+                plugin.getConfig().set("modules.entities.chunk-limiter.max-entities-per-chunk", 75);
                 autoDisabled.add("Chunk Limiter threshold raised to 75 (MobFarmManager manages farms)");
             }
 
             // Extend scan interval to let MFM do its work first
-            int currentInterval = plugin.getConfig().getInt("chunk-limiter.scan-interval", 30);
+            int currentInterval = plugin.getConfig().getInt("modules.entities.chunk-limiter.scan-interval", 30);
             if (currentInterval < 60) {
-                plugin.getConfig().set("chunk-limiter.scan-interval", 60);
+                plugin.getConfig().set("modules.entities.chunk-limiter.scan-interval", 60);
                 autoDisabled.add("Chunk Limiter interval extended to 60s (defers to MobFarmManager)");
             }
         }

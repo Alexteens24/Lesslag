@@ -45,7 +45,8 @@ public class LagCommand implements CommandExecutor {
     private String getMessage(String key, String def) {
         if (messagesConfig != null) {
             String val = messagesConfig.getString(key);
-            if (val != null) return val;
+            if (val != null)
+                return val;
         }
         return plugin.getConfig().getString(key, def);
     }
@@ -530,7 +531,7 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &7Last tick: &f" + String.format("%.1f", tick.getLastTickMs()) + "ms");
         send(sender, "  &7Worst tick: &f" + String.format("%.1f", tick.getWorstTickMs()) + "ms");
         send(sender, "  &7Spike count: &e" + tick.getSpikeCount() +
-                " &8(threshold: " + plugin.getConfig().getDouble("tick-monitor.threshold-ms", 100) + "ms)");
+                " &8(threshold: " + plugin.getConfig().getDouble("system.tick-monitor.threshold-ms", 100) + "ms)");
         send(sender, "");
     }
 
@@ -600,7 +601,8 @@ public class LagCommand implements CommandExecutor {
             case "all":
             default: {
                 plugin.getActionExecutor().clearAll();
-                String msg = getMessage("messages.all-cleared", "&aScheduled clearing of all entities (items, xp, mobs).");
+                String msg = getMessage("messages.all-cleared",
+                        "&aScheduled clearing of all entities (items, xp, mobs).");
                 send(sender, plugin.getPrefix() + msg);
                 break;
             }
@@ -647,10 +649,10 @@ public class LagCommand implements CommandExecutor {
                 send(sender, "  &7Total mobs: &f" + total);
                 send(sender, "  &7AI disabled: &e" + noAI);
                 send(sender, "  &7AI active: &a" + (total - noAI));
-                send(sender, "  &7Active radius: &f" + plugin.getConfig().getInt("ai-optimization.active-radius", 48)
+                send(sender, "  &7Active radius: &f" + plugin.getConfig().getInt("modules.mob-ai.active-radius", 48)
                         + " blocks");
                 send(sender, "  &7Protected types: &f"
-                        + plugin.getConfig().getStringList("ai-optimization.protected").size());
+                        + plugin.getConfig().getStringList("modules.mob-ai.protected").size());
                 send(sender, "");
                 break;
             }
@@ -713,15 +715,17 @@ public class LagCommand implements CommandExecutor {
 
     private void showChunkLimiter(CommandSender sender) {
         ChunkLimiter cl = plugin.getChunkLimiter();
-        boolean enabled = plugin.getConfig().getBoolean("chunk-limiter.enabled", true);
+        boolean enabled = plugin.getConfig().getBoolean("modules.entities.chunk-limiter.enabled", true);
 
         send(sender, "");
         send(sender, "&c&l  ≡ Smart Chunk Limiter ≡");
         send(sender, "");
         send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
         send(sender,
-                "  &7Max entities/chunk: &f" + plugin.getConfig().getInt("chunk-limiter.max-entities-per-chunk", 50));
-        send(sender, "  &7Scan interval: &f" + plugin.getConfig().getInt("chunk-limiter.scan-interval", 30) + "s");
+                "  &7Max entities/chunk: &f"
+                        + plugin.getConfig().getInt("modules.entities.chunk-limiter.max-entities-per-chunk", 50));
+        send(sender, "  &7Scan interval: &f"
+                + plugin.getConfig().getInt("modules.entities.chunk-limiter.scan-interval", 30) + "s");
 
         if (cl != null && cl.getLastScanTime() > 0) {
             long ago = (System.currentTimeMillis() - cl.getLastScanTime()) / 1000;
@@ -743,16 +747,16 @@ public class LagCommand implements CommandExecutor {
 
     private void showRedstone(CommandSender sender) {
         RedstoneMonitor rm = plugin.getRedstoneMonitor();
-        boolean enabled = plugin.getConfig().getBoolean("redstone-suppressor.enabled", true);
+        boolean enabled = plugin.getConfig().getBoolean("modules.redstone.enabled", true);
 
         send(sender, "");
         send(sender, "&c&l  ≡ Redstone Suppressor ≡");
         send(sender, "");
         send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
         send(sender, "  &7Max activations/chunk: &f"
-                + plugin.getConfig().getInt("redstone-suppressor.max-activations-per-chunk", 200));
-        send(sender, "  &7Window: &f" + plugin.getConfig().getInt("redstone-suppressor.window-seconds", 2) + "s");
-        send(sender, "  &7Cooldown: &f" + plugin.getConfig().getInt("redstone-suppressor.cooldown-seconds", 10) + "s");
+                + plugin.getConfig().getInt("modules.redstone.max-activations-per-chunk", 200));
+        send(sender, "  &7Window: &f" + plugin.getConfig().getInt("modules.redstone.window-seconds", 2) + "s");
+        send(sender, "  &7Cooldown: &f" + plugin.getConfig().getInt("modules.redstone.cooldown-seconds", 10) + "s");
 
         if (rm != null) {
             send(sender, "");
@@ -763,6 +767,20 @@ public class LagCommand implements CommandExecutor {
             if (!rm.getSuppressedChunks().isEmpty()) {
                 send(sender, "");
                 send(sender, "  &e&lActive Suppressions:");
+
+                // Advanced stats
+                if (plugin.getConfig().getBoolean("modules.redstone.advanced.enabled", true)) {
+                    send(sender,
+                            "  &7Max Frequency: &f"
+                                    + plugin.getConfig().getInt("modules.redstone.advanced.max-frequency")
+                                    + "/s");
+                    send(sender,
+                            "  &7Piston Limit: &f"
+                                    + plugin.getConfig()
+                                            .getInt("modules.redstone.advanced.piston-limit.max-pushes-per-chunk")
+                                    + "/tick");
+                }
+
                 long now = System.currentTimeMillis();
                 int shown = 0;
                 for (Map.Entry<String, Long> entry : rm.getSuppressedChunks().entrySet()) {
@@ -790,19 +808,21 @@ public class LagCommand implements CommandExecutor {
 
     private void showPredictive(CommandSender sender) {
         PredictiveOptimizer po = plugin.getPredictiveOptimizer();
-        boolean enabled = plugin.getConfig().getBoolean("predictive-optimization.enabled", true);
+        boolean enabled = plugin.getConfig().getBoolean("automation.predictive-optimization.enabled", true);
 
         send(sender, "");
         send(sender, "&c&l  ≡ Predictive Optimizer ≡");
         send(sender, "");
         send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
         send(sender, "  &7Slope threshold: &f"
-                + plugin.getConfig().getDouble("predictive-optimization.slope-threshold", 3.0) + " ms/s");
+                + plugin.getConfig().getDouble("automation.predictive-optimization.slope-threshold", 3.0) + " ms/s");
         send(sender, "  &7MSPT baseline: &f"
-                + plugin.getConfig().getDouble("predictive-optimization.mspt-baseline", 30.0) + "ms");
-        send(sender, "  &7Window: &f" + plugin.getConfig().getInt("predictive-optimization.window-seconds", 10) + "s");
+                + plugin.getConfig().getDouble("automation.predictive-optimization.mspt-baseline", 30.0) + "ms");
+        send(sender, "  &7Window: &f"
+                + plugin.getConfig().getInt("automation.predictive-optimization.window-seconds", 10) + "s");
         send(sender,
-                "  &7Cooldown: &f" + plugin.getConfig().getInt("predictive-optimization.cooldown-seconds", 60) + "s");
+                "  &7Cooldown: &f" + plugin.getConfig().getInt("automation.predictive-optimization.cooldown", 60)
+                        + "s");
 
         if (po != null) {
             send(sender, "");
@@ -826,20 +846,20 @@ public class LagCommand implements CommandExecutor {
 
     private void showFrustum(CommandSender sender) {
         FrustumCuller fc = plugin.getFrustumCuller();
-        boolean enabled = plugin.getConfig().getBoolean("ai-optimization.frustum-culling.enabled", true);
+        boolean enabled = plugin.getConfig().getBoolean("modules.mob-ai.enabled", true);
 
         send(sender, "");
         send(sender, "&c&l  ≡ Frustum Culler ≡");
         send(sender, "");
         send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
         send(sender,
-                "  &7FOV: &f" + plugin.getConfig().getDouble("ai-optimization.frustum-culling.fov-degrees", 110) + "°");
+                "  &7FOV: &f" + plugin.getConfig().getDouble("modules.mob-ai.fov-degrees", 110) + "°");
         send(sender,
-                "  &7Max radius: &f" + plugin.getConfig().getDouble("ai-optimization.active-radius", 48) + " blocks");
+                "  &7Max radius: &f" + plugin.getConfig().getDouble("modules.mob-ai.active-radius", 48) + " blocks");
         send(sender, "  &7Behind safe radius: &f"
-                + plugin.getConfig().getDouble("ai-optimization.frustum-culling.behind-safe-radius", 12) + " blocks");
+                + plugin.getConfig().getDouble("modules.mob-ai.behind-safe-radius", 12) + " blocks");
         send(sender, "  &7Interval: &f"
-                + plugin.getConfig().getInt("ai-optimization.frustum-culling.interval-ticks", 40) + " ticks");
+                + plugin.getConfig().getInt("modules.mob-ai.update-interval", 40) + " ticks");
 
         if (fc != null) {
             send(sender, "");
@@ -858,20 +878,20 @@ public class LagCommand implements CommandExecutor {
 
     private void showWorldGuard(CommandSender sender) {
         WorldChunkGuard wg = plugin.getWorldChunkGuard();
-        boolean enabled = plugin.getConfig().getBoolean("world-chunk-guard.enabled", true);
+        boolean enabled = plugin.getConfig().getBoolean("modules.chunks.world-guard.enabled", true);
 
         send(sender, "");
         send(sender, "&c&l  ≡ World Chunk Guard ≡");
         send(sender, "");
         send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
         send(sender, "  &7Overload multiplier: &f"
-                + plugin.getConfig().getDouble("world-chunk-guard.overload-multiplier", 2.0) + "x");
+                + plugin.getConfig().getDouble("modules.chunks.world-guard.overload-multiplier", 2.0) + "x");
         send(sender, "  &7Check interval: &f"
-                + plugin.getConfig().getInt("world-chunk-guard.check-interval", 10) + "s");
+                + plugin.getConfig().getInt("modules.chunks.world-guard.check-interval", 10) + "s");
         send(sender, "  &7Max retries before evacuate: &f"
-                + plugin.getConfig().getInt("world-chunk-guard.max-retry-before-evacuate", 3));
+                + plugin.getConfig().getInt("modules.chunks.world-guard.max-retries", 3));
         send(sender, "  &7Evacuate world: &f"
-                + plugin.getConfig().getString("world-chunk-guard.evacuate-world", "world"));
+                + plugin.getConfig().getString("modules.chunks.world-guard.evacuate-world", "world"));
 
         if (wg != null && wg.getLastCheckTime() > 0) {
             long ago = (System.currentTimeMillis() - wg.getLastCheckTime()) / 1000;
@@ -910,7 +930,7 @@ public class LagCommand implements CommandExecutor {
 
     private void showMemory(CommandSender sender) {
         MemoryLeakDetector mld = plugin.getMemoryLeakDetector();
-        boolean enabled = plugin.getConfig().getBoolean("memory-leak-detector.enabled", true);
+        boolean enabled = plugin.getConfig().getBoolean("system.memory-leak-detection.enabled", true);
 
         Runtime rt = Runtime.getRuntime();
         long usedMB = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
@@ -991,14 +1011,14 @@ public class LagCommand implements CommandExecutor {
         send(sender, "");
         send(sender, "  &e&lConfig");
         send(sender, "    &7Check interval: &f"
-                + plugin.getConfig().getInt("memory-leak-detector.check-interval", 30) + "s");
+                + plugin.getConfig().getInt("system.memory-leak-detection.check-interval-minutes", 30) + "m");
         send(sender, "    &7Slope threshold: &f"
-                + plugin.getConfig().getDouble("memory-leak-detector.slope-threshold-mb-per-min", 5.0)
+                + plugin.getConfig().getDouble("system.memory-leak-detection.warn-slope-threshold", 5.0)
                 + " MB/min");
         send(sender, "    &7Window size: &f"
-                + plugin.getConfig().getInt("memory-leak-detector.window-size", 20) + " samples");
+                + plugin.getConfig().getInt("system.memory-leak-detection.window-size", 20) + " samples");
         send(sender, "    &7Notify: &f"
-                + plugin.getConfig().getBoolean("memory-leak-detector.notify", true));
+                + plugin.getConfig().getBoolean("system.memory-leak-detection.notify", true));
         send(sender, "");
     }
 
