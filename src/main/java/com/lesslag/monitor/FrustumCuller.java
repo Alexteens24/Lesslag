@@ -32,6 +32,7 @@ public class FrustumCuller {
     private double fovDegrees;
     private double behindRadius;
     private int intervalTicks;
+    private Set<String> protectedTypes = Collections.emptySet();
 
     // Stats
     private final AtomicInteger lastCulled = new AtomicInteger(0);
@@ -48,6 +49,10 @@ public class FrustumCuller {
         fovDegrees = plugin.getConfig().getDouble("ai-optimization.frustum-culling.fov-degrees", 110);
         behindRadius = plugin.getConfig().getDouble("ai-optimization.frustum-culling.behind-safe-radius", 12);
         intervalTicks = plugin.getConfig().getInt("ai-optimization.frustum-culling.interval-ticks", 40);
+
+        protectedTypes = new HashSet<>();
+        for (String s : plugin.getConfig().getStringList("ai-optimization.protected"))
+            protectedTypes.add(s.toUpperCase());
     }
 
     public void start() {
@@ -100,7 +105,6 @@ public class FrustumCuller {
     // ══════════════════════════════════════════════════
 
     private SnapshotResult collectSnapshot() {
-        Set<String> protectedTypes = loadProtectedTypes();
         Map<UUID, List<PlayerView>> worldViewData = new HashMap<>();
         List<MobSnapshot> mobs = new ArrayList<>();
 
@@ -121,18 +125,15 @@ public class FrustumCuller {
             worldViewData.put(world.getUID(), views);
 
             // Snapshot mob data
-            for (Entity entity : world.getEntities()) {
-                if (!(entity instanceof Mob))
+            for (Mob mob : world.getEntitiesByClass(Mob.class)) {
+                if (protectedTypes.contains(mob.getType().name()))
                     continue;
-                if (protectedTypes.contains(entity.getType().name()))
+                if (LessLag.hasCustomName(mob))
                     continue;
-                if (LessLag.hasCustomName(entity))
-                    continue;
-                if (entity instanceof org.bukkit.entity.Tameable
-                        && ((org.bukkit.entity.Tameable) entity).isTamed())
+                if (mob instanceof org.bukkit.entity.Tameable
+                        && ((org.bukkit.entity.Tameable) mob).isTamed())
                     continue;
 
-                Mob mob = (Mob) entity;
                 Location loc = mob.getLocation();
                 boolean currentlyAware = plugin.isMobAwareSafe(mob);
 
@@ -254,13 +255,6 @@ public class FrustumCuller {
                 }
             });
         }
-    }
-
-    private Set<String> loadProtectedTypes() {
-        Set<String> set = new HashSet<>();
-        for (String s : plugin.getConfig().getStringList("ai-optimization.protected"))
-            set.add(s.toUpperCase());
-        return set;
     }
 
     // ══════════════════════════════════════════════════

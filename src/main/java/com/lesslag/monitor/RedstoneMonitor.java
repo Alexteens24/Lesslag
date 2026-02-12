@@ -13,6 +13,7 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,13 +38,13 @@ public class RedstoneMonitor implements Listener {
     private boolean notify;
 
     // World-isolated key → activation counter
-    private final Map<String, AtomicInteger> chunkActivations = new ConcurrentHashMap<>();
+    private final Map<ChunkKey, AtomicInteger> chunkActivations = new ConcurrentHashMap<>();
 
     // World-isolated key → suppression expiry timestamp
-    private final Map<String, Long> suppressedChunks = new ConcurrentHashMap<>();
+    private final Map<ChunkKey, Long> suppressedChunks = new ConcurrentHashMap<>();
 
     // Notification cooldown per chunk (prevent spam)
-    private final Map<String, Long> notifyCooldowns = new ConcurrentHashMap<>();
+    private final Map<ChunkKey, Long> notifyCooldowns = new ConcurrentHashMap<>();
     private static final long NOTIFY_COOLDOWN_MS = 10_000; // 10s between notifications per chunk
 
     // Stats
@@ -105,7 +106,7 @@ public class RedstoneMonitor implements Listener {
     public void onRedstone(BlockRedstoneEvent event) {
         Block block = event.getBlock();
         // World-isolated chunk key
-        String chunkKey = worldChunkKey(block);
+        ChunkKey chunkKey = new ChunkKey(block.getWorld().getUID(), block.getX() >> 4, block.getZ() >> 4);
 
         // Check if chunk is currently suppressed
         Long expiresAt = suppressedChunks.get(chunkKey);
@@ -142,14 +143,14 @@ public class RedstoneMonitor implements Listener {
                     String world = loc.getWorld() != null ? loc.getWorld().getName() : "unknown";
                     NotificationHelper.notifyAdmins(
                             "&e⚠ Redstone suppressed in chunk (&f"
-                                    + block.getChunk().getX() + "&8, &f" + block.getChunk().getZ()
+                                    + (block.getX() >> 4) + "&8, &f" + (block.getZ() >> 4)
                                     + "&e) in &f" + world
                                     + " &8(" + count + " activations, frozen " + cooldownSeconds + "s)");
                 }
             }
 
-            plugin.getLogger().warning("[RedstoneSuppressor] Chunk (" + block.getChunk().getX()
-                    + ", " + block.getChunk().getZ() + ") in " + block.getWorld().getName()
+            plugin.getLogger().warning("[RedstoneSuppressor] Chunk (" + (block.getX() >> 4)
+                    + ", " + (block.getZ() >> 4) + ") in " + block.getWorld().getName()
                     + " suppressed — " + count + " activations exceeded limit");
         }
     }
@@ -164,17 +165,6 @@ public class RedstoneMonitor implements Listener {
         activeSuppressedChunks = 0;
     }
 
-    /**
-     * World-isolated chunk key: "worldUID:chunkX:chunkZ"
-     * Prevents cross-world collisions.
-     */
-    private String worldChunkKey(Block block) {
-        UUID worldUID = block.getWorld().getUID();
-        int cx = block.getChunk().getX();
-        int cz = block.getChunk().getZ();
-        return worldUID.toString() + ":" + cx + ":" + cz;
-    }
-
     // ── Getters ──────────────────────────────────────
 
     public long getTotalSuppressed() {
@@ -186,6 +176,42 @@ public class RedstoneMonitor implements Listener {
     }
 
     public Map<String, Long> getSuppressedChunks() {
-        return suppressedChunks;
+        Map<String, Long> result = new HashMap<>();
+        for (Map.Entry<ChunkKey, Long> entry : suppressedChunks.entrySet()) {
+            result.put(entry.getKey().toString(), entry.getValue());
+        }
+        return result;
+    }
+
+    private static class ChunkKey {
+        private final UUID worldUID;
+        private final long chunkKey;
+
+        public ChunkKey(UUID worldUID, int x, int z) {
+            this.worldUID = worldUID;
+            this.chunkKey = ((long) x << 32) | (z & 0xFFFFFFFFL);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ChunkKey chunkKey1 = (ChunkKey) o;
+            return chunkKey == chunkKey1.chunkKey && worldUID.equals(chunkKey1.worldUID);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = worldUID.hashCode();
+            result = 31 * result + Long.hashCode(chunkKey);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            int x = (int) (chunkKey >> 32);
+            int z = (int) chunkKey;
+            return worldUID + ":" + x + ":" + z;
+        }
     }
 }

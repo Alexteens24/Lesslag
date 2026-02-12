@@ -29,6 +29,7 @@ public class ChunkLimiter {
     // Config (cached)
     private int maxPerChunk;
     private int scanInterval;
+    private Set<String> cachedWhitelist = Collections.emptySet();
 
     // Stats (atomic for cross-thread safety)
     private final AtomicInteger lastHotChunks = new AtomicInteger(0);
@@ -43,6 +44,10 @@ public class ChunkLimiter {
     private void loadConfig() {
         maxPerChunk = plugin.getConfig().getInt("chunk-limiter.max-entities-per-chunk", 50);
         scanInterval = plugin.getConfig().getInt("chunk-limiter.scan-interval", 30);
+
+        cachedWhitelist = new HashSet<>();
+        for (String s : plugin.getConfig().getStringList("entity-whitelist"))
+            cachedWhitelist.add(s.toUpperCase());
     }
 
     public void start() {
@@ -72,7 +77,7 @@ public class ChunkLimiter {
     // ══════════════════════════════════════════════════
 
     private void beginAsyncScan() {
-        Set<String> whitelist = loadWhitelist();
+        Set<String> whitelist = cachedWhitelist;
         lastHotChunks.set(0);
         lastEntitiesRemoved.set(0);
 
@@ -196,14 +201,6 @@ public class ChunkLimiter {
             return true;
         return false;
     }
-
-    private Set<String> loadWhitelist() {
-        Set<String> set = new HashSet<>();
-        for (String s : plugin.getConfig().getStringList("entity-whitelist"))
-            set.add(s.toUpperCase());
-        return set;
-    }
-
 
     // ══════════════════════════════════════════════════
     // Getters
