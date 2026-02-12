@@ -67,6 +67,7 @@ public class LessLag extends JavaPlugin implements Listener {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        saveResource("messages.yml", false);
 
         String minVersion = getConfig().getString("compat.min-version", "1.20.4");
         boolean allowUnsupported = getConfig().getBoolean("compat.allow-unsupported-versions", false);
@@ -91,8 +92,8 @@ public class LessLag extends JavaPlugin implements Listener {
 
         getServer().getPluginManager().registerEvents(this, this);
 
-        // Create async executor (2 threads: monitoring + analysis)
-        asyncExecutor = Executors.newFixedThreadPool(2, r -> {
+        // Create async executor (4 threads: monitoring + analysis)
+        asyncExecutor = Executors.newFixedThreadPool(4, r -> {
             Thread t = new Thread(r, "LessLag-Async");
             t.setDaemon(true);
             return t;

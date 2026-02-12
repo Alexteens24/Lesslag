@@ -17,6 +17,8 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -30,9 +32,22 @@ import java.util.concurrent.TimeUnit;
 public class LagCommand implements CommandExecutor {
 
     private final LessLag plugin;
+    private FileConfiguration messagesConfig;
 
     public LagCommand(LessLag plugin) {
         this.plugin = plugin;
+        File msgFile = new File(plugin.getDataFolder(), "messages.yml");
+        if (msgFile.exists()) {
+            messagesConfig = YamlConfiguration.loadConfiguration(msgFile);
+        }
+    }
+
+    private String getMessage(String key, String def) {
+        if (messagesConfig != null) {
+            String val = messagesConfig.getString(key);
+            if (val != null) return val;
+        }
+        return plugin.getConfig().getString(key, def);
     }
 
     @Override
@@ -559,45 +574,34 @@ public class LagCommand implements CommandExecutor {
 
         switch (type) {
             case "items": {
-                int count = plugin.getActionExecutor().clearGroundItems();
-                String message = formatMessage("messages.items-cleared",
-                        "&7Cleared &e{count} &7ground items.", "count", String.valueOf(count));
-                send(sender, plugin.getPrefix() + message);
+                plugin.getActionExecutor().clearGroundItems();
+                String msg = getMessage("messages.items-cleared", "&aScheduled clearing of ground items.");
+                send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "xp": {
-                int count = plugin.getActionExecutor().clearXPOrbs();
-                String message = formatMessage("messages.xp-cleared",
-                        "&7Cleared &e{count} &7XP orbs.", "count", String.valueOf(count));
-                send(sender, plugin.getPrefix() + message);
+                plugin.getActionExecutor().clearXPOrbs();
+                String msg = getMessage("messages.xp-cleared", "&aScheduled clearing of XP orbs.");
+                send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "mobs": {
-                int count = plugin.getActionExecutor().clearExcessMobs();
-                String message = formatMessage("messages.mobs-cleared",
-                        "&7Removed &e{count} &7excess mobs.", "count", String.valueOf(count));
-                send(sender, plugin.getPrefix() + message);
+                plugin.getActionExecutor().clearExcessMobs();
+                String msg = getMessage("messages.mobs-cleared", "&aScheduled removal of excess mobs.");
+                send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "hostile": {
-                int count = plugin.getActionExecutor().killHostileMobs();
-                send(sender, plugin.getPrefix() + "&aKilled &e" + count + " &ahostile mobs.");
+                plugin.getActionExecutor().killHostileMobs();
+                String msg = getMessage("messages.hostile-killed", "&aScheduled killing of hostile mobs.");
+                send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "all":
             default: {
-                int items = plugin.getActionExecutor().clearGroundItems();
-                int xp = plugin.getActionExecutor().clearXPOrbs();
-                int mobs = plugin.getActionExecutor().clearExcessMobs();
-                String itemsMsg = formatMessage("messages.items-cleared",
-                        "&7Cleared &e{count} &7ground items.", "count", String.valueOf(items));
-                String xpMsg = formatMessage("messages.xp-cleared",
-                        "&7Cleared &e{count} &7XP orbs.", "count", String.valueOf(xp));
-                String mobsMsg = formatMessage("messages.mobs-cleared",
-                        "&7Removed &e{count} &7excess mobs.", "count", String.valueOf(mobs));
-                send(sender, plugin.getPrefix() + itemsMsg);
-                send(sender, plugin.getPrefix() + xpMsg);
-                send(sender, plugin.getPrefix() + mobsMsg);
+                plugin.getActionExecutor().clearAll();
+                String msg = getMessage("messages.all-cleared", "&aScheduled clearing of all entities (items, xp, mobs).");
+                send(sender, plugin.getPrefix() + msg);
                 break;
             }
         }
@@ -615,10 +619,9 @@ public class LagCommand implements CommandExecutor {
 
         switch (action) {
             case "disable": {
-                int count = plugin.getActionExecutor().disableMobAI();
-                String message = formatMessage("messages.ai-disabled",
-                        "&7Disabled AI for &e{count} &7entities.", "count", String.valueOf(count));
-                send(sender, plugin.getPrefix() + message);
+                plugin.getActionExecutor().disableMobAI();
+                String msg = getMessage("messages.ai-disabled", "&aScheduled AI disable task.");
+                send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "restore": {

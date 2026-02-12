@@ -1,10 +1,15 @@
 package com.lesslag.action;
 
 import com.lesslag.LessLag;
+import com.lesslag.WorkloadDistributor;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -13,6 +18,7 @@ public class ActionExecutor {
     private final LessLag plugin;
     private final Set<String> entityWhitelist;
     private final Set<String> aiProtected;
+    private FileConfiguration messagesConfig;
 
     /**
      * All valid action keys that users can use in threshold configs.
@@ -64,6 +70,21 @@ public class ActionExecutor {
         List<String> aiProt = plugin.getConfig().getStringList("ai-optimization.protected");
         for (String entry : aiProt)
             aiProtected.add(entry.toUpperCase());
+
+        File msgFile = new File(plugin.getDataFolder(), "messages.yml");
+        if (msgFile.exists()) {
+            messagesConfig = YamlConfiguration.loadConfiguration(msgFile);
+        }
+    }
+
+    private String getMsg(String key, String def) {
+        if (messagesConfig != null) {
+            String val = messagesConfig.getString(key);
+            if (val != null) {
+                return val.replace("&", "§"); // Simple color translation
+            }
+        }
+        return def;
     }
 
     // ══════════════════════════════════════════════════
@@ -161,29 +182,26 @@ public class ActionExecutor {
      * Execute a single action by its config key.
      */
     public void executeAction(String actionKey) {
+        String scheduledMsg = getMsg("action.scheduled", "&aScheduled cleanup task: %action%");
         switch (actionKey.toLowerCase()) {
             case "clear-ground-items": {
-                int cleared = clearGroundItems();
-                if (cleared > 0)
-                    plugin.getLogger().info("[Action] Cleared " + cleared + " ground items");
+                clearGroundItems();
+                plugin.getLogger().info(scheduledMsg.replace("%action%", "Clear Ground Items"));
                 break;
             }
             case "clear-xp-orbs": {
-                int cleared = clearXPOrbs();
-                if (cleared > 0)
-                    plugin.getLogger().info("[Action] Cleared " + cleared + " XP orbs");
+                clearXPOrbs();
+                plugin.getLogger().info(scheduledMsg.replace("%action%", "Clear XP Orbs"));
                 break;
             }
             case "clear-mobs": {
-                int cleared = clearExcessMobs();
-                if (cleared > 0)
-                    plugin.getLogger().info("[Action] Removed " + cleared + " excess mobs");
+                clearExcessMobs();
+                plugin.getLogger().info(scheduledMsg.replace("%action%", "Clear Excess Mobs"));
                 break;
             }
             case "kill-hostile-mobs": {
-                int killed = killHostileMobs();
-                if (killed > 0)
-                    plugin.getLogger().info("[Action] Killed " + killed + " hostile mobs");
+                killHostileMobs();
+                plugin.getLogger().info(scheduledMsg.replace("%action%", "Kill Hostile Mobs"));
                 break;
             }
             case "reduce-view-distance": {
@@ -195,9 +213,8 @@ public class ActionExecutor {
                 break;
             }
             case "disable-mob-ai": {
-                int disabled = disableMobAI();
-                if (disabled > 0)
-                    plugin.getLogger().info("[Action] Disabled AI for " + disabled + " entities");
+                disableMobAI();
+                plugin.getLogger().info(scheduledMsg.replace("%action%", "Disable Mob AI"));
                 break;
             }
             case "force-gc": {
@@ -206,16 +223,12 @@ public class ActionExecutor {
             }
             case "chunk-clean": {
                 int cleaned = chunkClean();
-                if (cleaned > 0) {
-                    plugin.getLogger().info("[Action] Cleaned " + cleaned + " chunks");
-                }
+                // ChunkLimiter logs itself
                 break;
             }
             case "enforce-entity-limits": {
-                int removed = enforceEntityLimits();
-                if (removed > 0)
-                    plugin.getLogger()
-                            .info("[Action] Entity limits enforced — removed " + removed + " excess entities");
+                enforceEntityLimits();
+                plugin.getLogger().info(scheduledMsg.replace("%action%", "Enforce Entity Limits"));
                 break;
             }
             case "unload-world-chunks": {
@@ -238,73 +251,93 @@ public class ActionExecutor {
     /**
      * Clear all dropped items on the ground
      */
-    public int clearGroundItems() {
-        int count = 0;
+    public void clearGroundItems() {
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
         for (World world : Bukkit.getWorlds()) {
-            for (Item item : world.getEntitiesByClass(Item.class)) {
-                item.remove();
-                count++;
+            Chunk[] chunks = world.getLoadedChunks();
+            for (Chunk chunk : chunks) {
+                distributor.addWorkload(() -> {
+                    if (!chunk.isLoaded()) return;
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity instanceof Item) {
+                            entity.remove();
+                        }
+                    }
+                });
             }
         }
-        return count;
     }
 
     /**
      * Clear all XP orbs on the ground
      */
-    public int clearXPOrbs() {
-        int count = 0;
+    public void clearXPOrbs() {
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
         for (World world : Bukkit.getWorlds()) {
-            for (ExperienceOrb orb : world.getEntitiesByClass(ExperienceOrb.class)) {
-                orb.remove();
-                count++;
+            Chunk[] chunks = world.getLoadedChunks();
+            for (Chunk chunk : chunks) {
+                distributor.addWorkload(() -> {
+                    if (!chunk.isLoaded()) return;
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity instanceof ExperienceOrb) {
+                            entity.remove();
+                        }
+                    }
+                });
             }
         }
-        return count;
     }
 
     /**
      * Clear excess non-whitelisted, unnamed, untamed living entities
      */
-    public int clearExcessMobs() {
-        int count = 0;
+    public void clearExcessMobs() {
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
         for (World world : Bukkit.getWorlds()) {
-            for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class)) {
-                if (shouldRemoveEntity(entity)) {
-                    entity.remove();
-                    count++;
-                }
+            Chunk[] chunks = world.getLoadedChunks();
+            for (Chunk chunk : chunks) {
+                distributor.addWorkload(() -> {
+                    if (!chunk.isLoaded()) return;
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity instanceof LivingEntity && shouldRemoveEntity(entity)) {
+                            entity.remove();
+                        }
+                    }
+                });
             }
         }
-        return count;
     }
 
     /**
      * Kill all hostile mobs without custom names
      */
-    public int killHostileMobs() {
-        int count = 0;
+    public void killHostileMobs() {
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
         for (World world : Bukkit.getWorlds()) {
-            for (Monster monster : world.getEntitiesByClass(Monster.class)) {
-                if (!isProtected(monster)) {
-                    monster.remove();
-                    count++;
-                }
+            Chunk[] chunks = world.getLoadedChunks();
+            for (Chunk chunk : chunks) {
+                distributor.addWorkload(() -> {
+                    if (!chunk.isLoaded()) return;
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity instanceof Monster && !isProtected(entity)) {
+                            entity.remove();
+                        }
+                    }
+                });
             }
         }
-        return count;
     }
 
     /**
      * Disable AI for mobs far from players to reduce pathfinding load
      */
-    public int disableMobAI() {
+    public void disableMobAI() {
         int radius = plugin.getConfig().getInt("ai-optimization.active-radius", 48);
         int chunkRadius = (radius >> 4) + 1;
-        int count = 0;
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
 
         for (World world : Bukkit.getWorlds()) {
-            // Collect player chunks
+            // Capture player chunks on main thread to avoid async issues
             Set<Long> playerChunks = new HashSet<>();
             for (Player player : world.getPlayers()) {
                 int px = player.getLocation().getBlockX() >> 4;
@@ -316,25 +349,27 @@ public class ActionExecutor {
                 }
             }
 
-            // Iterate mobs
-            for (Mob mob : world.getEntitiesByClass(Mob.class)) {
-                if (aiProtected.contains(mob.getType().name()))
-                    continue;
-                if (isProtected(mob))
-                    continue;
+            Chunk[] chunks = world.getLoadedChunks();
+            for (Chunk chunk : chunks) {
+                distributor.addWorkload(() -> {
+                    if (!chunk.isLoaded()) return;
+                    long chunkKey = ((long) chunk.getX() << 32) | (chunk.getZ() & 0xFFFFFFFFL);
+                    if (playerChunks.contains(chunkKey)) return;
 
-                int cx = mob.getLocation().getBlockX() >> 4;
-                int cz = mob.getLocation().getBlockZ() >> 4;
-                long key = ((long) cx << 32) | (cz & 0xFFFFFFFFL);
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity instanceof Mob) {
+                            Mob mob = (Mob) entity;
+                            if (aiProtected.contains(mob.getType().name())) continue;
+                            if (isProtected(mob)) continue;
 
-                if (!playerChunks.contains(key) && plugin.isMobAwareSafe(mob)) {
-                    if (plugin.setMobAwareSafe(mob, false)) {
-                        count++;
+                            if (plugin.isMobAwareSafe(mob)) {
+                                plugin.setMobAwareSafe(mob, false);
+                            }
+                        }
                     }
-                }
+                });
             }
         }
-        return count;
     }
 
     /**
@@ -358,8 +393,10 @@ public class ActionExecutor {
     /**
      * Clear all entities (items + xp + mobs)
      */
-    public int clearAll() {
-        return clearGroundItems() + clearXPOrbs() + clearExcessMobs();
+    public void clearAll() {
+        clearGroundItems();
+        clearXPOrbs();
+        clearExcessMobs();
     }
 
     /**
@@ -546,13 +583,13 @@ public class ActionExecutor {
      * A global "default" key sets the fallback for unlisted types.
      * Entities are removed newest-first (furthest from players first).
      */
-    public int enforceEntityLimits() {
+    public void enforceEntityLimits() {
         var section = plugin.getConfig().getConfigurationSection("entity-limits");
         if (section == null)
-            return 0;
+            return;
 
         int globalDefault = section.getInt("default", -1);
-        int totalRemoved = 0;
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
 
         for (World world : Bukkit.getWorlds()) {
             // Count entities by type
@@ -599,24 +636,22 @@ public class ActionExecutor {
                     });
                 }
 
-                int removed = 0;
+                int scheduled = 0;
                 for (Entity entity : entities) {
-                    if (removed >= excess)
+                    if (scheduled >= excess)
                         break;
-                    entity.remove();
-                    removed++;
+
+                    distributor.addWorkload(entity::remove);
+                    scheduled++;
                 }
 
-                if (removed > 0) {
-                    plugin.getLogger().warning("[EntityLimit] " + world.getName()
-                            + ": removed " + removed + " " + type
+                if (scheduled > 0) {
+                     plugin.getLogger().warning("[EntityLimit] " + world.getName()
+                            + ": scheduled removal of " + scheduled + " " + type
                             + " (had " + entities.size() + ", limit " + limit + ")");
                 }
-                totalRemoved += removed;
             }
         }
-
-        return totalRemoved;
     }
 
     private double nearestPlayerDistSq(Entity entity, List<Player> players) {

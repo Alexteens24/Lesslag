@@ -10,6 +10,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -42,51 +43,53 @@ public class LagSourceAnalyzer {
     }
 
     /**
-     * Run a full lag source analysis. Takes a snapshot on main thread,
+     * Run a full lag source analysis. Takes a snapshot incrementally on main thread,
      * then processes it async. Returns results via CompletableFuture.
      */
     public CompletableFuture<List<LagSource>> analyzeAsync() {
         CompletableFuture<List<LagSource>> future = new CompletableFuture<>();
 
-        // Snapshot data on the main thread (Bukkit API must be accessed from main
-        // thread)
+        // Use incremental snapshot builder to avoid freezing the main thread
         Bukkit.getScheduler().runTask(plugin, () -> {
-            try {
-                WorldSnapshot[] snapshots = takeWorldSnapshots();
-                TaskSnapshot[] taskSnapshots = takeTaskSnapshot();
-                AnalysisConfig config = takeConfigSnapshot();
-                long snapshotTime = System.currentTimeMillis();
-
-                // Process async
-                if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
-                    future.completeExceptionally(new IllegalStateException("Async executor unavailable"));
-                    return;
-                }
-
+            new IncrementalSnapshotBuilder(plugin, (snapshots) -> {
                 try {
-                    plugin.getAsyncExecutor().execute(() -> {
-                        try {
-                            List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime, config);
-                            lastAnalysis = results;
-                            lastAnalysisTime = snapshotTime;
+                    TaskSnapshot[] taskSnapshots = takeTaskSnapshot();
+                    AnalysisConfig config = takeConfigSnapshot();
+                    long snapshotTime = System.currentTimeMillis();
 
-                            // Update chunk count tracking for rate calculation
-                            for (WorldSnapshot ws : snapshots) {
-                                previousChunkCounts.put(ws.name, ws.loadedChunks);
+                    // Process async
+                    if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
+                        future.completeExceptionally(new IllegalStateException("Async executor unavailable"));
+                        return;
+                    }
+
+                    try {
+                        plugin.getAsyncExecutor().execute(() -> {
+                            try {
+                                List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime, config);
+                                lastAnalysis = results;
+                                lastAnalysisTime = snapshotTime;
+
+                                // Update chunk count tracking for rate calculation
+                                for (WorldSnapshot ws : snapshots) {
+                                    previousChunkCounts.put(ws.name, ws.loadedChunks);
+                                }
+                                lastChunkSnapshotTime = snapshotTime;
+
+                                future.complete(results);
+                            } catch (Exception e) {
+                                future.completeExceptionally(e);
                             }
-                            lastChunkSnapshotTime = snapshotTime;
-
-                            future.complete(results);
-                        } catch (Exception e) {
-                            future.completeExceptionally(e);
-                        }
-                    });
+                        });
+                    } catch (RejectedExecutionException e) {
+                        future.completeExceptionally(e);
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
                 } catch (Exception e) {
                     future.completeExceptionally(e);
                 }
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-            }
+            }).start();
         });
 
         return future;
@@ -106,39 +109,6 @@ public class LagSourceAnalyzer {
     // ══════════════════════════════════════════════════
     // Snapshot (runs on main thread)
     // ══════════════════════════════════════════════════
-
-    private WorldSnapshot[] takeWorldSnapshots() {
-        List<World> worlds = Bukkit.getWorlds();
-        WorldSnapshot[] snapshots = new WorldSnapshot[worlds.size()];
-
-        for (int i = 0; i < worlds.size(); i++) {
-            World world = worlds.get(i);
-            Map<String, Integer> entityCounts = new HashMap<>();
-            Map<Long, Integer> chunkEntityCounts = new HashMap<>();
-            int totalEntities = 0;
-
-            for (Entity entity : world.getEntities()) {
-                String typeName = entity.getType().name();
-                entityCounts.put(typeName, entityCounts.getOrDefault(typeName, 0) + 1);
-                totalEntities++;
-
-                // Track entity density per chunk
-                int cx = entity.getLocation().getBlockX() >> 4;
-                int cz = entity.getLocation().getBlockZ() >> 4;
-                long chunkKey = ((long) cx << 32) | (cz & 0xFFFFFFFFL);
-                chunkEntityCounts.put(chunkKey, chunkEntityCounts.getOrDefault(chunkKey, 0) + 1);
-            }
-
-            snapshots[i] = new WorldSnapshot(
-                    world.getName(),
-                    totalEntities,
-                    world.getLoadedChunks().length,
-                    entityCounts,
-                    chunkEntityCounts);
-        }
-
-        return snapshots;
-    }
 
     private TaskSnapshot[] takeTaskSnapshot() {
         List<BukkitTask> pendingTasks = Bukkit.getScheduler().getPendingTasks();
@@ -473,41 +443,44 @@ public class LagSourceAnalyzer {
         CompletableFuture<FullAnalysisResult> future = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            try {
-                WorldSnapshot[] worldSnaps = takeWorldSnapshots();
-                TaskSnapshot[] taskSnaps = takeTaskSnapshot();
-                AnalysisConfig config = takeConfigSnapshot();
-                long snapshotTime = System.currentTimeMillis();
-
-                if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
-                    future.completeExceptionally(new IllegalStateException("Async executor unavailable"));
-                    return;
-                }
-
+            new IncrementalSnapshotBuilder(plugin, (worldSnaps) -> {
                 try {
-                    plugin.getAsyncExecutor().execute(() -> {
-                        try {
-                            List<LagSource> results = processSnapshots(worldSnaps, taskSnaps, snapshotTime, config);
-                            lastAnalysis = results;
-                            lastAnalysisTime = snapshotTime;
+                    TaskSnapshot[] taskSnaps = takeTaskSnapshot();
+                    AnalysisConfig config = takeConfigSnapshot();
+                    long snapshotTime = System.currentTimeMillis();
 
-                            // Update chunk tracking
-                            for (WorldSnapshot ws : worldSnaps) {
-                                previousChunkCounts.put(ws.name, ws.loadedChunks);
+                    if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
+                        future.completeExceptionally(new IllegalStateException("Async executor unavailable"));
+                        return;
+                    }
+
+                    try {
+                        plugin.getAsyncExecutor().execute(() -> {
+                            try {
+                                List<LagSource> results = processSnapshots(worldSnaps, taskSnaps, snapshotTime, config);
+                                lastAnalysis = results;
+                                lastAnalysisTime = snapshotTime;
+
+                                // Update chunk tracking
+                                for (WorldSnapshot ws : worldSnaps) {
+                                    previousChunkCounts.put(ws.name, ws.loadedChunks);
+                                }
+                                lastChunkSnapshotTime = snapshotTime;
+
+                                future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps));
+                            } catch (Exception e) {
+                                future.completeExceptionally(e);
                             }
-                            lastChunkSnapshotTime = snapshotTime;
-
-                            future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps));
-                        } catch (Exception e) {
-                            future.completeExceptionally(e);
-                        }
-                    });
+                        });
+                    } catch (RejectedExecutionException e) {
+                        future.completeExceptionally(e);
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
                 } catch (Exception e) {
                     future.completeExceptionally(e);
                 }
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-            }
+            }).start();
         });
 
         return future;
