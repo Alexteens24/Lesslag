@@ -19,8 +19,17 @@ public class WorkloadDistributor {
     private final AtomicInteger queueSize = new AtomicInteger(0);
     private volatile BukkitTask task;
 
-    private static final long MAX_NANOS_PER_TICK = 2_000_000; // 2ms per tick budget
+    private long maxNanosPerTick = 2_000_000; // Default 2ms
     private static final int MAX_QUEUE_SIZE = 5000;
+
+    public WorkloadDistributor() {
+        // Delay config loading until onEnable
+    }
+
+    public void reloadConfig() {
+        int maxMillis = LessLag.getInstance().getConfig().getInt("workload-limit-ms", 2);
+        this.maxNanosPerTick = maxMillis * 1_000_000L;
+    }
 
     /**
      * Add a workload to process on the main thread, spread across ticks.
@@ -56,7 +65,7 @@ public class WorkloadDistributor {
             return;
 
         task = Bukkit.getScheduler().runTaskTimer(LessLag.getInstance(), () -> {
-            long stopTime = System.nanoTime() + MAX_NANOS_PER_TICK;
+            long stopTime = System.nanoTime() + maxNanosPerTick;
 
             while (!workloadQueue.isEmpty() && System.nanoTime() < stopTime) {
                 Runnable work = workloadQueue.poll();

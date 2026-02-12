@@ -99,6 +99,9 @@ public class LessLag extends JavaPlugin implements Listener {
             return t;
         });
 
+        // Initialize WorkloadDistributor config
+        workloadDistributor.reloadConfig();
+
         // Initialize components
         initializeMonitors();
 

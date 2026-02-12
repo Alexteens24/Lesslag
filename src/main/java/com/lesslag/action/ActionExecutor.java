@@ -257,7 +257,8 @@ public class ActionExecutor {
             Chunk[] chunks = world.getLoadedChunks();
             for (Chunk chunk : chunks) {
                 distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded()) return;
+                    if (!chunk.isLoaded())
+                        return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof Item) {
                             entity.remove();
@@ -277,7 +278,8 @@ public class ActionExecutor {
             Chunk[] chunks = world.getLoadedChunks();
             for (Chunk chunk : chunks) {
                 distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded()) return;
+                    if (!chunk.isLoaded())
+                        return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof ExperienceOrb) {
                             entity.remove();
@@ -297,7 +299,8 @@ public class ActionExecutor {
             Chunk[] chunks = world.getLoadedChunks();
             for (Chunk chunk : chunks) {
                 distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded()) return;
+                    if (!chunk.isLoaded())
+                        return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof LivingEntity && shouldRemoveEntity(entity)) {
                             entity.remove();
@@ -317,7 +320,8 @@ public class ActionExecutor {
             Chunk[] chunks = world.getLoadedChunks();
             for (Chunk chunk : chunks) {
                 distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded()) return;
+                    if (!chunk.isLoaded())
+                        return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof Monster && !isProtected(entity)) {
                             entity.remove();
@@ -352,15 +356,19 @@ public class ActionExecutor {
             Chunk[] chunks = world.getLoadedChunks();
             for (Chunk chunk : chunks) {
                 distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded()) return;
+                    if (!chunk.isLoaded())
+                        return;
                     long chunkKey = ((long) chunk.getX() << 32) | (chunk.getZ() & 0xFFFFFFFFL);
-                    if (playerChunks.contains(chunkKey)) return;
+                    if (playerChunks.contains(chunkKey))
+                        return;
 
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof Mob) {
                             Mob mob = (Mob) entity;
-                            if (aiProtected.contains(mob.getType().name())) continue;
-                            if (isProtected(mob)) continue;
+                            if (aiProtected.contains(mob.getType().name()))
+                                continue;
+                            if (isProtected(mob))
+                                continue;
 
                             if (plugin.isMobAwareSafe(mob)) {
                                 plugin.setMobAwareSafe(mob, false);
@@ -488,6 +496,8 @@ public class ActionExecutor {
      * Force Java garbage collection
      */
     public long forceGC() {
+        plugin.getLogger().warning(
+                "Manual GC triggered! This causes a 'Stop-The-World' pause and should not be used automatically.");
         Runtime runtime = Runtime.getRuntime();
         long beforeMB = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
         System.gc();
@@ -583,88 +593,153 @@ public class ActionExecutor {
      * A global "default" key sets the fallback for unlisted types.
      * Entities are removed newest-first (furthest from players first).
      */
+    /**
+     * Enforce hard entity limits per type per world.
+     * This OVERRIDES all protection (whitelist, named, tamed, etc.)
+     * to prevent griefing via entity spam.
+     *
+     * architecture: SYNC snapshot -> ASYNC sort -> SYNC execution
+     */
     public void enforceEntityLimits() {
         var section = plugin.getConfig().getConfigurationSection("entity-limits");
         if (section == null)
             return;
 
         int globalDefault = section.getInt("default", -1);
-        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
+
+        // ── Phase 1: SYNC Snapshot ──
+        // Capture all necessary data on main thread to avoid async API access
+        Map<World, WorldSnapshot> snapshots = new HashMap<>();
 
         for (World world : Bukkit.getWorlds()) {
-            // Count entities by type
-            Map<String, List<Entity>> byType = new HashMap<>();
+            List<Player> players = world.getPlayers();
+            List<org.bukkit.util.Vector> playerLocs = new ArrayList<>(players.size());
+            for (Player p : players) {
+                playerLocs.add(p.getLocation().toVector());
+            }
+
+            List<EntitySnapshot> entitySnapshots = new ArrayList<>();
             for (Entity entity : world.getEntities()) {
                 if (entity instanceof Player)
                     continue;
-                byType.computeIfAbsent(entity.getType().name(), k -> new ArrayList<>()).add(entity);
+                entitySnapshots
+                        .add(new EntitySnapshot(entity, entity.getLocation().toVector(), entity.getType().name()));
             }
 
-            // Cache players list for this world
-            List<Player> players = world.getPlayers();
+            snapshots.put(world, new WorldSnapshot(playerLocs, entitySnapshots));
+        }
 
-            for (Map.Entry<String, List<Entity>> entry : byType.entrySet()) {
-                String type = entry.getKey();
-                List<Entity> entities = entry.getValue();
+        // ── Phase 2: ASYNC Analysis ──
+        plugin.getAsyncExecutor().execute(() -> {
+            Map<World, List<Entity>> toRemove = new HashMap<>();
 
-                // Look up limit: specific type first, then global default
-                int limit;
-                if (section.contains(type)) {
-                    limit = section.getInt(type, -1);
-                } else {
-                    limit = globalDefault;
+            for (Map.Entry<World, WorldSnapshot> entry : snapshots.entrySet()) {
+                World world = entry.getKey();
+                WorldSnapshot snap = entry.getValue();
+
+                // Group by type
+                Map<String, List<EntitySnapshot>> byType = new HashMap<>();
+                for (EntitySnapshot es : snap.entities) {
+                    byType.computeIfAbsent(es.type, k -> new ArrayList<>()).add(es);
                 }
 
-                // -1 means no limit for this type
-                if (limit < 0 || entities.size() <= limit)
-                    continue;
+                List<Entity> worldRemovalList = new ArrayList<>();
 
-                int excess = entities.size() - limit;
+                for (Map.Entry<String, List<EntitySnapshot>> typeEntry : byType.entrySet()) {
+                    String type = typeEntry.getKey();
+                    List<EntitySnapshot> entities = typeEntry.getValue();
 
-                // Sort: remove entities furthest from nearest player first
-                if (!players.isEmpty()) {
-                    // Pre-calculate distances to avoid O(N*M) in sort
-                    Map<Entity, Double> distances = new HashMap<>();
-                    for (Entity entity : entities) {
-                        distances.put(entity, nearestPlayerDistSq(entity, players));
+                    int limit = section.contains(type) ? section.getInt(type) : globalDefault;
+
+                    if (limit < 0 || entities.size() <= limit)
+                        continue;
+
+                    int excess = entities.size() - limit;
+
+                    // Sort by distance to nearest player (furthest first)
+                    if (!snap.playerLocs.isEmpty()) {
+                        // Pre-calculate distances
+                        for (EntitySnapshot es : entities) {
+                            es.distanceSq = nearestPlayerDistSq(es.loc, snap.playerLocs);
+                        }
+
+                        entities.sort((a, b) -> Double.compare(b.distanceSq, a.distanceSq));
                     }
 
-                    entities.sort((a, b) -> {
-                        double distA = distances.get(a);
-                        double distB = distances.get(b);
-                        return Double.compare(distB, distA); // furthest first
-                    });
+                    // Mark for removal
+                    for (int i = 0; i < excess; i++) {
+                        worldRemovalList.add(entities.get(i).entity);
+                    }
+
+                    if (excess > 0) {
+                        plugin.getLogger().warning("[EntityLimit] " + world.getName()
+                                + ": scheduled removal of " + excess + " " + type
+                                + " (had " + entities.size() + ", limit " + limit + ")");
+                    }
                 }
 
-                int scheduled = 0;
-                for (Entity entity : entities) {
-                    if (scheduled >= excess)
-                        break;
-
-                    distributor.addWorkload(entity::remove);
-                    scheduled++;
-                }
-
-                if (scheduled > 0) {
-                     plugin.getLogger().warning("[EntityLimit] " + world.getName()
-                            + ": scheduled removal of " + scheduled + " " + type
-                            + " (had " + entities.size() + ", limit " + limit + ")");
+                if (!worldRemovalList.isEmpty()) {
+                    toRemove.put(world, worldRemovalList);
                 }
             }
+
+            // ── Phase 3: SYNC Execution ──
+            if (!toRemove.isEmpty()) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    WorkloadDistributor distributor = plugin.getWorkloadDistributor();
+                    int totalScheduled = 0;
+
+                    for (List<Entity> list : toRemove.values()) {
+                        for (Entity e : list) {
+                            distributor.addWorkload(() -> {
+                                if (e.isValid())
+                                    e.remove();
+                            });
+                            totalScheduled++;
+                        }
+                    }
+
+                    if (totalScheduled > 0) {
+                        plugin.getLogger().info("[EntityLimit] Scheduled " + totalScheduled
+                                + " entities for removal via WorkloadDistributor");
+                    }
+                });
+            }
+        });
+    }
+
+    private double nearestPlayerDistSq(org.bukkit.util.Vector entityLoc, List<org.bukkit.util.Vector> playerLocs) {
+        double nearest = Double.MAX_VALUE;
+        for (org.bukkit.util.Vector pLoc : playerLocs) {
+            double dist = entityLoc.distanceSquared(pLoc);
+            if (dist < nearest)
+                nearest = dist;
+        }
+        return nearest;
+    }
+
+    // Snapshot classes
+    private static class WorldSnapshot {
+        final List<org.bukkit.util.Vector> playerLocs;
+        final List<EntitySnapshot> entities;
+
+        WorldSnapshot(List<org.bukkit.util.Vector> p, List<EntitySnapshot> e) {
+            this.playerLocs = p;
+            this.entities = e;
         }
     }
 
-    private double nearestPlayerDistSq(Entity entity, List<Player> players) {
-        double nearest = Double.MAX_VALUE;
-        for (Player player : players) {
-            try {
-                double dist = entity.getLocation().distanceSquared(player.getLocation());
-                if (dist < nearest)
-                    nearest = dist;
-            } catch (Exception ignored) {
-            } // different worlds
+    private static class EntitySnapshot {
+        final Entity entity;
+        final org.bukkit.util.Vector loc;
+        final String type;
+        double distanceSq = 0;
+
+        EntitySnapshot(Entity e, org.bukkit.util.Vector l, String t) {
+            this.entity = e;
+            this.loc = l;
+            this.type = t;
         }
-        return nearest;
     }
 
     /**
