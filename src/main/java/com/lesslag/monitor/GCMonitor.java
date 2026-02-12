@@ -42,6 +42,9 @@ public class GCMonitor {
     // Per-collector stats — ConcurrentHashMap for cross-thread safety
     private final Map<String, CollectorStats> collectorStats = new ConcurrentHashMap<>();
 
+    // JMX Bean Cache
+    private List<GarbageCollectorMXBean> cachedGCs = Collections.emptyList();
+
     public GCMonitor(LessLag plugin) {
         this.plugin = plugin;
         loadConfig();
@@ -56,8 +59,11 @@ public class GCMonitor {
         if (!plugin.getConfig().getBoolean("gc-monitor.enabled", true))
             return;
 
+        // Cache GC beans
+        cachedGCs = ManagementFactory.getGarbageCollectorMXBeans();
+
         // Initialize with current GC stats
-        for (GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+        for (GarbageCollectorMXBean gc : cachedGCs) {
             lastCounts.put(gc.getName(), gc.getCollectionCount());
             lastTimes.put(gc.getName(), gc.getCollectionTime());
             collectorStats.put(gc.getName(), new CollectorStats());
@@ -87,7 +93,7 @@ public class GCMonitor {
     }
 
     private void checkGC() {
-        List<GarbageCollectorMXBean> gcs = ManagementFactory.getGarbageCollectorMXBeans();
+        List<GarbageCollectorMXBean> gcs = cachedGCs;
         long totalNewGcTime = 0;
 
         for (GarbageCollectorMXBean gc : gcs) {
@@ -178,7 +184,7 @@ public class GCMonitor {
      */
     public String getGCSummary() {
         StringBuilder sb = new StringBuilder();
-        for (GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+        for (GarbageCollectorMXBean gc : cachedGCs) {
             if (sb.length() > 0)
                 sb.append("\n");
 

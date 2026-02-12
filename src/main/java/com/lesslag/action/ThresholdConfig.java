@@ -192,7 +192,7 @@ public class ThresholdConfig {
      */
     public int getSeverity(List<ThresholdConfig> allThresholds) {
         int index = allThresholds.indexOf(this);
-        return index < 0 ? 0 : allThresholds.size() - 1 - index;
+        return index < 0 ? 0 : index;
     }
 
     /**

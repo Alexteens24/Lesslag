@@ -99,6 +99,25 @@ public class LessLag extends JavaPlugin implements Listener {
         });
 
         // Initialize components
+        initializeMonitors();
+
+        // Register commands
+        LagCommand lagCommand = new LagCommand(this);
+        if (getCommand("lg") != null) {
+            getCommand("lg").setExecutor(lagCommand);
+            getCommand("lg").setTabCompleter(new LagTabCompleter());
+        } else {
+            getLogger().severe("Command 'lg' not found in plugin.yml. Commands will be unavailable.");
+        }
+
+        getLogger().info("========================================");
+        getLogger().info("  LessLag v" + getPluginMeta().getVersion() + " - Enabled!");
+        getLogger().info("  Server Performance Guardian (Async)");
+        getLogger().info("  Monitoring TPS, Ticks, GC & more");
+        getLogger().info("========================================");
+    }
+
+    private void initializeMonitors() {
         actionExecutor = new ActionExecutor(this);
 
         // Run compatibility detection BEFORE creating monitors
@@ -125,25 +144,9 @@ public class LessLag extends JavaPlugin implements Listener {
         frustumCuller.start();
         worldChunkGuard.start();
         memoryLeakDetector.start();
-
-        // Register commands
-        LagCommand lagCommand = new LagCommand(this);
-        if (getCommand("lg") != null) {
-            getCommand("lg").setExecutor(lagCommand);
-            getCommand("lg").setTabCompleter(new LagTabCompleter());
-        } else {
-            getLogger().severe("Command 'lg' not found in plugin.yml. Commands will be unavailable.");
-        }
-
-        getLogger().info("========================================");
-        getLogger().info("  LessLag v" + getPluginMeta().getVersion() + " - Enabled!");
-        getLogger().info("  Server Performance Guardian (Async)");
-        getLogger().info("  Monitoring TPS, Ticks, GC & more");
-        getLogger().info("========================================");
     }
 
-    @Override
-    public void onDisable() {
+    private void stopMonitors() {
         if (tpsMonitor != null)
             tpsMonitor.stop();
         if (tickMonitor != null)
@@ -160,6 +163,11 @@ public class LessLag extends JavaPlugin implements Listener {
             worldChunkGuard.stop();
         if (memoryLeakDetector != null)
             memoryLeakDetector.stop();
+    }
+
+    @Override
+    public void onDisable() {
+        stopMonitors();
 
         // Restore original settings
         if (actionExecutor != null) {
@@ -183,43 +191,8 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public void reloadPlugin() {
         reloadConfig();
-        if (tpsMonitor != null)
-            tpsMonitor.stop();
-        if (tickMonitor != null)
-            tickMonitor.stop();
-        if (gcMonitor != null)
-            gcMonitor.stop();
-        if (chunkLimiter != null)
-            chunkLimiter.stop();
-        if (redstoneMonitor != null)
-            redstoneMonitor.stop();
-        if (frustumCuller != null)
-            frustumCuller.stop();
-        if (worldChunkGuard != null)
-            worldChunkGuard.stop();
-        if (memoryLeakDetector != null)
-            memoryLeakDetector.stop();
-
-        actionExecutor = new ActionExecutor(this);
-        lagSourceAnalyzer = new LagSourceAnalyzer(this);
-        predictiveOptimizer = new PredictiveOptimizer(this, actionExecutor);
-        tpsMonitor = new TPSMonitor(this, actionExecutor, lagSourceAnalyzer, predictiveOptimizer);
-        tickMonitor = new TickMonitor(this);
-        gcMonitor = new GCMonitor(this);
-        chunkLimiter = new ChunkLimiter(this);
-        redstoneMonitor = new RedstoneMonitor(this);
-        frustumCuller = new FrustumCuller(this);
-        worldChunkGuard = new WorldChunkGuard(this);
-        memoryLeakDetector = new MemoryLeakDetector(this);
-
-        tpsMonitor.start();
-        tickMonitor.start();
-        gcMonitor.start();
-        chunkLimiter.start();
-        redstoneMonitor.start();
-        frustumCuller.start();
-        worldChunkGuard.start();
-        memoryLeakDetector.start();
+        stopMonitors();
+        initializeMonitors();
     }
 
     // ── Getters ────────────────────────────

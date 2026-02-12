@@ -75,8 +75,11 @@ public class ActionExecutor {
      * Must be called from the main thread.
      */
     public void executeActions(List<String> actionKeys) {
+        Set<String> executed = new HashSet<>();
         for (String key : actionKeys) {
-            executeAction(key);
+            if (executed.add(key.toLowerCase())) {
+                executeAction(key);
+            }
         }
     }
 
@@ -90,9 +93,12 @@ public class ActionExecutor {
 
         // Separate read-only actions from modification actions
         List<String> syncActions = new ArrayList<>();
+        Set<String> uniqueKeys = new HashSet<>();
         for (String key : actionKeys) {
-            // force-gc can run on any thread, but all others need main thread
-            syncActions.add(key);
+            // Deduplicate here as well to avoid redundant scheduling
+            if (uniqueKeys.add(key.toLowerCase())) {
+                syncActions.add(key);
+            }
         }
 
         // Log analysis info async (safe — read-only)
@@ -235,11 +241,9 @@ public class ActionExecutor {
     public int clearGroundItems() {
         int count = 0;
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof Item) {
-                    entity.remove();
-                    count++;
-                }
+            for (Item item : world.getEntitiesByClass(Item.class)) {
+                item.remove();
+                count++;
             }
         }
         return count;
@@ -251,11 +255,9 @@ public class ActionExecutor {
     public int clearXPOrbs() {
         int count = 0;
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof ExperienceOrb) {
-                    entity.remove();
-                    count++;
-                }
+            for (ExperienceOrb orb : world.getEntitiesByClass(ExperienceOrb.class)) {
+                orb.remove();
+                count++;
             }
         }
         return count;
@@ -267,7 +269,7 @@ public class ActionExecutor {
     public int clearExcessMobs() {
         int count = 0;
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
+            for (LivingEntity entity : world.getEntitiesByClass(LivingEntity.class)) {
                 if (shouldRemoveEntity(entity)) {
                     entity.remove();
                     count++;
@@ -283,9 +285,9 @@ public class ActionExecutor {
     public int killHostileMobs() {
         int count = 0;
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof Monster && !isProtected(entity)) {
-                    entity.remove();
+            for (Monster monster : world.getEntitiesByClass(Monster.class)) {
+                if (!isProtected(monster)) {
+                    monster.remove();
                     count++;
                 }
             }
@@ -297,30 +299,35 @@ public class ActionExecutor {
      * Disable AI for mobs far from players to reduce pathfinding load
      */
     public int disableMobAI() {
-
         int radius = plugin.getConfig().getInt("ai-optimization.active-radius", 48);
+        int chunkRadius = (radius >> 4) + 1;
         int count = 0;
 
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (!(entity instanceof Mob))
-                    continue;
-                if (aiProtected.contains(entity.getType().name()))
-                    continue;
-                if (isProtected(entity))
-                    continue;
-
-                Mob mob = (Mob) entity;
-
-                boolean nearPlayer = false;
-                for (Player player : world.getPlayers()) {
-                    if (entity.getLocation().distanceSquared(player.getLocation()) <= radius * radius) {
-                        nearPlayer = true;
-                        break;
+            // Collect player chunks
+            Set<Long> playerChunks = new HashSet<>();
+            for (Player player : world.getPlayers()) {
+                int px = player.getLocation().getBlockX() >> 4;
+                int pz = player.getLocation().getBlockZ() >> 4;
+                for (int x = px - chunkRadius; x <= px + chunkRadius; x++) {
+                    for (int z = pz - chunkRadius; z <= pz + chunkRadius; z++) {
+                        playerChunks.add(((long) x << 32) | (z & 0xFFFFFFFFL));
                     }
                 }
+            }
 
-                if (!nearPlayer && plugin.isMobAwareSafe(mob)) {
+            // Iterate mobs
+            for (Mob mob : world.getEntitiesByClass(Mob.class)) {
+                if (aiProtected.contains(mob.getType().name()))
+                    continue;
+                if (isProtected(mob))
+                    continue;
+
+                int cx = mob.getLocation().getBlockX() >> 4;
+                int cz = mob.getLocation().getBlockZ() >> 4;
+                long key = ((long) cx << 32) | (cz & 0xFFFFFFFFL);
+
+                if (!playerChunks.contains(key) && plugin.isMobAwareSafe(mob)) {
                     if (plugin.setMobAwareSafe(mob, false)) {
                         count++;
                     }
@@ -337,13 +344,10 @@ public class ActionExecutor {
 
         int count = 0;
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof Mob) {
-                    Mob mob = (Mob) entity;
-                    if (!plugin.isMobAwareSafe(mob)) {
-                        if (plugin.setMobAwareSafe(mob, true)) {
-                            count++;
-                        }
+            for (Mob mob : world.getEntitiesByClass(Mob.class)) {
+                if (!plugin.isMobAwareSafe(mob)) {
+                    if (plugin.setMobAwareSafe(mob, true)) {
+                        count++;
                     }
                 }
             }

@@ -4,6 +4,7 @@ import com.lesslag.LessLag;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
@@ -48,6 +49,10 @@ public class MemoryLeakDetector {
     // Heap pool info cache
     private volatile Map<String, PoolInfo> heapPools = Collections.emptyMap();
 
+    // JMX Bean Cache
+    private List<MemoryPoolMXBean> cachedPools = Collections.emptyList();
+    private List<GarbageCollectorMXBean> cachedGCs = Collections.emptyList();
+
     public MemoryLeakDetector(LessLag plugin) {
         this.plugin = plugin;
     }
@@ -57,6 +62,10 @@ public class MemoryLeakDetector {
             return;
 
         int intervalSeconds = plugin.getConfig().getInt("memory-leak-detector.check-interval", 30);
+
+        // Cache JMX beans
+        cachedPools = ManagementFactory.getMemoryPoolMXBeans();
+        cachedGCs = ManagementFactory.getGarbageCollectorMXBeans();
 
         // Initialize GC count
         lastGCCount = getTotalGCCount();
@@ -165,7 +174,7 @@ public class MemoryLeakDetector {
      * Uses getCollectionUsage() which reports memory AFTER the last GC.
      */
     private double getPostGCBaselineMB() {
-        for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+        for (MemoryPoolMXBean pool : cachedPools) {
             if (pool.getType() != java.lang.management.MemoryType.HEAP)
                 continue;
             String name = pool.getName().toLowerCase();
@@ -186,7 +195,7 @@ public class MemoryLeakDetector {
      */
     private void updateHeapPools() {
         Map<String, PoolInfo> pools = new LinkedHashMap<>();
-        for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+        for (MemoryPoolMXBean pool : cachedPools) {
             if (pool.getType() != java.lang.management.MemoryType.HEAP)
                 continue;
             MemoryUsage usage = pool.getUsage();
@@ -230,7 +239,7 @@ public class MemoryLeakDetector {
 
     private long getTotalGCCount() {
         long total = 0;
-        for (var gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+        for (var gc : cachedGCs) {
             if (gc.getCollectionCount() > 0)
                 total += gc.getCollectionCount();
         }

@@ -476,6 +476,7 @@ public class LagCommand implements CommandExecutor {
     // ══════════════════════════════════════════════════
 
     private void doGC(CommandSender sender) {
+        plugin.getLogger().info(sender.getName() + " initiated manual Garbage Collection.");
         send(sender, plugin.getPrefix() + "&7Running garbage collection...");
         long freed = plugin.getActionExecutor().forceGC();
         String message = formatMessage("messages.gc-complete",
@@ -554,6 +555,7 @@ public class LagCommand implements CommandExecutor {
 
     private void doClear(CommandSender sender, String[] args) {
         String type = args.length > 1 ? args[1].toLowerCase() : "all";
+        plugin.getLogger().info(sender.getName() + " cleared entities (type: " + type + ").");
 
         switch (type) {
             case "items": {
@@ -607,6 +609,9 @@ public class LagCommand implements CommandExecutor {
 
     private void doAI(CommandSender sender, String[] args) {
         String action = args.length > 1 ? args[1].toLowerCase() : "status";
+        if (!action.equals("status")) {
+            plugin.getLogger().info(sender.getName() + " modified mob AI (action: " + action + ").");
+        }
 
         switch (action) {
             case "disable": {
@@ -999,11 +1004,13 @@ public class LagCommand implements CommandExecutor {
     // ══════════════════════════════════════════════════
 
     private void doRestore(CommandSender sender) {
+        plugin.getLogger().info(sender.getName() + " restored default settings.");
         plugin.getActionExecutor().restoreDefaults();
         send(sender, plugin.getPrefix() + "&aAll server settings restored to defaults.");
     }
 
     private void doReload(CommandSender sender) {
+        plugin.getLogger().info(sender.getName() + " reloaded the plugin configuration.");
         plugin.reloadPlugin();
         send(sender, plugin.getPrefix() + "&aConfiguration reloaded successfully!");
         send(sender,
