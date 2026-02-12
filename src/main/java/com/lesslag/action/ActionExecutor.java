@@ -465,8 +465,9 @@ public class ActionExecutor {
         if (plugin.getWorldChunkGuard() == null)
             return 0;
 
-        int totalUnloaded = 0;
+        int totalScheduled = 0;
         double overloadMultiplier = plugin.getConfig().getDouble("world-chunk-guard.overload-multiplier", 2.0);
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
 
         for (World world : Bukkit.getWorlds()) {
             int playerCount = world.getPlayers().size();
@@ -478,18 +479,21 @@ public class ActionExecutor {
             if (loadedChunks > (int) (expectedMax * overloadMultiplier)) {
                 int excess = loadedChunks - expectedMax;
                 org.bukkit.Chunk[] chunks = world.getLoadedChunks();
-                int unloaded = 0;
+                int scheduled = 0;
                 for (org.bukkit.Chunk chunk : chunks) {
-                    if (unloaded >= excess)
+                    if (scheduled >= excess)
                         break;
-                    // Use safe unload(true) to ensure data is saved
-                    if (chunk.unload(true))
-                        unloaded++;
+                    distributor.addWorkload(() -> {
+                        if (chunk.isLoaded()) {
+                            chunk.unload(true);
+                        }
+                    });
+                    scheduled++;
                 }
-                totalUnloaded += unloaded;
+                totalScheduled += scheduled;
             }
         }
-        return totalUnloaded;
+        return totalScheduled;
     }
 
     /**
@@ -607,9 +611,17 @@ public class ActionExecutor {
 
         int globalDefault = section.getInt("default", -1);
 
+        Map<String, Integer> limits = new HashMap<>();
+        for (String key : section.getKeys(false)) {
+            if ("default".equalsIgnoreCase(key))
+                continue;
+            limits.put(key.toUpperCase(), section.getInt(key));
+        }
+
         // ── Phase 1: SYNC Snapshot ──
         // Capture all necessary data on main thread to avoid async API access
         Map<World, WorldSnapshot> snapshots = new HashMap<>();
+        Map<World, String> worldNames = new HashMap<>();
 
         for (World world : Bukkit.getWorlds()) {
             List<Player> players = world.getPlayers();
@@ -627,15 +639,22 @@ public class ActionExecutor {
             }
 
             snapshots.put(world, new WorldSnapshot(playerLocs, entitySnapshots));
+            worldNames.put(world, world.getName());
         }
 
         // ── Phase 2: ASYNC Analysis ──
+        if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
+            plugin.getLogger().warning("[EntityLimit] Async executor unavailable; skipping enforcement.");
+            return;
+        }
+
         plugin.getAsyncExecutor().execute(() -> {
             Map<World, List<Entity>> toRemove = new HashMap<>();
 
             for (Map.Entry<World, WorldSnapshot> entry : snapshots.entrySet()) {
                 World world = entry.getKey();
                 WorldSnapshot snap = entry.getValue();
+                String worldName = worldNames.getOrDefault(world, "unknown");
 
                 // Group by type
                 Map<String, List<EntitySnapshot>> byType = new HashMap<>();
@@ -648,8 +667,9 @@ public class ActionExecutor {
                 for (Map.Entry<String, List<EntitySnapshot>> typeEntry : byType.entrySet()) {
                     String type = typeEntry.getKey();
                     List<EntitySnapshot> entities = typeEntry.getValue();
-
-                    int limit = section.contains(type) ? section.getInt(type) : globalDefault;
+                    int limit = limits.containsKey(type.toUpperCase())
+                            ? limits.get(type.toUpperCase())
+                            : globalDefault;
 
                     if (limit < 0 || entities.size() <= limit)
                         continue;
@@ -672,7 +692,7 @@ public class ActionExecutor {
                     }
 
                     if (excess > 0) {
-                        plugin.getLogger().warning("[EntityLimit] " + world.getName()
+                        plugin.getLogger().warning("[EntityLimit] " + worldName
                                 + ": scheduled removal of " + excess + " " + type
                                 + " (had " + entities.size() + ", limit " + limit + ")");
                     }
