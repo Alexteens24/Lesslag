@@ -118,7 +118,7 @@ public class RedstoneMonitor implements Listener {
                 activeSuppressedChunks = suppressedChunks.size();
 
                 // Clean stale notification cooldowns
-                notifyCooldowns.entrySet().removeIf(entry -> entry.getValue() <= now);
+                notifyCooldowns.entrySet().removeIf(entry -> now - entry.getValue() > NOTIFY_COOLDOWN_MS);
             }
         }.runTaskTimer(plugin, windowSeconds * 20L, windowSeconds * 20L);
 
@@ -253,8 +253,10 @@ public class RedstoneMonitor implements Listener {
     }
 
     private long getBlockKey(Block block) {
-        return ((long) block.getX() & 0x7FFFFFF) | (((long) block.getZ() & 0x7FFFFFF) << 27)
-                | ((long) block.getY() << 54);
+        // Include world hash to prevent cross-world collisions
+        long worldHash = block.getWorld().getUID().getMostSignificantBits();
+        return (((long) block.getX() & 0x7FFFFFF) | (((long) block.getZ() & 0x7FFFFFF) << 27)
+                | ((long) block.getY() << 54)) ^ worldHash;
     }
 
     // ── Data Classes ──────────────────────────────────────

@@ -79,9 +79,17 @@ public class CompatibilityManager {
         if (!check)
             return;
 
-        // Detect Pufferfish by checking for its config file or server brand
-        pufferfishDetected = detectServerFork("Pufferfish")
-                || new File("pufferfish.yml").exists();
+        // Detect Pufferfish by checking for server brand or class existence.
+        // File existence alone is unreliable as users often have leftover config files.
+        boolean isBrand = detectServerFork("Pufferfish");
+        boolean hasClass = false;
+        try {
+            Class.forName("gg.pufferfish.pufferfish.Pufferfish");
+            hasClass = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+
+        pufferfishDetected = isBrand || hasClass;
 
         if (!pufferfishDetected)
             return;
@@ -138,10 +146,11 @@ public class CompatibilityManager {
         plugin.getLogger().info("[Compat] ClearLag/ClearLag++ detected!");
 
         if (autoAdjust) {
-            // ClearLag handles redstone culling — disable our suppressor
+            // ClearLag handles redstone culling, but users might prefer LessLag's implementation.
+            // We'll warn about potential conflict instead of forcefully disabling it.
             if (plugin.getConfig().getBoolean("modules.redstone.enabled", true)) {
-                plugin.getConfig().set("modules.redstone.enabled", false);
-                autoDisabled.add("Redstone Suppressor (ClearLag handles redstone culling)");
+                plugin.getLogger().warning("[Compat] ClearLag detected! Both plugins have Redstone Limiting enabled.");
+                plugin.getLogger().warning("[Compat] Consider disabling one to avoid conflicts.");
             }
 
             // Remove clear-ground-items and clear-xp-orbs from threshold actions

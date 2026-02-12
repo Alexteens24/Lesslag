@@ -195,6 +195,7 @@ public class LessLag extends JavaPlugin implements Listener {
         }
 
         getLogger().info("LessLag disabled. Server settings restored.");
+        instance = null;
     }
 
     public void reloadPlugin() {
