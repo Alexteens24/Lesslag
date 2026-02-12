@@ -70,6 +70,10 @@ public class TPSMonitor {
     }
 
     public void start() {
+        if (!plugin.getConfig().getBoolean("system.tps-monitor.enabled", true)) {
+            return;
+        }
+
         // Tick counter — SYNC (must measure actual server ticks)
         tickTask = new BukkitRunnable() {
             private int tickCount = 0;

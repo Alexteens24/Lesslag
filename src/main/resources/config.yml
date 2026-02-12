@@ -65,13 +65,6 @@ modules:
         water_animal: 5
         ambient: 5
         misc: 10
-      # Max entities per chunk by type
-      per-chunk-limit:
-        monster: 30
-        animal: 15
-        water_animal: 5
-        ambient: 5
-        misc: 10
       # Max entities per WORLD by type (Hard limit)
       per-world-limit:
         monster: 2000
