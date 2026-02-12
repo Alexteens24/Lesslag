@@ -1,6 +1,7 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
+import com.lesslag.action.ActionExecutor;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class WorldChunkGuard {
 
     private final LessLag plugin;
+    private final ActionExecutor actionExecutor;
     private BukkitTask checkTask;
 
     // Per-world retry counter
@@ -43,8 +45,9 @@ public class WorldChunkGuard {
     private volatile long lastCheckTime = 0;
     private volatile int lastTotalUnloaded = 0;
 
-    public WorldChunkGuard(LessLag plugin) {
+    public WorldChunkGuard(LessLag plugin, ActionExecutor actionExecutor) {
         this.plugin = plugin;
+        this.actionExecutor = actionExecutor;
     }
 
     public void start() {
@@ -80,6 +83,8 @@ public class WorldChunkGuard {
         int maxRetries = plugin.getConfig().getInt("modules.chunks.world-guard.max-retries", 5);
         boolean notify = plugin.getConfig().getBoolean("modules.chunks.world-guard.notify", true);
         String evacuateWorldName = plugin.getConfig().getString("modules.chunks.world-guard.evacuate-world", "world");
+        int maxChunksPerPlayer = plugin.getConfig().getInt("modules.chunks.world-guard.max-chunks-per-player", 200);
+        List<String> actions = plugin.getConfig().getStringList("modules.chunks.world-guard.actions");
 
         // Brief SYNC dispatch to collect world snapshots
         Bukkit.getScheduler().runTask(plugin, () -> {
@@ -87,7 +92,8 @@ public class WorldChunkGuard {
 
             // Back to ASYNC for analysis
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                analyzeSnapshots(snapshots, overloadMultiplier, maxRetries, notify, evacuateWorldName);
+                analyzeSnapshots(snapshots, overloadMultiplier, maxRetries, notify, evacuateWorldName,
+                        maxChunksPerPlayer, actions);
             });
         });
     }
@@ -148,10 +154,17 @@ public class WorldChunkGuard {
      * happen here, off the main thread.
      */
     private void analyzeSnapshots(List<WorldSnapshot> snapshots, double overloadMultiplier,
-            int maxRetries, boolean notify, String evacuateWorldName) {
+            int maxRetries, boolean notify, String evacuateWorldName,
+            int maxChunksPerPlayer, List<String> actions) {
         for (WorldSnapshot snap : snapshots) {
-            int chunksPerPlayer = (snap.viewDistance * 2 + 1) * (snap.viewDistance * 2 + 1);
-            int expectedMax = Math.max(snap.playerCount * chunksPerPlayer, 100);
+            int expectedMax;
+            if (maxChunksPerPlayer > 0) {
+                expectedMax = Math.max(snap.playerCount * maxChunksPerPlayer, 100);
+            } else {
+                int chunksPerPlayer = (snap.viewDistance * 2 + 1) * (snap.viewDistance * 2 + 1);
+                expectedMax = Math.max(snap.playerCount * chunksPerPlayer, 100);
+            }
+
             boolean overloaded = snap.chunkCount > (int) (expectedMax * overloadMultiplier);
 
             WorldChunkStatus status = new WorldChunkStatus(
@@ -169,22 +182,53 @@ public class WorldChunkGuard {
             boolean forceMode = retries > 0;
             int excess = snap.chunkCount - expectedMax;
 
+            if (retries == 0 && actions != null && !actions.isEmpty()) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    World w = Bukkit.getWorld(snap.worldName);
+                    if (w != null) {
+                        for (String action : actions) {
+                            if (action.equalsIgnoreCase("reduce-view-distance")) {
+                                actionExecutor.reduceViewDistance(w);
+                            }
+                        }
+                    }
+                });
+            }
+
             plugin.getLogger().warning("[WorldChunkGuard] " + snap.worldName
                     + " OVERLOADED: " + snap.chunkCount + " chunks loaded"
                     + " (expected max: ~" + expectedMax + ", players: " + snap.playerCount
                     + ", VD: " + snap.viewDistance + ") [attempt " + (retries + 1) + "/" + maxRetries + "]");
 
+            // Check if unloading is enabled in actions (default true if list is empty or
+            // contains it)
+            boolean doUnload = actions == null || actions.isEmpty() || actions.contains("unload-unused");
+
+            if (!doUnload) {
+                // If unloading is disabled, we just rely on other actions (like view distance reduction)
+                // But we still track retries to eventually evacuate if needed?
+                // Or maybe just skip? For now, we proceed to ensure logic flows, but candidates will be empty
+                // if we don't build them.
+                // Let's just return here to avoid unloading if not requested.
+                // But we need to update status/retries?
+                // If we don't unload, we can't reduce chunk count directly.
+                // We'll increment retries later if still overloaded.
+                // Let's assume we skip building candidates.
+            }
+
             // Build sorted unload candidates ASYNC (heavy sort is off main thread)
             List<int[]> candidates = new ArrayList<>();
-            for (int[] coord : snap.chunkCoords) {
-                long key = chunkKey(coord[0], coord[1]);
-                if (snap.playerChunkKeys.contains(key))
-                    continue;
-                candidates.add(coord);
+            if (doUnload) {
+                for (int[] coord : snap.chunkCoords) {
+                    long key = chunkKey(coord[0], coord[1]);
+                    if (snap.playerChunkKeys.contains(key))
+                        continue;
+                    candidates.add(coord);
+                }
             }
 
             // Sort by distance from nearest player (furthest first) — ASYNC
-            if (!snap.playerPositions.isEmpty()) {
+            if (doUnload && !snap.playerPositions.isEmpty()) {
                 candidates.sort((a, b) -> {
                     double distA = nearestPlayerDistSq(a, snap.playerPositions);
                     double distB = nearestPlayerDistSq(b, snap.playerPositions);

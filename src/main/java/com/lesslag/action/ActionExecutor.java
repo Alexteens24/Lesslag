@@ -420,15 +420,22 @@ public class ActionExecutor {
      * Reduce view distance for all worlds
      */
     public void reduceViewDistance() {
+        for (World world : Bukkit.getWorlds()) {
+            reduceViewDistance(world);
+        }
+    }
+
+    /**
+     * Reduce view distance for a specific world
+     */
+    public void reduceViewDistance(World world) {
         int minVD = plugin.getConfig().getInt("modules.chunks.view-distance.min", 4);
         int reduceBy = plugin.getConfig().getInt("modules.chunks.view-distance.reduce-by", 2);
-        for (World world : Bukkit.getWorlds()) {
-            int currentVD = world.getViewDistance();
-            if (currentVD > minVD) {
-                int newVD = Math.max(minVD, currentVD - reduceBy);
-                world.setViewDistance(newVD);
-                plugin.getLogger().info("View Distance [" + world.getName() + "]: " + currentVD + " -> " + newVD);
-            }
+        int currentVD = world.getViewDistance();
+        if (currentVD > minVD) {
+            int newVD = Math.max(minVD, currentVD - reduceBy);
+            world.setViewDistance(newVD);
+            plugin.getLogger().info("View Distance [" + world.getName() + "]: " + currentVD + " -> " + newVD);
         }
     }
 
@@ -643,8 +650,19 @@ public class ActionExecutor {
             for (Entity entity : world.getEntities()) {
                 if (entity instanceof Player)
                     continue;
-                entitySnapshots
-                        .add(new EntitySnapshot(entity, entity.getLocation().toVector(), entity.getType().name()));
+
+                List<String> categories = new ArrayList<>();
+                if (entity instanceof Monster)
+                    categories.add("MONSTER");
+                if (entity instanceof Animals)
+                    categories.add("ANIMAL");
+                if (entity instanceof WaterMob)
+                    categories.add("WATER_ANIMAL");
+                if (entity instanceof Ambient)
+                    categories.add("AMBIENT");
+
+                entitySnapshots.add(new EntitySnapshot(entity, entity.getLocation().toVector(), entity.getType().name(),
+                        categories));
             }
 
             snapshots.put(world.getUID(), new WorldSnapshot(playerLocs, entitySnapshots));
@@ -676,9 +694,23 @@ public class ActionExecutor {
                 for (Map.Entry<String, List<EntitySnapshot>> typeEntry : byType.entrySet()) {
                     String type = typeEntry.getKey();
                     List<EntitySnapshot> entities = typeEntry.getValue();
-                    int limit = limits.containsKey(type.toUpperCase())
-                            ? limits.get(type.toUpperCase())
-                            : globalDefault;
+
+                    // Determine limit: Specific Type -> Category -> Default
+                    int limit = -1;
+                    if (limits.containsKey(type.toUpperCase())) {
+                        limit = limits.get(type.toUpperCase());
+                    } else if (!entities.isEmpty()) {
+                        // Check categories (all entities in list have same categories/type)
+                        for (String cat : entities.get(0).categories) {
+                            if (limits.containsKey(cat)) {
+                                limit = limits.get(cat);
+                                break;
+                            }
+                        }
+                    }
+
+                    if (limit == -1)
+                        limit = globalDefault;
 
                     if (limit < 0 || entities.size() <= limit)
                         continue;
@@ -762,12 +794,14 @@ public class ActionExecutor {
         final Entity entity;
         final org.bukkit.util.Vector loc;
         final String type;
+        final List<String> categories;
         double distanceSq = 0;
 
-        EntitySnapshot(Entity e, org.bukkit.util.Vector l, String t) {
+        EntitySnapshot(Entity e, org.bukkit.util.Vector l, String t, List<String> c) {
             this.entity = e;
             this.loc = l;
             this.type = t;
+            this.categories = c;
         }
     }
 
