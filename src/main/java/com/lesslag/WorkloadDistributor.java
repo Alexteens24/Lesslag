@@ -108,4 +108,17 @@ public class WorkloadDistributor {
     public boolean isProcessing() {
         return running.get();
     }
+
+    /**
+     * Stop processing and clear the queue.
+     */
+    public void shutdown() {
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
+        running.set(false);
+        workloadQueue.clear();
+        queueSize.set(0);
+    }
 }

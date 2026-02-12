@@ -620,8 +620,8 @@ public class ActionExecutor {
 
         // ── Phase 1: SYNC Snapshot ──
         // Capture all necessary data on main thread to avoid async API access
-        Map<World, WorldSnapshot> snapshots = new HashMap<>();
-        Map<World, String> worldNames = new HashMap<>();
+        Map<UUID, WorldSnapshot> snapshots = new HashMap<>();
+        Map<UUID, String> worldNames = new HashMap<>();
 
         for (World world : Bukkit.getWorlds()) {
             List<Player> players = world.getPlayers();
@@ -638,8 +638,8 @@ public class ActionExecutor {
                         .add(new EntitySnapshot(entity, entity.getLocation().toVector(), entity.getType().name()));
             }
 
-            snapshots.put(world, new WorldSnapshot(playerLocs, entitySnapshots));
-            worldNames.put(world, world.getName());
+            snapshots.put(world.getUID(), new WorldSnapshot(playerLocs, entitySnapshots));
+            worldNames.put(world.getUID(), world.getName());
         }
 
         // ── Phase 2: ASYNC Analysis ──
@@ -649,12 +649,12 @@ public class ActionExecutor {
         }
 
         plugin.getAsyncExecutor().execute(() -> {
-            Map<World, List<Entity>> toRemove = new HashMap<>();
+            Map<UUID, List<Entity>> toRemove = new HashMap<>();
 
-            for (Map.Entry<World, WorldSnapshot> entry : snapshots.entrySet()) {
-                World world = entry.getKey();
+            for (Map.Entry<UUID, WorldSnapshot> entry : snapshots.entrySet()) {
+                UUID worldId = entry.getKey();
                 WorldSnapshot snap = entry.getValue();
-                String worldName = worldNames.getOrDefault(world, "unknown");
+                String worldName = worldNames.getOrDefault(worldId, "unknown");
 
                 // Group by type
                 Map<String, List<EntitySnapshot>> byType = new HashMap<>();
@@ -699,7 +699,7 @@ public class ActionExecutor {
                 }
 
                 if (!worldRemovalList.isEmpty()) {
-                    toRemove.put(world, worldRemovalList);
+                    toRemove.put(worldId, worldRemovalList);
                 }
             }
 

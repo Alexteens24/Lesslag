@@ -173,6 +173,10 @@ public class LessLag extends JavaPlugin implements Listener {
     public void onDisable() {
         stopMonitors();
 
+        if (workloadDistributor != null) {
+            workloadDistributor.shutdown();
+        }
+
         // Restore original settings
         if (actionExecutor != null) {
             actionExecutor.restoreDefaults();
