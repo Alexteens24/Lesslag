@@ -675,7 +675,7 @@ public class LagCommand implements CommandExecutor {
 
                 // Use the full detailed report format
                 java.util.List<String> report = plugin.getLagSourceAnalyzer()
-                        .formatFullReport(result.sources, result.worldSnapshots, result.taskSnapshots);
+                        .formatFullReport(result);
                 for (String line : report) {
                     send(sender, line);
                 }

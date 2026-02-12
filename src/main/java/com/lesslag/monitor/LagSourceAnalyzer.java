@@ -309,8 +309,14 @@ public class LagSourceAnalyzer {
      * Format a full detailed report for the /lg sources command.
      * Shows ALL worlds and ALL plugin tasks, flagging those over thresholds.
      */
-    public List<String> formatFullReport(List<LagSource> sources, WorldSnapshot[] worldSnapshots,
-            TaskSnapshot[] taskSnapshots) {
+    public List<String> formatFullReport(FullAnalysisResult result) {
+        List<LagSource> sources = result.sources;
+        WorldSnapshot[] worldSnapshots = result.worldSnapshots;
+        TaskSnapshot[] taskSnapshots = result.taskSnapshots;
+        Map<String, Integer> previousChunkCounts = result.previousChunkCounts;
+        long lastChunkSnapshotTime = result.lastChunkSnapshotTime;
+        long snapshotTime = result.analysisTime;
+
         List<String> lines = new ArrayList<>();
         int entityWarning = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.entity-count", 500);
         int chunkWarning = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.chunk-count", 800);
@@ -376,7 +382,7 @@ public class LagSourceAnalyzer {
 
         // Chunk load rates (if we have previous data)
         if (lastChunkSnapshotTime > 0) {
-            long elapsed = System.currentTimeMillis() - lastChunkSnapshotTime;
+            long elapsed = snapshotTime - lastChunkSnapshotTime;
             if (elapsed > 0) {
                 double elapsedSec = elapsed / 1000.0;
                 double rateWarning = plugin.getConfig()
@@ -459,6 +465,10 @@ public class LagSourceAnalyzer {
                     try {
                         plugin.getAsyncExecutor().execute(() -> {
                             try {
+                                // Capture previous state before updating
+                                Map<String, Integer> oldChunkCounts = new HashMap<>(previousChunkCounts);
+                                long oldTime = lastChunkSnapshotTime;
+
                                 List<LagSource> results = processSnapshots(worldSnaps, taskSnaps, snapshotTime, config);
                                 lastAnalysis = results;
                                 lastAnalysisTime = snapshotTime;
@@ -469,7 +479,7 @@ public class LagSourceAnalyzer {
                                 }
                                 lastChunkSnapshotTime = snapshotTime;
 
-                                future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps));
+                                future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps, oldChunkCounts, oldTime, snapshotTime));
                             } catch (Exception e) {
                                 future.completeExceptionally(e);
                             }
@@ -520,12 +530,19 @@ public class LagSourceAnalyzer {
         public final List<LagSource> sources;
         public final WorldSnapshot[] worldSnapshots;
         public final TaskSnapshot[] taskSnapshots;
+        public final Map<String, Integer> previousChunkCounts;
+        public final long lastChunkSnapshotTime;
+        public final long analysisTime;
 
         FullAnalysisResult(List<LagSource> sources, WorldSnapshot[] worldSnapshots,
-                TaskSnapshot[] taskSnapshots) {
+                TaskSnapshot[] taskSnapshots, Map<String, Integer> previousChunkCounts,
+                long lastChunkSnapshotTime, long analysisTime) {
             this.sources = sources;
             this.worldSnapshots = worldSnapshots;
             this.taskSnapshots = taskSnapshots;
+            this.previousChunkCounts = previousChunkCounts;
+            this.lastChunkSnapshotTime = lastChunkSnapshotTime;
+            this.analysisTime = analysisTime;
         }
     }
 

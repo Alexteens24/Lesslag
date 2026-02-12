@@ -216,7 +216,8 @@ public class TPSMonitor {
             consecutiveGoodCount = 0;
 
             if (consecutiveLowCount >= triggerCount) {
-                if (activeThreshold == null || getSeverityIndex(detected) > getSeverityIndex(activeThreshold)) {
+                // Change threshold if different (allows escalation and de-escalation)
+                if (activeThreshold == null || !activeThreshold.equals(detected)) {
                     activeThreshold = detected;
                     // Dispatch actions to MAIN THREAD
                     final ThresholdConfig toTrigger = detected;
