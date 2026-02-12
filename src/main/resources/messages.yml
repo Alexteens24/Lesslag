@@ -1,0 +1,23 @@
+prefix: "&8[&c&lLessLag&8] &r"
+
+action:
+  scheduled: "&aScheduled cleanup task: %action%"
+  entity-limits-enforced: "&aEntity limits enforced — removed %count% excess entities."
+  unloaded-chunks: "&aUnloaded %count% excess chunks."
+  cleaned-chunks: "&aCleaned %count% chunks."
+  restored-defaults: "&aRestored server settings and re-enabled AI for %count% mobs."
+
+messages:
+  items-cleared: "&aScheduled clearing of ground items."
+  xp-cleared: "&aScheduled clearing of XP orbs."
+  mobs-cleared: "&aScheduled removal of excess mobs."
+  hostile-killed: "&aScheduled killing of hostile mobs."
+  ai-disabled: "&aScheduled AI disable task."
+  all-cleared: "&aScheduled clearing of all entities (items, xp, mobs)."
+
+analysis:
+  top-entities: "&e&lTOP ENTITIES"
+  loaded-chunks: "&e&lLOADED CHUNKS"
+  plugin-tasks: "&e&lPLUGIN TASKS"
+  entity-hotspots: "&e&lENTITY HOTSPOTS"
+  more-issues: "&8... and %count% more issues"
