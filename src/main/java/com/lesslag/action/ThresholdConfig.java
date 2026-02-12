@@ -59,7 +59,7 @@ public class ThresholdConfig {
      */
     public static List<ThresholdConfig> loadFromConfig(FileConfiguration config, Logger logger) {
         List<ThresholdConfig> thresholds = new ArrayList<>();
-        ConfigurationSection section = config.getConfigurationSection("thresholds");
+        ConfigurationSection section = config.getConfigurationSection("automation.thresholds");
 
         if (section == null) {
             logger.warning("No 'thresholds' section found in config.yml!");

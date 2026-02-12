@@ -35,6 +35,7 @@ public class RedstoneMonitor implements Listener {
 
     private final LessLag plugin;
     private BukkitTask cleanupTask;
+    private BukkitTask pistonResetTask;
 
     // Config (cached)
     private boolean enabled;
@@ -123,7 +124,7 @@ public class RedstoneMonitor implements Listener {
 
         // Piston counter reset (every tick)
         if (pistonLimitEnabled) {
-            new BukkitRunnable() {
+            pistonResetTask = new BukkitRunnable() {
                 @Override
                 public void run() {
                     pistonCounts.clear();
@@ -138,6 +139,10 @@ public class RedstoneMonitor implements Listener {
         if (cleanupTask != null) {
             cleanupTask.cancel();
             cleanupTask = null;
+        }
+        if (pistonResetTask != null) {
+            pistonResetTask.cancel();
+            pistonResetTask = null;
         }
         HandlerList.unregisterAll(this);
         chunkActivations.clear();
