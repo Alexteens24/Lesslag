@@ -26,6 +26,9 @@ public class TickMonitor {
     private volatile long spikeCount = 0;
     private volatile double worstTickMs = 0;
 
+    private long lastNotifyTime = 0;
+    private static final long NOTIFY_COOLDOWN_MS = 5000;
+
     public TickMonitor(LessLag plugin) {
         this.plugin = plugin;
         loadConfig();
@@ -81,7 +84,9 @@ public class TickMonitor {
                 if (lastTickMs > thresholdMs) {
                     spikeCount++;
 
-                    if (notifyEnabled) {
+                    long currentTime = System.currentTimeMillis();
+                    if (notifyEnabled && currentTime - lastNotifyTime > NOTIFY_COOLDOWN_MS) {
+                        lastNotifyTime = currentTime;
                         final double duration = lastTickMs;
                         // Send notification ASYNC to avoid blocking the main thread
                         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> notifySpike(duration));

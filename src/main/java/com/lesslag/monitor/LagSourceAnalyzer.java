@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -37,6 +38,9 @@ public class LagSourceAnalyzer {
     private final Map<String, Integer> previousChunkCounts = new ConcurrentHashMap<>();
     private volatile long lastChunkSnapshotTime = 0;
 
+    // Lock to prevent concurrent analysis storms
+    private final AtomicBoolean isAnalyzing = new AtomicBoolean(false);
+
     public LagSourceAnalyzer(LessLag plugin) {
         this.plugin = plugin;
     }
@@ -47,7 +51,24 @@ public class LagSourceAnalyzer {
      * then processes it async. Returns results via CompletableFuture.
      */
     public CompletableFuture<List<LagSource>> analyzeAsync() {
-        CompletableFuture<List<LagSource>> future = new CompletableFuture<>();
+        return performAnalysis().thenApply(result -> result.sources);
+    }
+
+    /**
+     * Analyze and return full detail including raw snapshots.
+     * Used by /lg sources for the detailed report format.
+     */
+    public CompletableFuture<FullAnalysisResult> analyzeFullAsync() {
+        return performAnalysis();
+    }
+
+    private CompletableFuture<FullAnalysisResult> performAnalysis() {
+        CompletableFuture<FullAnalysisResult> future = new CompletableFuture<>();
+
+        if (!isAnalyzing.compareAndSet(false, true)) {
+            future.completeExceptionally(new IllegalStateException("Analysis already in progress"));
+            return future;
+        }
 
         // Use incremental snapshot builder to avoid freezing the main thread
         Bukkit.getScheduler().runTask(plugin, () -> {
@@ -59,6 +80,7 @@ public class LagSourceAnalyzer {
 
                     // Process async
                     if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
+                        isAnalyzing.set(false);
                         future.completeExceptionally(new IllegalStateException("Async executor unavailable"));
                         return;
                     }
@@ -66,6 +88,10 @@ public class LagSourceAnalyzer {
                     try {
                         plugin.getAsyncExecutor().execute(() -> {
                             try {
+                                // Capture previous state before updating
+                                Map<String, Integer> oldChunkCounts = new HashMap<>(previousChunkCounts);
+                                long oldTime = lastChunkSnapshotTime;
+
                                 List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime,
                                         config);
                                 lastAnalysis = results;
@@ -77,17 +103,22 @@ public class LagSourceAnalyzer {
                                 }
                                 lastChunkSnapshotTime = snapshotTime;
 
-                                future.complete(results);
+                                future.complete(new FullAnalysisResult(results, snapshots, taskSnapshots, oldChunkCounts, oldTime, snapshotTime));
                             } catch (Exception e) {
                                 future.completeExceptionally(e);
+                            } finally {
+                                isAnalyzing.set(false);
                             }
                         });
                     } catch (RejectedExecutionException e) {
+                        isAnalyzing.set(false);
                         future.completeExceptionally(e);
                     } catch (Exception e) {
+                        isAnalyzing.set(false);
                         future.completeExceptionally(e);
                     }
                 } catch (Exception e) {
+                    isAnalyzing.set(false);
                     future.completeExceptionally(e);
                 }
             }).start();
@@ -152,6 +183,8 @@ public class LagSourceAnalyzer {
 
         // Entity analysis per world
         for (WorldSnapshot world : worlds) {
+            if (world == null || world.name == null) continue; // Safety check
+
             // Flag worlds with too many entities
             if (world.totalEntities > entityWarning) {
                 sources.add(new LagSource(LagSource.Type.ENTITY_OVERLOAD,
@@ -195,6 +228,7 @@ public class LagSourceAnalyzer {
 
         // Chunk analysis — total count
         for (WorldSnapshot world : worlds) {
+            if (world == null || world.name == null) continue;
             if (world.loadedChunks > chunkWarning) {
                 sources.add(new LagSource(LagSource.Type.CHUNK_OVERLOAD,
                         "&c" + String.format("%,d", world.loadedChunks) + " loaded chunks in " + world.name,
@@ -207,6 +241,7 @@ public class LagSourceAnalyzer {
             double elapsedSeconds = (snapshotTime - lastChunkSnapshotTime) / 1000.0;
             if (elapsedSeconds > 0) {
                 for (WorldSnapshot world : worlds) {
+                    if (world == null || world.name == null) continue;
                     int prevChunks = previousChunkCounts.getOrDefault(world.name, world.loadedChunks);
                     int delta = world.loadedChunks - prevChunks;
                     double chunksPerSecond = delta / elapsedSeconds;
@@ -224,6 +259,7 @@ public class LagSourceAnalyzer {
 
         // Plugin task analysis
         for (TaskSnapshot task : tasks) {
+            if (task == null || task.pluginName == null) continue;
             if (task.count > taskWarning) {
                 sources.add(new LagSource(LagSource.Type.PLUGIN_TASKS,
                         "&e" + task.pluginName + " &7has &c" + task.count + " &7active tasks",
@@ -243,7 +279,7 @@ public class LagSourceAnalyzer {
     public List<String> formatReport(List<LagSource> sources) {
         List<String> lines = new ArrayList<>();
 
-        if (sources.isEmpty()) {
+        if (sources == null || sources.isEmpty()) {
             lines.add("  &a✔ No significant lag sources detected.");
             return lines;
         }
@@ -259,21 +295,9 @@ public class LagSourceAnalyzer {
 
         if (hasEntitySection) {
             lines.add("  &e&lTOP ENTITIES");
-            if (grouped.containsKey(LagSource.Type.ENTITY_OVERLOAD)) {
-                for (LagSource s : grouped.get(LagSource.Type.ENTITY_OVERLOAD)) {
-                    lines.add("    &c⚠ " + s.description);
-                }
-            }
-            if (grouped.containsKey(LagSource.Type.ENTITY_TYPE)) {
-                for (LagSource s : grouped.get(LagSource.Type.ENTITY_TYPE)) {
-                    lines.add("    &8▸ " + s.description);
-                }
-            }
-            if (grouped.containsKey(LagSource.Type.ENTITY_DENSITY)) {
-                for (LagSource s : grouped.get(LagSource.Type.ENTITY_DENSITY)) {
-                    lines.add("    &c⚠ " + s.description);
-                }
-            }
+            appendGroup(lines, grouped, LagSource.Type.ENTITY_OVERLOAD, "&c⚠ ");
+            appendGroup(lines, grouped, LagSource.Type.ENTITY_TYPE, "&8▸ ");
+            appendGroup(lines, grouped, LagSource.Type.ENTITY_DENSITY, "&c⚠ ");
         }
 
         // Chunks section
@@ -282,27 +306,27 @@ public class LagSourceAnalyzer {
 
         if (hasChunkSection) {
             lines.add("  &e&lLOADED CHUNKS");
-            if (grouped.containsKey(LagSource.Type.CHUNK_OVERLOAD)) {
-                for (LagSource s : grouped.get(LagSource.Type.CHUNK_OVERLOAD)) {
-                    lines.add("    &c⚠ " + s.description);
-                }
-            }
-            if (grouped.containsKey(LagSource.Type.CHUNK_RATE)) {
-                for (LagSource s : grouped.get(LagSource.Type.CHUNK_RATE)) {
-                    lines.add("    &c⚠ " + s.description);
-                }
-            }
+            appendGroup(lines, grouped, LagSource.Type.CHUNK_OVERLOAD, "&c⚠ ");
+            appendGroup(lines, grouped, LagSource.Type.CHUNK_RATE, "&c⚠ ");
         }
 
         // Plugin tasks section
         if (grouped.containsKey(LagSource.Type.PLUGIN_TASKS)) {
             lines.add("  &e&lPLUGIN TASKS");
-            for (LagSource s : grouped.get(LagSource.Type.PLUGIN_TASKS)) {
-                lines.add("    &c⚠ " + s.description);
-            }
+            appendGroup(lines, grouped, LagSource.Type.PLUGIN_TASKS, "&c⚠ ");
         }
 
         return lines;
+    }
+
+    private void appendGroup(List<String> lines, Map<LagSource.Type, List<LagSource>> grouped, LagSource.Type type, String prefix) {
+        if (grouped.containsKey(type)) {
+            for (LagSource s : grouped.get(type)) {
+                if (s.description != null) {
+                    lines.add("    " + prefix + s.description);
+                }
+            }
+        }
     }
 
     /**
@@ -310,6 +334,8 @@ public class LagSourceAnalyzer {
      * Shows ALL worlds and ALL plugin tasks, flagging those over thresholds.
      */
     public List<String> formatFullReport(FullAnalysisResult result) {
+        if (result == null) return Collections.emptyList();
+
         List<LagSource> sources = result.sources;
         WorldSnapshot[] worldSnapshots = result.worldSnapshots;
         TaskSnapshot[] taskSnapshots = result.taskSnapshots;
@@ -325,75 +351,82 @@ public class LagSourceAnalyzer {
 
         // ── TOP ENTITIES ──
         lines.add("  &e&lTOP ENTITIES");
-        for (WorldSnapshot world : worldSnapshots) {
-            List<Map.Entry<String, Integer>> top = world.entityCounts.entrySet().stream()
-                    .sorted((a, b) -> b.getValue() - a.getValue())
-                    .limit(topN)
-                    .collect(Collectors.toList());
+        if (worldSnapshots != null) {
+            for (WorldSnapshot world : worldSnapshots) {
+                if (world == null || world.name == null) continue;
 
-            if (top.isEmpty())
-                continue;
+                List<Map.Entry<String, Integer>> top = world.entityCounts.entrySet().stream()
+                        .sorted((a, b) -> b.getValue() - a.getValue())
+                        .limit(topN)
+                        .collect(Collectors.toList());
 
-            StringBuilder sb = new StringBuilder("    &8▸ &f" + world.name + ": ");
-            for (int j = 0; j < top.size(); j++) {
-                Map.Entry<String, Integer> entry = top.get(j);
-                String color = entry.getValue() > 200 ? "&c" : entry.getValue() > 100 ? "&e" : "&a";
-                sb.append(color).append(entry.getKey()).append(" &7(").append(entry.getValue()).append(")");
-                if (j < top.size() - 1)
-                    sb.append("&8, ");
+                if (top.isEmpty())
+                    continue;
+
+                StringBuilder sb = new StringBuilder("    &8▸ &f" + world.name + ": ");
+                for (int j = 0; j < top.size(); j++) {
+                    Map.Entry<String, Integer> entry = top.get(j);
+                    String color = entry.getValue() > 200 ? "&c" : entry.getValue() > 100 ? "&e" : "&a";
+                    sb.append(color).append(entry.getKey()).append(" &7(").append(entry.getValue()).append(")");
+                    if (j < top.size() - 1)
+                        sb.append("&8, ");
+                }
+                if (world.totalEntities > entityWarning)
+                    sb.append(" &c⚠");
+                lines.add(sb.toString());
             }
-            if (world.totalEntities > entityWarning)
-                sb.append(" &c⚠");
-            lines.add(sb.toString());
-        }
 
-        // Entity density hotspots
-        boolean hasDensity = false;
-        int densityThreshold = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.density", 50);
-        for (WorldSnapshot world : worldSnapshots) {
-            int hotspots = 0;
-            int worst = 0;
-            for (Map.Entry<Long, Integer> chunk : world.chunkEntityCounts.entrySet()) {
-                if (chunk.getValue() >= densityThreshold) {
-                    hotspots++;
-                    if (chunk.getValue() > worst)
-                        worst = chunk.getValue();
+            // Entity density hotspots
+            boolean hasDensity = false;
+            int densityThreshold = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.density", 50);
+            for (WorldSnapshot world : worldSnapshots) {
+                if (world == null) continue;
+                int hotspots = 0;
+                int worst = 0;
+                for (Map.Entry<Long, Integer> chunk : world.chunkEntityCounts.entrySet()) {
+                    if (chunk.getValue() >= densityThreshold) {
+                        hotspots++;
+                        if (chunk.getValue() > worst)
+                            worst = chunk.getValue();
+                    }
+                }
+                if (hotspots > 0) {
+                    if (!hasDensity) {
+                        lines.add("  &e&lENTITY HOTSPOTS");
+                        hasDensity = true;
+                    }
+                    lines.add("    &c⚠ &f" + world.name + ": &c" + hotspots + " chunk(s) "
+                            + "with " + densityThreshold + "+ entities &7(worst: " + worst + ")");
                 }
             }
-            if (hotspots > 0) {
-                if (!hasDensity) {
-                    lines.add("  &e&lENTITY HOTSPOTS");
-                    hasDensity = true;
-                }
-                lines.add("    &c⚠ &f" + world.name + ": &c" + hotspots + " chunk(s) "
-                        + "with " + densityThreshold + "+ entities &7(worst: " + worst + ")");
+
+            // ── LOADED CHUNKS ──
+            lines.add("  &e&lLOADED CHUNKS");
+            for (WorldSnapshot world : worldSnapshots) {
+                if (world == null) continue;
+                String chkColor = world.loadedChunks > chunkWarning ? "&c"
+                        : world.loadedChunks > chunkWarning / 2 ? "&e" : "&a";
+                String warn = world.loadedChunks > chunkWarning ? " &c⚠" : "";
+                lines.add("    &8▸ &f" + world.name + ": " + chkColor
+                        + String.format("%,d", world.loadedChunks) + " chunks" + warn);
             }
-        }
 
-        // ── LOADED CHUNKS ──
-        lines.add("  &e&lLOADED CHUNKS");
-        for (WorldSnapshot world : worldSnapshots) {
-            String chkColor = world.loadedChunks > chunkWarning ? "&c"
-                    : world.loadedChunks > chunkWarning / 2 ? "&e" : "&a";
-            String warn = world.loadedChunks > chunkWarning ? " &c⚠" : "";
-            lines.add("    &8▸ &f" + world.name + ": " + chkColor
-                    + String.format("%,d", world.loadedChunks) + " chunks" + warn);
-        }
-
-        // Chunk load rates (if we have previous data)
-        if (lastChunkSnapshotTime > 0) {
-            long elapsed = snapshotTime - lastChunkSnapshotTime;
-            if (elapsed > 0) {
-                double elapsedSec = elapsed / 1000.0;
-                double rateWarning = plugin.getConfig()
-                        .getDouble("system.lag-source-analyzer.thresholds.chunk-rate-warn", 10.0);
-                for (WorldSnapshot world : worldSnapshots) {
-                    int prev = previousChunkCounts.getOrDefault(world.name, world.loadedChunks);
-                    int delta = world.loadedChunks - prev;
-                    double rate = delta / elapsedSec;
-                    if (rate > rateWarning) {
-                        lines.add("    &c⚠ &f" + world.name + ": &c"
-                                + String.format("%.1f", rate) + " chunks/sec &7(exploration lag)");
+            // Chunk load rates (if we have previous data)
+            if (lastChunkSnapshotTime > 0) {
+                long elapsed = snapshotTime - lastChunkSnapshotTime;
+                if (elapsed > 0) {
+                    double elapsedSec = elapsed / 1000.0;
+                    double rateWarning = plugin.getConfig()
+                            .getDouble("system.lag-source-analyzer.thresholds.chunk-rate-warn", 10.0);
+                    for (WorldSnapshot world : worldSnapshots) {
+                        if (world == null) continue;
+                        int prev = previousChunkCounts.getOrDefault(world.name, world.loadedChunks);
+                        int delta = world.loadedChunks - prev;
+                        double rate = delta / elapsedSec;
+                        if (rate > rateWarning) {
+                            lines.add("    &c⚠ &f" + world.name + ": &c"
+                                    + String.format("%.1f", rate) + " chunks/sec &7(exploration lag)");
+                        }
                     }
                 }
             }
@@ -401,20 +434,23 @@ public class LagSourceAnalyzer {
 
         // ── PLUGIN TASKS ──
         lines.add("  &e&lPLUGIN TASKS");
-        // Sort tasks by count descending
-        Arrays.sort(taskSnapshots, (a, b) -> Integer.compare(b.count, a.count));
-        int shown = 0;
-        for (TaskSnapshot task : taskSnapshots) {
-            if (shown >= 10)
-                break;
-            String color = task.count > taskWarning ? "&c"
-                    : task.count > taskWarning / 2 ? "&e" : "&a";
-            String warn = task.count > taskWarning ? " &c⚠" : "";
-            lines.add("    &8▸ &f" + task.pluginName + ": " + color + task.count + " tasks" + warn);
-            shown++;
-        }
-        if (taskSnapshots.length > 10) {
-            lines.add("    &8  ... and " + (taskSnapshots.length - 10) + " more plugins");
+        if (taskSnapshots != null) {
+            // Sort tasks by count descending
+            Arrays.sort(taskSnapshots, (a, b) -> Integer.compare(b.count, a.count));
+            int shown = 0;
+            for (TaskSnapshot task : taskSnapshots) {
+                if (task == null) continue;
+                if (shown >= 10)
+                    break;
+                String color = task.count > taskWarning ? "&c"
+                        : task.count > taskWarning / 2 ? "&e" : "&a";
+                String warn = task.count > taskWarning ? " &c⚠" : "";
+                lines.add("    &8▸ &f" + task.pluginName + ": " + color + task.count + " tasks" + warn);
+                shown++;
+            }
+            if (taskSnapshots.length > 10) {
+                lines.add("    &8  ... and " + (taskSnapshots.length - 10) + " more plugins");
+            }
         }
 
         return lines;
@@ -425,11 +461,12 @@ public class LagSourceAnalyzer {
      */
     public List<String> formatCompactReport(List<LagSource> sources) {
         List<String> lines = new ArrayList<>();
-        if (sources.isEmpty())
+        if (sources == null || sources.isEmpty())
             return lines;
 
         int shown = 0;
         for (LagSource source : sources) {
+            if (source == null) continue;
             if (shown >= 3)
                 break;
             lines.add("  &8→ " + source.description);
@@ -441,61 +478,6 @@ public class LagSourceAnalyzer {
         }
 
         return lines;
-    }
-
-    /**
-     * Analyze and return full detail including raw snapshots.
-     * Used by /lg sources for the detailed report format.
-     */
-    public CompletableFuture<FullAnalysisResult> analyzeFullAsync() {
-        CompletableFuture<FullAnalysisResult> future = new CompletableFuture<>();
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            new IncrementalSnapshotBuilder(plugin, (worldSnaps) -> {
-                try {
-                    TaskSnapshot[] taskSnaps = takeTaskSnapshot();
-                    AnalysisConfig config = takeConfigSnapshot();
-                    long snapshotTime = System.currentTimeMillis();
-
-                    if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
-                        future.completeExceptionally(new IllegalStateException("Async executor unavailable"));
-                        return;
-                    }
-
-                    try {
-                        plugin.getAsyncExecutor().execute(() -> {
-                            try {
-                                // Capture previous state before updating
-                                Map<String, Integer> oldChunkCounts = new HashMap<>(previousChunkCounts);
-                                long oldTime = lastChunkSnapshotTime;
-
-                                List<LagSource> results = processSnapshots(worldSnaps, taskSnaps, snapshotTime, config);
-                                lastAnalysis = results;
-                                lastAnalysisTime = snapshotTime;
-
-                                // Update chunk tracking
-                                for (WorldSnapshot ws : worldSnaps) {
-                                    previousChunkCounts.put(ws.name, ws.loadedChunks);
-                                }
-                                lastChunkSnapshotTime = snapshotTime;
-
-                                future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps, oldChunkCounts, oldTime, snapshotTime));
-                            } catch (Exception e) {
-                                future.completeExceptionally(e);
-                            }
-                        });
-                    } catch (RejectedExecutionException e) {
-                        future.completeExceptionally(e);
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            }).start();
-        });
-
-        return future;
     }
 
     // ══════════════════════════════════════════════════

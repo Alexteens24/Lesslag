@@ -11,16 +11,14 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Entity AI Frustum Culling — Disables AI for mobs outside players' FOV.
  *
- * Architecture: ASYNC timer → SYNC snapshot → ASYNC analysis → SYNC dispatch
+ * Architecture: ASYNC timer → Distributed SYNC snapshot → ASYNC analysis → SYNC dispatch
  * 1. Periodic check fires ASYNC
- * 2. Brief SYNC snapshot: collect mob data + player view data
+ * 2. Distributed SYNC snapshot: collect mob data + player view data over multiple ticks
  * 3. ASYNC: calculate visibility per mob (heavy trig/distance math)
  * 4. SYNC: dispatch AI enable/disable via WorkloadDistributor (batched)
  */
@@ -41,6 +39,8 @@ public class FrustumCuller {
     private final AtomicInteger lastRestored = new AtomicInteger(0);
     private final AtomicInteger lastProcessed = new AtomicInteger(0);
 
+    private final java.util.concurrent.atomic.AtomicBoolean isCulling = new java.util.concurrent.atomic.AtomicBoolean(false);
+
     public FrustumCuller(LessLag plugin) {
         this.plugin = plugin;
         loadConfig();
@@ -48,23 +48,6 @@ public class FrustumCuller {
 
     private void loadConfig() {
         maxRadius = plugin.getConfig().getDouble("modules.mob-ai.active-radius", 48);
-        // Assuming user might want advanced frustum culling config, but for now mapping
-        // to existing keys or general 'mob-ai'
-        // Since I moved 'frustum-culling' logic into 'mob-ai', I should use those keys.
-        // However, the config I wrote has `active-radius` and `update-interval` in
-        // `mob-ai`.
-        // I did not explicitly add `fov-degrees` or `behind-safe-radius` to the new
-        // `config.yml`.
-        // I should stick to defaults or allow them to be hidden settings, OR ideally
-        // add them to the config.
-        // For now, I will use "modules.mob-ai.frustum-culling" namespace for detailed
-        // settings if I didn't verify them in config.
-        // Let's re-read config.yml I just wrote.
-        // It has `modules.mob-ai` with `active-radius`, `update-interval` and
-        // `protected`.
-        // It does NOT have `fov-degrees` or `behind-safe-radius`. I should use default
-        // or look for them in `modules.mob-ai`.
-
         fovDegrees = plugin.getConfig().getDouble("modules.mob-ai.fov-degrees", 110);
         behindRadius = plugin.getConfig().getDouble("modules.mob-ai.behind-safe-radius", 12);
         intervalTicks = plugin.getConfig().getInt("modules.mob-ai.update-interval", 20);
@@ -98,82 +81,127 @@ public class FrustumCuller {
     }
 
     // ══════════════════════════════════════════════════
-    // Phase 1: ASYNC → dispatch to SYNC for snapshot
+    // Phase 1: ASYNC → dispatch to SYNC for distributed snapshot
     // ══════════════════════════════════════════════════
 
     private void beginAsyncCull() {
+        if (!isCulling.compareAndSet(false, true)) {
+            return; // Skip if previous cycle is still running
+        }
+
         double fovCosine = Math.cos(Math.toRadians(fovDegrees / 2.0));
         double maxRadiusSq = maxRadius * maxRadius;
         double behindRadiusSq = behindRadius * behindRadius;
 
-        // Brief SYNC snapshot
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            SnapshotResult snapshot = collectSnapshot();
-            if (snapshot.mobs.isEmpty())
-                return;
+        // Dispatch snapshot builder to main thread
+        try {
+            Bukkit.getScheduler().runTask(plugin, new DistributedSnapshotBuilder(snapshot -> {
+                if (snapshot.mobs.isEmpty()) {
+                    isCulling.set(false);
+                    return;
+                }
 
-            // Back to ASYNC for heavy calculations
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                analyzeAndDispatch(snapshot, fovCosine, maxRadiusSq, behindRadiusSq);
-            });
-        });
+                // Back to ASYNC for heavy calculations
+                try {
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            analyzeAndDispatch(snapshot, fovCosine, maxRadiusSq, behindRadiusSq);
+                        } finally {
+                            isCulling.set(false);
+                        }
+                    });
+                } catch (Exception e) {
+                    isCulling.set(false);
+                    plugin.getLogger().warning("Failed to schedule async analysis: " + e.getMessage());
+                }
+            }));
+        } catch (Exception e) {
+            isCulling.set(false);
+            plugin.getLogger().warning("Failed to schedule snapshot builder: " + e.getMessage());
+        }
     }
 
     // ══════════════════════════════════════════════════
-    // Phase 2: SYNC — Quick snapshot
+    // Phase 2: Distributed SYNC Snapshot
     // ══════════════════════════════════════════════════
 
-    private SnapshotResult collectSnapshot() {
-        Map<UUID, List<PlayerView>> worldViewData = new HashMap<>();
-        List<MobSnapshot> mobs = new ArrayList<>();
-        Set<UUID> processedMobs = new HashSet<>(); // Avoid duplicates
+    private class DistributedSnapshotBuilder implements Runnable {
+        private final java.util.function.Consumer<SnapshotResult> callback;
+        private final List<Player> allPlayers;
+        private int playerIndex = 0;
 
-        for (World world : Bukkit.getWorlds()) {
-            List<Player> players = world.getPlayers();
-            if (players.isEmpty())
-                continue;
+        private final Map<UUID, List<PlayerView>> worldViewData = new HashMap<>();
+        private final List<MobSnapshot> mobs = new ArrayList<>();
+        private final Set<UUID> processedMobs = new HashSet<>();
 
-            // Snapshot player views
-            List<PlayerView> views = new ArrayList<>(players.size());
-            for (Player player : players) {
-                Location eye = player.getEyeLocation();
-                views.add(new PlayerView(
-                        eye.getX(), eye.getY(), eye.getZ(),
-                        eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
-                        world.getUID()));
+        // Budget per tick (e.g. 5 players per tick to avoid spikes)
+        private static final int PLAYERS_PER_TICK = 5;
 
-                // Fixed: Optimized to O(m) - iterate primarily through Players
-                for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
-                    if (!(entity instanceof Mob)) continue;
-                    Mob mob = (Mob) entity;
-
-                    // Optimization: Use distanceSquared() for precise range check
-                    if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
-                        continue;
-
-                    if (!processedMobs.add(mob.getUniqueId())) continue;
-
-                    if (protectedTypes.contains(mob.getType().name()))
-                        continue;
-                    if (LessLag.hasCustomName(mob))
-                        continue;
-                    if (mob instanceof org.bukkit.entity.Tameable
-                            && ((org.bukkit.entity.Tameable) mob).isTamed())
-                        continue;
-
-                    Location loc = mob.getLocation();
-                    boolean currentlyAware = plugin.isMobAwareSafe(mob);
-
-                    mobs.add(new MobSnapshot(
-                            mob.getUniqueId(), world.getUID(),
-                            loc.getX(), loc.getY(), loc.getZ(),
-                            currentlyAware));
-                }
-            }
-            worldViewData.put(world.getUID(), views);
+        public DistributedSnapshotBuilder(java.util.function.Consumer<SnapshotResult> callback) {
+            this.callback = callback;
+            this.allPlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
         }
 
-        return new SnapshotResult(worldViewData, mobs);
+        @Override
+        public void run() {
+            int processed = 0;
+            while (playerIndex < allPlayers.size() && processed < PLAYERS_PER_TICK) {
+                Player player = allPlayers.get(playerIndex++);
+                if (!player.isOnline()) continue;
+
+                collectPlayer(player);
+                processed++;
+            }
+
+            if (playerIndex >= allPlayers.size()) {
+                // Done
+                callback.accept(new SnapshotResult(worldViewData, mobs));
+            } else {
+                // Continue next tick
+                Bukkit.getScheduler().runTask(plugin, this);
+            }
+        }
+
+        private void collectPlayer(Player player) {
+            World world = player.getWorld();
+            UUID worldUID = world.getUID();
+
+            Location eye = player.getEyeLocation();
+            PlayerView view = new PlayerView(
+                    eye.getX(), eye.getY(), eye.getZ(),
+                    eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
+                    worldUID);
+
+            worldViewData.computeIfAbsent(worldUID, k -> new ArrayList<>()).add(view);
+
+            // Collect nearby mobs
+            for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
+                if (!(entity instanceof Mob)) continue;
+                Mob mob = (Mob) entity;
+
+                // Optimization: Use distanceSquared() for precise range check
+                if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                    continue;
+
+                if (!processedMobs.add(mob.getUniqueId())) continue;
+
+                if (protectedTypes.contains(mob.getType().name()))
+                    continue;
+                if (LessLag.hasCustomName(mob))
+                    continue;
+                if (mob instanceof org.bukkit.entity.Tameable
+                        && ((org.bukkit.entity.Tameable) mob).isTamed())
+                    continue;
+
+                Location loc = mob.getLocation();
+                boolean currentlyAware = plugin.isMobAwareSafe(mob);
+
+                mobs.add(new MobSnapshot(
+                        mob.getUniqueId(), worldUID,
+                        loc.getX(), loc.getY(), loc.getZ(),
+                        currentlyAware));
+            }
+        }
     }
 
     // ══════════════════════════════════════════════════

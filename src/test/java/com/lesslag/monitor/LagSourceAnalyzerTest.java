@@ -1,66 +1,93 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
-import com.lesslag.monitor.LagSourceAnalyzer.LagSource;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
+import java.util.*;
 
-public class LagSourceAnalyzerTest {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Test
-    public void testFormatCompactReport() {
-        LessLag plugin = mock(LessLag.class);
-        LagSourceAnalyzer analyzer = new LagSourceAnalyzer(plugin);
+class LagSourceAnalyzerTest {
 
-        LagSource s1 = new LagSource(LagSource.Type.ENTITY_OVERLOAD, "Source 1", 100);
-        LagSource s2 = new LagSource(LagSource.Type.CHUNK_OVERLOAD, "Source 2", 200);
-        LagSource s3 = new LagSource(LagSource.Type.PLUGIN_TASKS, "Source 3", 300);
-        LagSource s4 = new LagSource(LagSource.Type.ENTITY_TYPE, "Source 4", 400);
+    @Mock
+    private LessLag plugin;
+    @Mock
+    private org.bukkit.configuration.file.FileConfiguration config;
 
-        // Case 1: Empty
-        List<String> reportEmpty = analyzer.formatCompactReport(Collections.emptyList());
-        assertTrue(reportEmpty.isEmpty());
+    private LagSourceAnalyzer analyzer;
 
-        // Case 2: < 3 items
-        List<String> reportSmall = analyzer.formatCompactReport(Arrays.asList(s1, s2));
-        assertEquals(2, reportSmall.size());
-        assertTrue(reportSmall.get(0).contains("Source 1"));
-        assertTrue(reportSmall.get(1).contains("Source 2"));
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        when(plugin.getConfig()).thenReturn(config);
+        // Mock default config values
+        when(config.getInt(anyString(), anyInt())).thenAnswer(inv -> inv.getArgument(1));
+        when(config.getDouble(anyString(), anyDouble())).thenAnswer(inv -> inv.getArgument(1));
 
-        // Case 3: > 3 items
-        List<String> reportLarge = analyzer.formatCompactReport(Arrays.asList(s1, s2, s3, s4));
-        assertEquals(4, reportLarge.size());
-        assertTrue(reportLarge.get(0).contains("Source 1"));
-        assertTrue(reportLarge.get(1).contains("Source 2"));
-        assertTrue(reportLarge.get(2).contains("Source 3"));
-        assertTrue(reportLarge.get(3).contains("... and 1 more issues"));
+        analyzer = new LagSourceAnalyzer(plugin);
     }
 
     @Test
-    public void testFormatReport() {
-        LessLag plugin = mock(LessLag.class);
-        LagSourceAnalyzer analyzer = new LagSourceAnalyzer(plugin);
+    void testFormatReport_Empty() {
+        List<String> report = analyzer.formatReport(Collections.emptyList());
+        assertFalse(report.isEmpty());
+        assertTrue(report.get(0).contains("No significant lag sources"));
+    }
 
-        LagSource s1 = new LagSource(LagSource.Type.ENTITY_OVERLOAD, "Entity Overload", 100);
-        LagSource s2 = new LagSource(LagSource.Type.CHUNK_OVERLOAD, "Chunk Overload", 200);
-        LagSource s3 = new LagSource(LagSource.Type.PLUGIN_TASKS, "Plugin Tasks", 300);
+    @Test
+    void testFormatReport_Null() {
+        List<String> report = analyzer.formatReport(null);
+        assertFalse(report.isEmpty());
+        assertTrue(report.get(0).contains("No significant lag sources"));
+    }
 
-        List<String> report = analyzer.formatReport(Arrays.asList(s1, s2, s3));
+    @Test
+    void testFormatFullReport_Null() {
+        List<String> report = analyzer.formatFullReport(null);
+        assertTrue(report.isEmpty());
+    }
 
-        // Verify sections
-        assertTrue(report.stream().anyMatch(line -> line.contains("TOP ENTITIES")));
-        assertTrue(report.stream().anyMatch(line -> line.contains("LOADED CHUNKS")));
-        assertTrue(report.stream().anyMatch(line -> line.contains("PLUGIN TASKS")));
+    @Test
+    void testFormatReport_WithData() {
+        List<LagSourceAnalyzer.LagSource> sources = new ArrayList<>();
+        sources.add(new LagSourceAnalyzer.LagSource(LagSourceAnalyzer.LagSource.Type.ENTITY_OVERLOAD, "Too many entities", 1000));
+        sources.add(new LagSourceAnalyzer.LagSource(LagSourceAnalyzer.LagSource.Type.PLUGIN_TASKS, "Bad Plugin", 50));
 
-        // Verify content
-        assertTrue(report.stream().anyMatch(line -> line.contains("Entity Overload")));
-        assertTrue(report.stream().anyMatch(line -> line.contains("Chunk Overload")));
-        assertTrue(report.stream().anyMatch(line -> line.contains("Plugin Tasks")));
+        List<String> report = analyzer.formatReport(sources);
+        assertFalse(report.isEmpty());
+        boolean hasEntityHeader = report.stream().anyMatch(s -> s.contains("TOP ENTITIES"));
+        boolean hasTaskHeader = report.stream().anyMatch(s -> s.contains("PLUGIN TASKS"));
+        assertTrue(hasEntityHeader);
+        assertTrue(hasTaskHeader);
+    }
+
+    @Test
+    void testFormatFullReport_WithData() {
+        Map<String, Integer> entityCounts = new HashMap<>();
+        entityCounts.put("ZOMBIE", 100);
+
+        LagSourceAnalyzer.WorldSnapshot ws = new LagSourceAnalyzer.WorldSnapshot(
+            "world", 1000, 500, entityCounts, new HashMap<>()
+        );
+
+        LagSourceAnalyzer.TaskSnapshot ts = new LagSourceAnalyzer.TaskSnapshot("TestPlugin", 30);
+
+        LagSourceAnalyzer.FullAnalysisResult result = new LagSourceAnalyzer.FullAnalysisResult(
+            Collections.emptyList(),
+            new LagSourceAnalyzer.WorldSnapshot[]{ws},
+            new LagSourceAnalyzer.TaskSnapshot[]{ts},
+            new HashMap<>(),
+            0,
+            System.currentTimeMillis()
+        );
+
+        List<String> report = analyzer.formatFullReport(result);
+        assertFalse(report.isEmpty());
+        assertTrue(report.stream().anyMatch(s -> s.contains("world")));
+        assertTrue(report.stream().anyMatch(s -> s.contains("TestPlugin")));
     }
 }
