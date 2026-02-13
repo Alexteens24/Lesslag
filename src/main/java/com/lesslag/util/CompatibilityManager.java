@@ -55,6 +55,7 @@ public class CompatibilityManager {
         detectPufferfish(true);
         detectClearlag(true);
         detectMobFarmManager(true);
+        detectCustomMobPlugins();
 
         // Print summary
         if (!autoDisabled.isEmpty()) {
@@ -101,7 +102,8 @@ public class CompatibilityManager {
 
         if (dabEnabled && autoAdjust) {
             // Hybrid Mode: LessLag handles visuals, Pufferfish handles distance
-            plugin.getLogger().info("[Compat] Pufferfish detected. Running in Hybrid Mode (LessLag handles Visuals, Pufferfish handles Distance).");
+            plugin.getLogger().info(
+                    "[Compat] Pufferfish detected. Running in Hybrid Mode (LessLag handles Visuals, Pufferfish handles Distance).");
         }
     }
 
@@ -143,7 +145,8 @@ public class CompatibilityManager {
         plugin.getLogger().info("[Compat] ClearLag/ClearLag++ detected!");
 
         if (autoAdjust) {
-            // ClearLag handles redstone culling, but users might prefer LessLag's implementation.
+            // ClearLag handles redstone culling, but users might prefer LessLag's
+            // implementation.
             // We'll warn about potential conflict instead of forcefully disabling it.
             if (plugin.getConfig().getBoolean("modules.redstone.enabled", true)) {
                 plugin.getLogger().warning("[Compat] ClearLag detected! Both plugins have Redstone Limiting enabled.");
@@ -191,6 +194,71 @@ public class CompatibilityManager {
     }
 
     // ══════════════════════════════════════════════════
+    // Custom Mob Plugins Detection
+    // ══════════════════════════════════════════════════
+
+    private boolean mythicMobsDetected = false;
+    private boolean modelEngineDetected = false;
+    private boolean citizensDetected = false;
+
+    public void detectCustomMobPlugins() {
+        if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
+            mythicMobsDetected = true;
+            plugin.getLogger().info("[Compat] MythicMobs detected!");
+        }
+
+        if (Bukkit.getPluginManager().getPlugin("ModelEngine") != null) {
+            modelEngineDetected = true;
+            plugin.getLogger().info("[Compat] ModelEngine detected!");
+        }
+
+        if (Bukkit.getPluginManager().getPlugin("Citizens") != null) {
+            citizensDetected = true;
+            plugin.getLogger().info("[Compat] Citizens detected!");
+        }
+    }
+
+    /**
+     * Check if an entity is a custom mob from MythicMobs or ModelEngine.
+     */
+    public boolean isCustomMob(org.bukkit.entity.Entity entity) {
+        if (entity == null)
+            return false;
+
+        if (mythicMobsDetected) {
+            if (io.lumine.mythic.bukkit.MythicBukkit.inst().getMobManager().isMythicMob(entity)) {
+                return true;
+            }
+        }
+
+        if (modelEngineDetected) {
+            try {
+                // Reflection to avoid hard dependency on unavailable artifact
+                Class<?> apiClass = Class.forName("com.ticxo.modelengine.api.ModelEngineAPI");
+                java.lang.reflect.Method getModeledEntity = apiClass.getMethod("getModeledEntity",
+                        java.util.UUID.class);
+                Object modeledEntity = getModeledEntity.invoke(null, entity.getUniqueId());
+                if (modeledEntity != null) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // Silently fail if API changed or unavailable
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if an entity is an NPC from Citizens.
+     */
+    public boolean isNPC(org.bukkit.entity.Entity entity) {
+        if (!citizensDetected || entity == null)
+            return false;
+        return net.citizensnpcs.api.CitizensAPI.getNPCRegistry().isNPC(entity);
+    }
+
+    // ══════════════════════════════════════════════════
     // Helpers
     // ══════════════════════════════════════════════════
 
@@ -224,6 +292,18 @@ public class CompatibilityManager {
 
     public boolean isMobFarmManagerDetected() {
         return mobFarmManagerDetected;
+    }
+
+    public boolean isMythicMobsDetected() {
+        return mythicMobsDetected;
+    }
+
+    public boolean isModelEngineDetected() {
+        return modelEngineDetected;
+    }
+
+    public boolean isCitizensDetected() {
+        return citizensDetected;
     }
 
     public List<String> getAutoDisabledFeatures() {

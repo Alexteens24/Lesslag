@@ -544,12 +544,26 @@ public class ActionExecutor {
             return false;
         if (entityWhitelist.contains(entity.getType().name()))
             return false;
+
+        // Compatibility checks
+        if (plugin.getCompatManager().isNPC(entity))
+            return false;
+        if (plugin.getCompatManager().isCustomMob(entity))
+            return false;
+
         return !isProtected(entity);
     }
 
     private boolean isProtected(Entity entity) {
         if (LessLag.hasCustomName(entity))
             return true;
+
+        // Compatibility checks
+        if (plugin.getCompatManager().isNPC(entity))
+            return true;
+        if (plugin.getCompatManager().isCustomMob(entity))
+            return true;
+
         if (entity instanceof Tameable && ((Tameable) entity).isTamed())
             return true;
         if (entity instanceof LivingEntity && ((LivingEntity) entity).isLeashed())
