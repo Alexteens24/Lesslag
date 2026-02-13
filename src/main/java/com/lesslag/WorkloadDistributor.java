@@ -71,7 +71,13 @@ public class WorkloadDistributor {
                 Runnable work = workloadQueue.poll();
                 if (work != null) {
                     try {
+                        long start = System.nanoTime();
                         work.run();
+                        long duration = System.nanoTime() - start;
+                        if (duration > 50_000_000L) { // Warn if single task > 50ms
+                            LessLag.getInstance().getLogger().warning(
+                                    "[WorkloadDistributor] Slow task detected: " + (duration / 1_000_000.0) + "ms");
+                        }
                     } catch (Exception e) {
                         LessLag.getInstance().getLogger().warning(
                                 "[WorkloadDistributor] Workload threw exception: " + e.getMessage());
