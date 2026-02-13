@@ -13,7 +13,6 @@ import com.lesslag.monitor.PredictiveOptimizer;
 import com.lesslag.monitor.RedstoneMonitor;
 import com.lesslag.monitor.TPSMonitor;
 import com.lesslag.monitor.TickMonitor;
-import com.lesslag.monitor.TickMonitor;
 import com.lesslag.monitor.VillagerOptimizer;
 import com.lesslag.monitor.BreedingLimiter;
 import com.lesslag.monitor.DensityOptimizer;

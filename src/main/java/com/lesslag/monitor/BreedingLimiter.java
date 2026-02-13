@@ -1,7 +1,6 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
-import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;

@@ -52,7 +52,8 @@ public class TPSMonitor {
     // Recovery state
     private int consecutiveGoodCount = 0;
     private volatile boolean settingsModified = false;
-    private final java.util.concurrent.atomic.AtomicBoolean isAnalyzing = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean isAnalyzing = new java.util.concurrent.atomic.AtomicBoolean(
+            false);
 
     public TPSMonitor(LessLag plugin, ActionExecutor actionExecutor, LagSourceAnalyzer lagSourceAnalyzer,
             PredictiveOptimizer predictiveOptimizer) {
@@ -128,11 +129,10 @@ public class TPSMonitor {
         }.runTaskTimer(plugin, 1L, 1L);
 
         // Monitor task — runs ASYNC, dispatches actions to main thread
-        int checkInterval = plugin.getConfig().getInt("system.tps-monitor.check-interval", 100) / 20; // Convert ticks
-                                                                                                      // to seconds
-                                                                                                      // approx or use
-                                                                                                      // seconds in
-                                                                                                      // config?
+        // to seconds
+        // approx or use
+        // seconds in
+        // config?
         // Config says "check-interval: 100" (ticks). Original was 5 (seconds).
         // 100 ticks = 5 seconds. Adapting to read ticks if I change logic, or simply
         // use correct keys.
@@ -242,10 +242,6 @@ public class TPSMonitor {
             consecutiveLowCount = 0;
             checkRecovery();
         }
-    }
-
-    private int getSeverityIndex(ThresholdConfig threshold) {
-        return thresholds.indexOf(threshold);
     }
 
     /**
@@ -370,9 +366,11 @@ public class TPSMonitor {
         double recoveryThreshold = config.getDouble("recovery.tps-threshold", 18.0);
         int delaySeconds = config.getInt("recovery.delay-seconds", 30);
         int checkIntervalTicks = config.getInt("system.tps-monitor.check-interval", 100);
-        // Calculate needed checks using ticks to avoid integer division issues with small intervals
+        // Calculate needed checks using ticks to avoid integer division issues with
+        // small intervals
         int neededChecks = (int) ((long) delaySeconds * 20L / checkIntervalTicks);
-        if (neededChecks < 1) neededChecks = 1;
+        if (neededChecks < 1)
+            neededChecks = 1;
 
         if (currentTPS >= recoveryThreshold) {
             consecutiveGoodCount++;

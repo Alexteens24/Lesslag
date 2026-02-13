@@ -69,10 +69,10 @@ public class IncrementalSnapshotBuilder implements Runnable {
                     long chunkKey = ((long) chunk.getX() << 32) | (chunk.getZ() & 0xFFFFFFFFL);
                     for (Entity entity : chunk.getEntities()) {
                         String typeName = entity.getType().name();
-                        entityCounts.merge(typeName, 1, Integer::sum);
+                        entityCounts.merge(typeName, 1, (a, b) -> a + b);
                         totalEntities++;
 
-                        chunkEntityCounts.merge(chunkKey, 1, Integer::sum);
+                        chunkEntityCounts.merge(chunkKey, 1, (a, b) -> a + b);
                     }
                 }
                 currentChunkIndex++;

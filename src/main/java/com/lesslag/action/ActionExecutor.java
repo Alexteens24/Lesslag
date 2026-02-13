@@ -214,7 +214,7 @@ public class ActionExecutor {
                 break;
             }
             case "chunk-clean": {
-                int cleaned = chunkClean();
+                chunkClean();
                 // ChunkLimiter logs itself
                 break;
             }

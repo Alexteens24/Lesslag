@@ -264,7 +264,6 @@ public class LagSourceAnalyzer {
      * Shows ALL worlds and ALL plugin tasks, flagging those over thresholds.
      */
     public List<String> formatFullReport(FullAnalysisResult result) {
-        List<LagSource> sources = result.sources;
         WorldSnapshot[] worldSnapshots = result.worldSnapshots;
         TaskSnapshot[] taskSnapshots = result.taskSnapshots;
         Map<String, Integer> previousChunkCounts = result.previousChunkCounts;
@@ -433,7 +432,8 @@ public class LagSourceAnalyzer {
                                 }
                                 lastChunkSnapshotTime = snapshotTime;
 
-                                future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps, oldChunkCounts, oldTime, snapshotTime));
+                                future.complete(new FullAnalysisResult(results, worldSnaps, taskSnaps, oldChunkCounts,
+                                        oldTime, snapshotTime));
                             } catch (Exception e) {
                                 future.completeExceptionally(e);
                             }
