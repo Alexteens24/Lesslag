@@ -181,6 +181,10 @@ public class FrustumCuller {
                         continue;
                     if (LessLag.hasCustomName(mob))
                         continue;
+                    if (mob.hasMetadata("LessLag.DensitySuppressed"))
+                        continue;
+                    if (mob.hasMetadata("LessLag.VillagerOptimized"))
+                        continue;
                     if (mob instanceof org.bukkit.entity.Tameable
                             && ((org.bukkit.entity.Tameable) mob).isTamed())
                         continue;

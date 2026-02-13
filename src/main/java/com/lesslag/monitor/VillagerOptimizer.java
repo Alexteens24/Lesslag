@@ -124,9 +124,12 @@ public class VillagerOptimizer implements Listener {
 
                     if (shouldOptimize && plugin.isMobAwareSafe(villager)) {
                         plugin.setMobAwareSafe(villager, false);
+                        villager.setMetadata("LessLag.VillagerOptimized",
+                                new org.bukkit.metadata.FixedMetadataValue(plugin, true));
                     } else if (!shouldOptimize && !plugin.isMobAwareSafe(villager)) {
                         // If no longer trapped (e.g. player broke the cell), re-enable
                         plugin.setMobAwareSafe(villager, true);
+                        villager.removeMetadata("LessLag.VillagerOptimized", plugin);
                     }
                 });
             }
@@ -200,6 +203,7 @@ public class VillagerOptimizer implements Listener {
         // 1. Enable AI
         if (!plugin.isMobAwareSafe(villager)) {
             plugin.setMobAwareSafe(villager, true);
+            villager.removeMetadata("LessLag.VillagerOptimized", plugin);
         }
 
         // 2. Mark as active
@@ -227,6 +231,8 @@ public class VillagerOptimizer implements Listener {
                         boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(v);
                         if (shouldOptimize) {
                             plugin.setMobAwareSafe(v, false);
+                            v.setMetadata("LessLag.VillagerOptimized",
+                                    new org.bukkit.metadata.FixedMetadataValue(plugin, true));
                         }
                     }
                 });

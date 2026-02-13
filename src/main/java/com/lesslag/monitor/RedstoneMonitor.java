@@ -328,6 +328,10 @@ public class RedstoneMonitor implements Listener {
         int dy = direction.getModY();
         int dz = direction.getModZ();
 
+        // Use temporary map to prevent overwriting keys if blocks move into each other's
+        // previous positions
+        Map<Long, LongTermClock> updates = new HashMap<>();
+
         for (Block b : blocks) {
             if (b.getType() == org.bukkit.Material.AIR)
                 continue;
@@ -336,20 +340,6 @@ public class RedstoneMonitor implements Listener {
             LongTermClock clock = worldClocks.remove(oldKey);
 
             if (clock != null) {
-                // Calculate new key
-                // We can't easily get the 'new' block object here without more math calculation
-                // on the key directly
-                // BlockKey = ((x & 0x7FFFFFF) | ((z & 0x7FFFFFF) << 27) | (y << 54)) ^
-                // worldHash;
-
-                // Reconstruct coords from key logic (simplified for now, just adding diff to
-                // coords)
-                // Since we don't have the new block yet (event in progress), we must predict
-                // the new key.
-                // Actually, it's safer to just move the data to a 'pending' state or just
-                // update the location in the clock object
-                // and re-key it.
-
                 // Fast re-keying:
                 int newX = b.getX() + dx;
                 int newY = b.getY() + dy;
@@ -359,8 +349,12 @@ public class RedstoneMonitor implements Listener {
                 long newKey = (((long) newX & 0x7FFFFFF) | (((long) newZ & 0x7FFFFFF) << 27)
                         | ((long) newY << 54)) ^ worldHash;
 
-                worldClocks.put(newKey, clock);
+                updates.put(newKey, clock);
             }
+        }
+
+        if (!updates.isEmpty()) {
+            worldClocks.putAll(updates);
         }
     }
 
