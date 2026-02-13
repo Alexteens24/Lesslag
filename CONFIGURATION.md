@@ -1,126 +1,243 @@
-# LessLag Configuration Guide
+# Configuration Reference
 
-This document provides a detailed explanation of every option available in `config.yml`. The plugin is designed to be modular, allowing you to enable or disable features as needed.
+This document provides a detailed explanation of all configuration options available in `config.yml` for the LessLag plugin.
+
+## Core Settings
+
+These settings control the basic behavior of the plugin.
+
+### General
+
+*   `core.prefix`: The string prefixed to all chat messages sent by the plugin.
+    *   **Default**: `&b&lLessLag &8» &7`
+*   `core.check-updates`: Whether to check for new versions of LessLag on server startup.
+    *   **Default**: `true`
+*   `core.language`: The language code for message localization (e.g., `en`, `vn`). Maps to `messages_{language}.yml`.
+    *   **Default**: `en`
+*   `core.debug`: Enables verbose logging to the server console for troubleshooting.
+    *   **Default**: `false`
+
+### Workload Management
+
+*   `workload-limit-ms`: The maximum time in milliseconds the plugin is allowed to spend per tick on heavy background tasks (like chunk analysis). Increasing this may speed up operations but risks causing TPS drops.
+    *   **Default**: `2`
 
 ---
 
-## 1. Core Settings
-Global settings for the plugin.
+## Modules
 
-*   **`core.prefix`**: The prefix shown before plugin messages in chat (Default: `&b&lLessLag &8» &7`).
-*   **`core.check-updates`**: Automatically check for updates on startup (`true`/`false`).
-*   **`core.language`**: Language for messages (e.g., `en`). Loads `messages_en.yml`.
-*   **`core.debug`**: Enable debug mode to print detailed logs to the console (Recommended: `false` unless debugging).
+The plugin is divided into several modules, each targeting a specific area of performance.
+
+### Redstone Control (`modules.redstone`)
+
+Prevents lag machines and optimizes redstone circuits by limiting activation frequency.
+
+*   `enabled`: Master switch for this module.
+*   `adaptive-monitoring`: If `true`, the plugin skips intensive checks when the server TPS is above the `min-tps` threshold to save resources.
+    *   **Default**: `true`
+*   `min-tps`: The TPS threshold below which adaptive monitoring engages full scanning.
+    *   **Default**: `19.5`
+
+#### Stabilization (Suppressor)
+
+*   `max-activations-per-chunk`: The maximum number of redstone updates allowed in a single chunk spread over the `window-seconds` period.
+    *   **Default**: `200`
+*   `cooldown-seconds`: The duration in seconds that redstone activity is suppressed in a chunk after exceeding the limit.
+    *   **Default**: `10`
+*   `window-seconds`: The time window in seconds for counting activations.
+    *   **Default**: `2`
+*   `notify`: Whether to alert administrators when a chunk is suppressed.
+    *   **Default**: `true`
+
+#### Advanced Limiting
+
+*   `advanced.enabled`: Enables individual block frequency limits and clock detection.
+*   `advanced.max-frequency`: The maximum number of redstone events allowed per block per second.
+    *   **Default**: `20`
+*   `advanced.clock-detection.enabled`: Enables detection of rapid on/off cycling (clocks).
+*   `advanced.clock-detection.threshold`: The number of activations within 5 seconds required to flag a circuit as a clock.
+    *   **Default**: `100`
+
+#### Piston Limiter
+
+*   `advanced.piston-limit.enabled`: Limits the number of piston pushes per chunk to prevent piston-based lag machines.
+*   `advanced.piston-limit.max-pushes-per-chunk`: Maximum pushes allowed per chunk per tick.
+    *   **Default**: `50`
+
+#### Long-Term Detection
+
+Identifies slow but persistent clocks that might evade short-term detection.
+
+*   `advanced.long-term.enabled`: Enables long-term pattern analysis.
+*   `advanced.long-term.window-seconds`: The observation period in seconds.
+    *   **Default**: `120`
+*   `advanced.long-term.max-activations`: The activation threshold within the window to trigger actions.
+    *   **Default**: `100`
+*   `advanced.long-term.actions`: List of actions to take when detected (e.g., `notify-admin`, `break-block`).
 
 ---
 
-## 2. Modules
-Core features for lag reduction and optimization.
+### Entity Management (`modules.entities`)
 
-### 2.1. Redstone Control
-Prevents lag machines and optimizes redstone circuits.
+Controls entity populations to prevent world overload.
 
-*   **`modules.redstone.enabled`**: Enable the entire redstone module.
-*   **`modules.redstone.max-activations-per-chunk`**: Maximum redstone activations allowed in a chunk before suppression (Default: `200`).
-*   **`modules.redstone.window-seconds`**: Time window to count activations (Default: `2`s).
-    *   *Example: If a chunk has >200 activations in 2 seconds, it gets suppressed.*
-*   **`modules.redstone.cooldown-seconds`**: Duration to freeze redstone in the chunk after suppression (Default: `10`s).
-*   **`modules.redstone.notify`**: Notify admins when a chunk is suppressed.
-
-#### Advanced Redstone Settings
-*   **`modules.redstone.advanced.enabled`**: Enable advanced limiting features.
-*   **`modules.redstone.advanced.max-frequency`**: Max frequency per individual block (Hz). Throttles fast clocks.
-*   **`modules.redstone.advanced.clock-detection`**:
-    *   **`threshold`**: Activations per 5s to trigger clock detection (Default: `100`).
-*   **`modules.redstone.advanced.piston-limit`**:
-    *   **`max-pushes-per-chunk`**: Max piston pushes per chunk per tick (Default: `50`). Prevents massive flying machines from crashing the server.
-
-### 2.2. Entity Management
-Controls entity counts and limits.
-
-#### Limits
-*   **`modules.entities.limits.enabled`**: Enable hard limits.
-*   **`modules.entities.limits.check-interval`**: Tick interval to check limits (600 ticks = 30s).
-*   **`modules.entities.limits.per-chunk-limit`**: Max entities **per chunk** by type (monster, animal, etc.).
-*   **`modules.entities.limits.per-world-limit`**: Max entities **per world**. Prevents abuse of chunk loading to bypass per-chunk limits.
-*   **`modules.entities.limits.protected-metadata`**: Entities with this metadata (e.g., "NPC", "Shop") are never removed.
-*   **`modules.entities.limits.protected-names`**: Entities with these nametags are never removed.
+*   `limits.enabled`: Enables hard limits on entity counts.
+*   `limits.check-interval`: How often (in ticks) to check entity counts.
+    *   **Default**: `600` (30 seconds)
+*   `limits.per-chunk-limit`: Maximum number of entities allowed per chunk, categorized by type (monster, animal, ambient, etc.).
+*   `limits.per-world-limit`: Hard cap on the total number of entities allowed in a world, categorized by type.
+*   `limits.protected-metadata`: A list of metadata tags that prevent an entity from being removed (e.g., `NPC`, `Shop`).
+*   `limits.protected-names`: A list of custom names that protect entities from removal.
 
 #### Smart Chunk Limiter
-*   **`modules.entities.chunk-limiter.enabled`**: active scanning for overloaded chunks.
-*   **`modules.entities.chunk-limiter.max-entities-per-chunk`**: Global max entities per chunk (limit before cleanup triggers).
-*   **`modules.entities.chunk-limiter.scan-interval`**: Scan interval in seconds.
-*   **`modules.entities.chunk-limiter.whitelist`**: Mobs that are ignored by the limiter (e.g., `VILLAGER`, `IRON_GOLEM`).
 
-### 2.3. Mob AI Optimization
-Disables AI for mobs that are far away or out of sight to save TPS.
-
-*   **`modules.mob-ai.enabled`**: Enable AI optimization.
-*   **`modules.mob-ai.active-radius`**: Radius around players where mobs have AI (Default: `48`). Outside this, AI is disabled.
-*   **`modules.mob-ai.update-interval`**: Check usage every X ticks.
-*   **`modules.mob-ai.protected`**: Mobs that always keep AI (e.g., `ENDER_DRAGON`, `WITHER`).
-*   **`modules.mob-ai.fov-degrees`**: Field of View angle. Mobs outside this angle (behind player) may have AI disabled.
-*   **`modules.mob-ai.behind-safe-radius`**: Safe radius behind the player where AI is kept active to prevent "sneaking up" issues.
-
-### 2.4. Chunk Management
-Optimizes chunk loading and unloading.
-
-*   **`modules.chunks.view-distance`**:
-    *   **`min`**: Minimum view distance allowed when reducing.
-    *   **`reduce-by`**: Amount to reduce view distance by when lag occurs.
-*   **`modules.chunks.simulation-distance`**: Similar settings for simulation distance.
-*   **`modules.chunks.world-guard`**: Protects worlds from excessive chunk loading.
-    *   **`max-chunks-per-player`**: Average loaded chunks per player threshold.
-    *   **`overload-multiplier`**: Multiplier to determine overload state.
-    *   **`actions`**: Actions to take when overloaded (`unload-unused`, `reduce-view-distance`).
-*   **`modules.chunks.unload-unused`**: Automatically unload unused chunks.
-*   **`modules.chunks.keep-spawn-loaded`**: Keep spawn chunks loaded (`true`/`false`).
+*   `chunk-limiter.enabled`: clear entities effectively.
+*   `chunk-limiter.max-entities-per-chunk`: The threshold at which the limiter starts removing excess entities.
+    *   **Default**: `50`
+*   `chunk-limiter.scan-interval`: How often (in seconds) to scan loaded chunks.
+*   `chunk-limiter.whitelist`: A list of entity types (e.g., `PLAYER`, `VILLAGER`, `WOLF`) that are immune to chunk limiting.
 
 ---
 
-## 3. System Monitoring
-Tools for performance diagnosis.
+### AI Optimization / Frustum Culling (`modules.mob-ai`)
 
-*   **`system.tps-monitor`**: Monitor TPS history.
-*   **`system.gc-monitor`**: Monitor Garbage Collection pauses.
-    *   **`warn-threshold-ms`**: Warn if GC pause > 500ms.
-*   **`system.memory-leak-detection`**: Detects memory leaks.
-    *   **`check-interval-minutes`**: Interval to check heap usage.
-    *   **`warn-slope-threshold`**: Warn if memory usage slope > X MB/min.
-*   **`system.lag-source-analyzer`**: Analyzes lag sources.
-    *   **`auto-analyze-tps`**: Trigger analysis if TPS drops below this value (e.g., `15.0`).
-*   **`system.tick-monitor`**: Detects single tick spikes.
-    *   **`threshold-ms`**: Log ticks taking longer than X ms.
+Disables the AI of mobs that are distant or not visible to players.
 
----
-
-## 4. Automation
-
-### 4.1. Predictive Optimization
-Predicts lag based on MSPT trends before TPS drops.
-*   **`automation.predictive-optimization.slope-threshold`**: MSPT slope triggering the prediction.
-*   **`automation.predictive-optimization.action`**: Action to take (`notify-admin`).
-
-### 4.2. Thresholds
-Configurable actions based on TPS levels.
-
-*   **`minor`** (TPS 18.0): Light actions (clear items).
-*   **`moderate`** (TPS 15.0): Medium actions (disable mob AI).
-*   **`critical`** (TPS 10.0): Heavy actions (kill mobs, force GC).
+*   `enabled`: Master switch for this module.
+*   `active-radius`: The radius in blocks around a player where mobs retain their AI.
+    *   **Default**: `48`
+*   `update-interval`: Frequency in ticks to update AI states.
+*   `protected`: List of entity types that should arguably *always* have AI (e.g., `ENDER_DRAGON`, `WITHER`, `VILLAGER`).
+*   `fov-degrees`: The field of view in degrees. Mobs outside this cone may have their AI disabled.
+    *   **Default**: `70.0`
+*   `behind-safe-radius`: A small radius behind the player where AI remains active to prevent "sneaking" mobs from freezing.
+    *   **Default**: `5.0`
+*   `vertical-fov-factor`: Multiplier for vertical FOV flexibility.
 
 ---
 
-## 5. Compatibility
-Ensures LessLag plays nice with other plugins.
+### Villager Optimizer (`modules.villager-optimizer`)
 
-*   **`compatibility.check-version`**: Verify Minecraft version support.
-*   **`compatibility.auto-detect`**: Automatically detect conflicting plugins.
-*   **`compatibility.plugins`**:
-    *   **`pufferfish-dab`**: Disable internal AI optimization if Pufferfish/DAB is detected.
-    *   **`clearlag`**: Disable entity clearing if ClearLag is detected.
-    *   **`mobfarmmanager`**: Adjust chunk limits if MobFarmManager is detected.
+Optimizes villagers, especially in trading halls.
+
+*   `enabled`: Master switch for this module.
+*   `check-interval`: Frequency in ticks to scan for optimization candidates.
+    *   **Default**: `600`
+*   `ai-restore-duration`: Duration in seconds to restore AI after a player interacts with a comprehensive villager (e.g., for trading).
+    *   **Default**: `30`
+*   `optimize-trapped`: If `true`, only optimizes villagers confined to a 1x1 space or similarly restricted area.
+    *   **Default**: `true`
 
 ---
 
-## 6. Health Report
-Configuration for the `/lg health` command output. Toggle sections (`tps`, `cpu`, `memory`, `worlds`, etc.) on or off.
+### Breeding Limiter (`modules.breeding-limiter`)
+
+Prevents excessive animal breeding in farms.
+
+*   `enabled`: Master switch for this module.
+*   `max-animals-per-chunk`: The maximum number of same-type animals allowed in a chunk before breeding is blocked.
+    *   **Default**: `20`
+*   `message`: The message displayed to a player when breeding is prevented. Set to `""` to disable.
+
+---
+
+### Density Optimizer (`modules.density-optimizer`)
+
+Reduces the impact of high-density mob farms (e.g., entity cramming).
+
+*   `enabled`: Master switch for this module.
+*   `check-interval`: Frequency in ticks to scan for high-density areas.
+    *   **Default**: `40`
+*   `limits`: A map of EntityType to count (e.g., `COW: 10`). If a chunk contains more than the specified number of that entity, the excess will have their AI and collisions disabled.
+*   `bypass-tamed`: Protects tamed animals from optimization.
+*   `bypass-named`: Protects named animals from optimization.
+*   `bypass-leashed`: Protects leashed animals from optimization.
+
+---
+
+### Chunk Management (`modules.chunks`)
+
+Manages server view distance and chunk loading to maintain TPS.
+
+*   `enabled`: Master switch for this module.
+*   `view-distance`: Dynamic view distance settings.
+    *   `min`: The minimum allowed view distance.
+    *   `reduce-by`: How much to reduce view distance when load is high.
+*   `simulation-distance`: Dynamic simulation distance settings.
+    *   `min`: The minimum allowed simulation distance.
+    *   `reduce-by`: How much to reduce simulation distance when load is high.
+
+#### World Chunk Guard
+
+*   `world-guard.enabled`: Monitors loaded chunks per world.
+*   `world-guard.check-interval`: Frequency in ticks to check chunk counts.
+*   `world-guard.max-chunks-per-player`: The target ratio of loaded chunks per player.
+*   `world-guard.overload-multiplier`: The factor (e.g., 200%) above the limit that triggers aggressive unloading/actions.
+*   `world-guard.evacuate-world`: The world name to teleport players to if the current world is severely overloaded.
+*   `world-guard.actions`: Actions to take (e.g., `unload-unused`, `reduce-view-distance`).
+
+---
+
+## System Monitoring
+
+*   `system.tps-monitor`: Tracks TPS history.
+    *   `history-length`: Seconds of TPS history to keep.
+*   `system.gc-monitor`: Detects garbage collection pauses.
+    *   `warn-threshold-ms`: Logs a warning if a GC pause exceeds this duration (e.g., 500ms).
+*   `system.memory-leak-detection`: Monitors Old Gen memory usage.
+    *   `warn-slope-threshold`: Warns if memory usage grows faster than this rate (MB/min).
+*   `system.lag-source-analyzer`: Identifies heavy entities/chunks.
+    *   `auto-analyze-tps`: Automatically starts analysis if TPS drops below this value.
+*   `system.tick-monitor`: Logs tick spikes.
+    *   `threshold-ms`: Logs any tick taking longer than this to execute.
+
+---
+
+## Automation
+
+### Predictive Optimization
+
+Uses trend analysis to act before lag hits.
+
+*   `predictive-optimization.slope-threshold`: The rate of MSPT increase (ms/s) that triggers optimization.
+*   `predictive-optimization.min-samples`: Number of data points required to confirm a trend.
+*   `predictive-optimization.action`: The command or action to execute when a negative trend is detected (e.g., `notify-admin`).
+
+### TPS Thresholds
+
+Configures automatic responses to specific TPS levels.
+
+*   `thresholds.minor` (e.g., TPS < 18.0)
+*   `thresholds.moderate` (e.g., TPS < 15.0)
+*   `thresholds.critical` (e.g., TPS < 10.0)
+
+For each level, you can configure:
+*   `notify`: Alert types (actionbar, chat, sound).
+*   `actions`: A list of remedial actions (e.g., `clear-ground-items`, `reduce-view-distance`, `force-gc`).
+
+---
+
+## Compatibility
+
+Ensures LessLag plays nicely with other plugins.
+
+*   `compatibility.check-version`: Verifies the server version is supported.
+*   `compatibility.auto-detect`: Automatically detects known conflicting plugins.
+*   `compatibility.plugins`: Individual toggles to disable specific LessLag features if a conflicting plugin is found:
+    *   `pufferfish-dab`: Disables LessLag AI optimization.
+    *   `clearlag`: Disables LessLag entity clearing.
+    *   `mobfarmmanager`: Disables LessLag stacker/spawner logic.
+
+---
+
+## Health Report
+
+Configures what information is shown in the `/lg health` command.
+
+*   `tps`: Ticks per second.
+*   `mspt`: Milliseconds per tick.
+*   `cpu`: Process CPU usage.
+*   `memory`: RAM usage (Heap/Non-Heap).
+*   `disk`: Disk usage and I/O.
+*   `worlds`: Loaded chunks and entities per world.
+*   `entity-breakdown`: Detailed count of entities by type.
