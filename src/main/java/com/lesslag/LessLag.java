@@ -13,7 +13,10 @@ import com.lesslag.monitor.PredictiveOptimizer;
 import com.lesslag.monitor.RedstoneMonitor;
 import com.lesslag.monitor.TPSMonitor;
 import com.lesslag.monitor.TickMonitor;
+import com.lesslag.monitor.TickMonitor;
 import com.lesslag.monitor.VillagerOptimizer;
+import com.lesslag.monitor.BreedingLimiter;
+import com.lesslag.monitor.DensityOptimizer;
 import com.lesslag.util.CompatibilityManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -46,6 +49,8 @@ public class LessLag extends JavaPlugin implements Listener {
     private ChunkLimiter chunkLimiter;
     private RedstoneMonitor redstoneMonitor;
     private VillagerOptimizer villagerOptimizer;
+    private BreedingLimiter breedingLimiter;
+    private DensityOptimizer densityOptimizer;
     private PredictiveOptimizer predictiveOptimizer;
     private FrustumCuller frustumCuller;
     private WorldChunkGuard worldChunkGuard;
@@ -141,6 +146,8 @@ public class LessLag extends JavaPlugin implements Listener {
         worldChunkGuard = new WorldChunkGuard(this, actionExecutor);
         memoryLeakDetector = new MemoryLeakDetector(this);
         villagerOptimizer = new VillagerOptimizer(this);
+        breedingLimiter = new BreedingLimiter(this);
+        densityOptimizer = new DensityOptimizer(this);
 
         // Start monitoring
         tpsMonitor.start();
@@ -152,6 +159,8 @@ public class LessLag extends JavaPlugin implements Listener {
         worldChunkGuard.start();
         memoryLeakDetector.start();
         villagerOptimizer.start();
+        breedingLimiter.start();
+        densityOptimizer.start();
     }
 
     private void stopMonitors() {
@@ -173,6 +182,10 @@ public class LessLag extends JavaPlugin implements Listener {
             memoryLeakDetector.stop();
         if (villagerOptimizer != null)
             villagerOptimizer.stop();
+        if (breedingLimiter != null)
+            breedingLimiter.stop();
+        if (densityOptimizer != null)
+            densityOptimizer.stop();
     }
 
     @Override
@@ -247,6 +260,14 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public VillagerOptimizer getVillagerOptimizer() {
         return villagerOptimizer;
+    }
+
+    public BreedingLimiter getBreedingLimiter() {
+        return breedingLimiter;
+    }
+
+    public DensityOptimizer getDensityOptimizer() {
+        return densityOptimizer;
     }
 
     public PredictiveOptimizer getPredictiveOptimizer() {

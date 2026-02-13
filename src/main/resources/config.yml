@@ -1,6 +1,6 @@
 # =============================================================
 #  LessLag - Configuration
-#  Version: 1.1
+#  Version: 1.2
 # =============================================================
 
 core:
@@ -12,6 +12,9 @@ core:
   language: en
   # Print debug messages to console
   debug: false
+
+# Max time (ms) per tick for heavy tasks (WorkloadDistributor)
+workload-limit-ms: 2
 
 # =============================================================
 #  MODULES: Protection & Optimization
@@ -116,6 +119,51 @@ modules:
     behind-safe-radius: 5.0
     vertical-fov-factor: 1.5
 
+  # -----------------------------------------------------------
+  # Villager Optimizer (Happy Villagers)
+  # Disables AI for trapped villagers to reduce trading hall lag.
+  # -----------------------------------------------------------
+  villager-optimizer:
+    enabled: true
+    # Check interval in ticks (600 = 30s)
+    check-interval: 600
+    # How long to re-enable AI after interaction (seconds)
+    ai-restore-duration: 30
+    # Only optimize trapped villagers? (1x1 cells)
+    optimize-trapped: true
+
+  # -----------------------------------------------------------
+  # Breeding Limiter (Proactive Farm Control)
+  # Prevents breeding if chunk limit is reached.
+  # -----------------------------------------------------------
+  breeding-limiter:
+    enabled: true
+    # Max animals of same type per chunk allowed for breeding
+    max-animals-per-chunk: 20
+    # Message sent to player (set to "" to disable)
+    message: "&cFarm limit reached! Cannot breed more animals in this chunk."
+
+  # -----------------------------------------------------------
+  # Density Optimizer (Farm Performance)
+  # Disables AI/Collision for specific mobs in varying density.
+  # -----------------------------------------------------------
+  density-optimizer:
+    enabled: true
+    # Check interval in ticks (40 = 2s)
+    check-interval: 40
+    # Mobs to optimize (Type: Threshold)
+    # If chunk has > Threshold of Type, excess will have AI disabled.
+    limits:
+      COW: 10
+      SHEEP: 10
+      PIG: 10
+      CHICKEN: 15
+      VILLAGER: 20
+    # Always keep these mobs active (even if over limit)
+    # Useful for "pet" protection if they are in the farm
+    bypass-tamed: true
+    bypass-named: true
+    bypass-leashed: true
   # -----------------------------------------------------------
   # Chunk Management
   # Unloads unused chunks and prevents world overload.
