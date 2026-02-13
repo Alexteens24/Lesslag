@@ -47,53 +47,7 @@ public class LagSourceAnalyzer {
      * then processes it async. Returns results via CompletableFuture.
      */
     public CompletableFuture<List<LagSource>> analyzeAsync() {
-        CompletableFuture<List<LagSource>> future = new CompletableFuture<>();
-
-        // Use incremental snapshot builder to avoid freezing the main thread
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            new IncrementalSnapshotBuilder(plugin, (snapshots) -> {
-                try {
-                    TaskSnapshot[] taskSnapshots = takeTaskSnapshot();
-                    AnalysisConfig config = takeConfigSnapshot();
-                    long snapshotTime = System.currentTimeMillis();
-
-                    // Process async
-                    if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
-                        future.completeExceptionally(new IllegalStateException("Async executor unavailable"));
-                        return;
-                    }
-
-                    try {
-                        plugin.getAsyncExecutor().execute(() -> {
-                            try {
-                                List<LagSource> results = processSnapshots(snapshots, taskSnapshots, snapshotTime,
-                                        config);
-                                lastAnalysis = results;
-                                lastAnalysisTime = snapshotTime;
-
-                                // Update chunk count tracking for rate calculation
-                                for (WorldSnapshot ws : snapshots) {
-                                    previousChunkCounts.put(ws.name, ws.loadedChunks);
-                                }
-                                lastChunkSnapshotTime = snapshotTime;
-
-                                future.complete(results);
-                            } catch (Exception e) {
-                                future.completeExceptionally(e);
-                            }
-                        });
-                    } catch (RejectedExecutionException e) {
-                        future.completeExceptionally(e);
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            }).start();
-        });
-
-        return future;
+        return analyzeFullAsync().thenApply(result -> result.sources);
     }
 
     /**

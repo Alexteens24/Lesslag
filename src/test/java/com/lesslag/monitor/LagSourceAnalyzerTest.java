@@ -62,5 +62,10 @@ public class LagSourceAnalyzerTest {
         assertTrue(report.stream().anyMatch(line -> line.contains("Entity Overload")));
         assertTrue(report.stream().anyMatch(line -> line.contains("Chunk Overload")));
         assertTrue(report.stream().anyMatch(line -> line.contains("Plugin Tasks")));
+
+        // Edge Case: Empty list
+        List<String> reportEmpty = analyzer.formatReport(Collections.emptyList());
+        assertEquals(1, reportEmpty.size());
+        assertTrue(reportEmpty.get(0).contains("No significant lag sources detected"));
     }
 }

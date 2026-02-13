@@ -52,6 +52,7 @@ public class TPSMonitor {
     // Recovery state
     private int consecutiveGoodCount = 0;
     private volatile boolean settingsModified = false;
+    private final java.util.concurrent.atomic.AtomicBoolean isAnalyzing = new java.util.concurrent.atomic.AtomicBoolean(false);
 
     public TPSMonitor(LessLag plugin, ActionExecutor actionExecutor, LagSourceAnalyzer lagSourceAnalyzer,
             PredictiveOptimizer predictiveOptimizer) {
@@ -231,15 +232,10 @@ public class TPSMonitor {
                 sendNotifications(detected);
 
                 // Run lag source analysis if enabled
-                if (plugin.getConfig().getDouble("system.lag-source-analyzer.auto-analyze-tps", 15.0) >= currentTPS) { // Logic
-                                                                                                                       // change:
-                                                                                                                       // check
-                                                                                                                       // against
-                                                                                                                       // TPS
-                    // Wait, original was `lag-analysis.report-on-alert`.
-                    // My new config has `system.lag-source-analyzer.auto-analyze-tps: 15.0`.
-                    // So if currentTPS <= 15.0 (or whatever configured), trigger.
-                    triggerLagAnalysis();
+                if (plugin.getConfig().getDouble("system.lag-source-analyzer.auto-analyze-tps", 15.0) >= currentTPS) {
+                    if (isAnalyzing.compareAndSet(false, true)) {
+                        triggerLagAnalysis();
+                    }
                 }
             }
         } else {
@@ -277,27 +273,32 @@ public class TPSMonitor {
             return;
 
         lagSourceAnalyzer.analyzeAsync().thenAccept(sources -> {
-            if (sources.isEmpty())
-                return;
+            try {
+                if (sources.isEmpty())
+                    return;
 
-            List<String> report = lagSourceAnalyzer.formatCompactReport(sources);
-            if (report.isEmpty())
-                return;
+                List<String> report = lagSourceAnalyzer.formatCompactReport(sources);
+                if (report.isEmpty())
+                    return;
 
-            // Send lag source report to admins (async-safe with Adventure)
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                String header = plugin.getPrefix() + "&7Possible lag causes:";
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player.hasPermission("lesslag.notify")) {
-                        LessLag.sendMessage(player, header);
-                        for (String line : report) {
-                            LessLag.sendMessage(player, line);
+                // Send lag source report to admins (async-safe with Adventure)
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    String header = plugin.getPrefix() + "&7Possible lag causes:";
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        if (player.hasPermission("lesslag.notify")) {
+                            LessLag.sendMessage(player, header);
+                            for (String line : report) {
+                                LessLag.sendMessage(player, line);
+                            }
                         }
                     }
-                }
-            });
+                });
+            } finally {
+                isAnalyzing.set(false);
+            }
         }).exceptionally(e -> {
             plugin.getLogger().warning("Lag analysis failed: " + e.getMessage());
+            isAnalyzing.set(false);
             return null;
         });
     }
@@ -369,8 +370,9 @@ public class TPSMonitor {
         double recoveryThreshold = config.getDouble("recovery.tps-threshold", 18.0);
         int delaySeconds = config.getInt("recovery.delay-seconds", 30);
         int checkIntervalTicks = config.getInt("system.tps-monitor.check-interval", 100);
-        int checkIntervalSeconds = Math.max(1, checkIntervalTicks / 20);
-        int neededChecks = delaySeconds / checkIntervalSeconds;
+        // Calculate needed checks using ticks to avoid integer division issues with small intervals
+        int neededChecks = (int) ((long) delaySeconds * 20L / checkIntervalTicks);
+        if (neededChecks < 1) neededChecks = 1;
 
         if (currentTPS >= recoveryThreshold) {
             consecutiveGoodCount++;
