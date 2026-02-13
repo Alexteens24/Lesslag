@@ -329,6 +329,11 @@ public class ActionExecutor {
      * Disable AI for mobs far from players to reduce pathfinding load
      */
     public void disableMobAI() {
+        if (plugin.getCompatManager().isDABEnabled()) {
+            plugin.getLogger().info("Skipping disable-mob-ai action because Pufferfish DAB is enabled.");
+            return;
+        }
+
         int radius = plugin.getConfig().getInt("modules.mob-ai.active-radius", 48);
         int chunkRadius = (radius >> 4) + 1;
         WorkloadDistributor distributor = plugin.getWorkloadDistributor();

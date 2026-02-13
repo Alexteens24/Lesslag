@@ -117,6 +117,13 @@ public class DensityOptimizer {
                     if (plugin.isMobAwareSafe(mob) != shouldBeActive) {
                         plugin.setMobAwareSafe(mob, shouldBeActive);
                         mob.setCollidable(shouldBeActive); // Also disable collision for performance!
+
+                        if (!shouldBeActive) {
+                            mob.setMetadata("LessLag.DensitySuppressed",
+                                    new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                        } else {
+                            mob.removeMetadata("LessLag.DensitySuppressed", plugin);
+                        }
                     }
                 }
             } else {
@@ -127,6 +134,7 @@ public class DensityOptimizer {
                     if (!plugin.isMobAwareSafe(mob)) {
                         plugin.setMobAwareSafe(mob, true);
                         mob.setCollidable(true);
+                        mob.removeMetadata("LessLag.DensitySuppressed", plugin);
                     }
                 }
             }
@@ -152,6 +160,7 @@ public class DensityOptimizer {
                         if (!plugin.isMobAwareSafe(mob)) {
                             plugin.setMobAwareSafe(mob, true);
                             mob.setCollidable(true);
+                            mob.removeMetadata("LessLag.DensitySuppressed", plugin);
                         }
                     }
                 }

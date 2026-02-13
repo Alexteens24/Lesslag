@@ -59,6 +59,9 @@ public class WorkloadDistributor {
      * @return true if added, false if queue is full
      */
     public boolean addWorkload(Runnable workload) {
+        if (workload == null)
+            return false;
+
         // Optimistic increment to reserve a slot
         int currentSize = queueSize.incrementAndGet();
         if (currentSize > MAX_QUEUE_SIZE) {
