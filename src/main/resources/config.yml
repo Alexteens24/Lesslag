@@ -52,6 +52,8 @@ modules:
       # Piston Limiter: Max pushes per chunk per tick
       piston-limit:
         enabled: true
+        # Track moving pistons (complex geometry)? turning this off improves performance
+        track-moving-blocks: true
         max-pushes-per-chunk: 50
 
       # Long-term Detection (Slow but persistent clocks)
@@ -210,9 +212,11 @@ modules:
       # World to evacuate to
       evacuate-world: "world"
       # Actions if threshold exceeded
+      # "unload-unused" is disabled by default for safety. Enable if you want aggressive unloading.
       actions:
-        - "unload-unused"
+        - "notify-admin"
         - "reduce-view-distance"
+        # - "unload-unused"
     
     # General Unload Settings
     unload-unused: true
@@ -243,6 +247,8 @@ system:
     enabled: true
     # Check interval (in minutes)
     check-interval-minutes: 10
+    # Notify admins in-game? (Set to false for console-only logs)
+    notify: false
     # Warn if old gen memory grows by this slope (MB/min)
     warn-slope-threshold: 2.0
 

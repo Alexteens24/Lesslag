@@ -108,7 +108,19 @@ public class WorkloadDistributor {
             return;
 
         task = scheduleTimerTask(() -> {
-            long stopTime = System.nanoTime() + maxNanosPerTick;
+            long budget = maxNanosPerTick;
+
+            // Emergency Throttle: If server is struggling (MSPT > 45ms), reduce budget to
+            // 0.5ms
+            // This prevents the distributor from compounding lag.
+            if (LessLag.getInstance() != null && LessLag.getInstance().getTpsMonitor() != null) {
+                double mspt = LessLag.getInstance().getTpsMonitor().getCurrentMSPT();
+                if (mspt > 45.0) {
+                    budget = 500_000L; // 0.5ms
+                }
+            }
+
+            long stopTime = System.nanoTime() + budget;
 
             while (!workloadQueue.isEmpty() && System.nanoTime() < stopTime) {
                 Runnable work = workloadQueue.poll();

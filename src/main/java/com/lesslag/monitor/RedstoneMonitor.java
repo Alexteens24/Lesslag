@@ -49,6 +49,7 @@ public class RedstoneMonitor implements Listener {
     private int maxFrequency; // activations/sec per block
     // activations/5s
     private boolean pistonLimitEnabled;
+    private boolean trackMovingBlocks;
     private int maxPistonsPerChunkTick;
 
     private boolean longTermEnabled;
@@ -99,6 +100,8 @@ public class RedstoneMonitor implements Listener {
         maxFrequency = plugin.getConfig().getInt("modules.redstone.advanced.max-frequency", 20);
 
         pistonLimitEnabled = plugin.getConfig().getBoolean("modules.redstone.advanced.piston-limit.enabled", true);
+        trackMovingBlocks = plugin.getConfig().getBoolean("modules.redstone.advanced.piston-limit.track-moving-blocks",
+                true);
         maxPistonsPerChunkTick = plugin.getConfig()
                 .getInt("modules.redstone.advanced.piston-limit.max-pushes-per-chunk", 50);
 
@@ -276,8 +279,8 @@ public class RedstoneMonitor implements Listener {
         if (!advancedEnabled || !pistonLimitEnabled)
             return;
 
-        // Dynamic Tracking: Handle moving clocks
-        if (longTermEnabled && !event.isCancelled()) {
+        // Dynamic Tracking: Handle moving clocks (Optional - heavy)
+        if (longTermEnabled && trackMovingBlocks && !event.isCancelled()) {
             handlePistonMovement(block,
                     event instanceof BlockPistonExtendEvent ? ((BlockPistonExtendEvent) event).getDirection()
                             : ((BlockPistonRetractEvent) event).getDirection(),
@@ -335,7 +338,8 @@ public class RedstoneMonitor implements Listener {
         int dy = direction.getModY();
         int dz = direction.getModZ();
 
-        // Use temporary map to prevent overwriting keys if blocks move into each other's
+        // Use temporary map to prevent overwriting keys if blocks move into each
+        // other's
         // previous positions
         Map<Long, LongTermClock> updates = new HashMap<>();
 

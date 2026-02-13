@@ -61,6 +61,8 @@ Prevents lag machines and optimizes redstone circuits by limiting activation fre
 #### Piston Limiter
 
 *   `advanced.piston-limit.enabled`: Limits the number of piston pushes per chunk to prevent piston-based lag machines.
+*   `advanced.piston-limit.track-moving-blocks`: If `true`, tracks blocks moved by pistons for complex Redstone clocks. Disabling this improves RedstoneMonitor performance.
+    *   **Default**: `true`
 *   `advanced.piston-limit.max-pushes-per-chunk`: Maximum pushes allowed per chunk per tick.
     *   **Default**: `50`
 
@@ -174,7 +176,7 @@ Manages server view distance and chunk loading to maintain TPS.
 *   `world-guard.max-chunks-per-player`: The target ratio of loaded chunks per player.
 *   `world-guard.overload-multiplier`: The factor (e.g., 200%) above the limit that triggers aggressive unloading/actions.
 *   `world-guard.evacuate-world`: The world name to teleport players to if the current world is severely overloaded.
-*   `world-guard.actions`: Actions to take (e.g., `unload-unused`, `reduce-view-distance`).
+*   `world-guard.actions`: Actions to take (e.g., `unload-unused`, `reduce-view-distance`). **Note**: `unload-unused` is now disabled by default for safety.
 
 ---
 
@@ -185,6 +187,8 @@ Manages server view distance and chunk loading to maintain TPS.
 *   `system.gc-monitor`: Detects garbage collection pauses.
     *   `warn-threshold-ms`: Logs a warning if a GC pause exceeds this duration (e.g., 500ms).
 *   `system.memory-leak-detection`: Monitors Old Gen memory usage.
+    *   `notify`: Whether to send in-game alerts to admins. Set to `false` for console-only logging.
+        *   **Default**: `false`
     *   `warn-slope-threshold`: Warns if memory usage grows faster than this rate (MB/min).
 *   `system.lag-source-analyzer`: Identifies heavy entities/chunks.
     *   `auto-analyze-tps`: Automatically starts analysis if TPS drops below this value.
