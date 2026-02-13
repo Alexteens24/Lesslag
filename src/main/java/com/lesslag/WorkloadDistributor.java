@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
@@ -18,12 +19,32 @@ public class WorkloadDistributor {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicInteger queueSize = new AtomicInteger(0);
     private volatile BukkitTask task;
+    private Logger logger;
 
     private long maxNanosPerTick = 2_000_000; // Default 2ms
     private static final int MAX_QUEUE_SIZE = 5000;
 
     public WorkloadDistributor() {
         // Delay config loading until onEnable
+    }
+
+    public void setLogger(Logger logger) {
+        this.logger = logger;
+    }
+
+    private Logger getLogger() {
+        if (logger == null) {
+            try {
+                if (LessLag.getInstance() != null) {
+                    logger = LessLag.getInstance().getLogger();
+                } else {
+                    logger = Logger.getGlobal();
+                }
+            } catch (Exception e) {
+                logger = Logger.getGlobal();
+            }
+        }
+        return logger;
     }
 
     public void reloadConfig() {
@@ -38,17 +59,19 @@ public class WorkloadDistributor {
      * @return true if added, false if queue is full
      */
     public boolean addWorkload(Runnable workload) {
-        if (queueSize.get() >= MAX_QUEUE_SIZE) {
-            // Overflow — log once and drop
-            if (queueSize.get() == MAX_QUEUE_SIZE) {
-                LessLag.getInstance().getLogger().warning(
+        // Optimistic increment to reserve a slot
+        int currentSize = queueSize.incrementAndGet();
+        if (currentSize > MAX_QUEUE_SIZE) {
+            queueSize.decrementAndGet();
+            // Log only on the transition to full to avoid spam
+            if (currentSize == MAX_QUEUE_SIZE + 1) {
+                getLogger().warning(
                         "[WorkloadDistributor] Queue overflow! Dropping workload (max: " + MAX_QUEUE_SIZE + ")");
             }
             return false;
         }
 
         workloadQueue.add(workload);
-        queueSize.incrementAndGet();
         ensureRunning();
         return true;
     }
@@ -56,15 +79,23 @@ public class WorkloadDistributor {
     private void ensureRunning() {
         if (running.compareAndSet(false, true)) {
             // Schedule on main thread — must dispatch from any thread safely
-            Bukkit.getScheduler().runTask(LessLag.getInstance(), this::startTimer);
+            scheduleStartTimer(this::startTimer);
         }
+    }
+
+    protected void scheduleStartTimer(Runnable run) {
+        Bukkit.getScheduler().runTask(LessLag.getInstance(), run);
+    }
+
+    protected BukkitTask scheduleTimerTask(Runnable run, long delay, long period) {
+        return Bukkit.getScheduler().runTaskTimer(LessLag.getInstance(), run, delay, period);
     }
 
     private void startTimer() {
         if (task != null && !task.isCancelled())
             return;
 
-        task = Bukkit.getScheduler().runTaskTimer(LessLag.getInstance(), () -> {
+        task = scheduleTimerTask(() -> {
             long stopTime = System.nanoTime() + maxNanosPerTick;
 
             while (!workloadQueue.isEmpty() && System.nanoTime() < stopTime) {
@@ -75,11 +106,11 @@ public class WorkloadDistributor {
                         work.run();
                         long duration = System.nanoTime() - start;
                         if (duration > 50_000_000L) { // Warn if single task > 50ms
-                            LessLag.getInstance().getLogger().warning(
+                            getLogger().warning(
                                     "[WorkloadDistributor] Slow task detected: " + (duration / 1_000_000.0) + "ms");
                         }
                     } catch (Exception e) {
-                        LessLag.getInstance().getLogger().warning(
+                        getLogger().warning(
                                 "[WorkloadDistributor] Workload threw exception: " + e.getMessage());
                     }
                     queueSize.decrementAndGet();
