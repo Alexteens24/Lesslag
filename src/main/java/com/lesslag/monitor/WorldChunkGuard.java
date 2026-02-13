@@ -255,27 +255,53 @@ public class WorldChunkGuard {
                 if (world == null)
                     return;
 
+                int batchSize = 20;
+                List<int[]> batch = new ArrayList<>(batchSize);
+
                 for (int[] coord : unloadTargets) {
+                    batch.add(coord);
+                    if (batch.size() >= batchSize) {
+                        final List<int[]> currentBatch = new ArrayList<>(batch);
+                        plugin.getWorkloadDistributor().addWorkload(() -> {
+                            World w = Bukkit.getWorld(worldName);
+                            if (w == null)
+                                return;
+                            for (int[] c : currentBatch) {
+                                Chunk chunk = w.getChunkAt(c[0], c[1]);
+                                if (!chunk.isLoaded())
+                                    continue;
+                                boolean success = chunk.unload(useForce);
+                                if (success)
+                                    unloadedCount.incrementAndGet();
+                                else
+                                    failedCount.incrementAndGet();
+                            }
+                        });
+                        batch.clear();
+                    }
+                }
+
+                if (!batch.isEmpty()) {
+                    final List<int[]> currentBatch = new ArrayList<>(batch);
                     plugin.getWorkloadDistributor().addWorkload(() -> {
                         World w = Bukkit.getWorld(worldName);
                         if (w == null)
                             return;
-
-                        Chunk chunk = w.getChunkAt(coord[0], coord[1]);
-                        if (!chunk.isLoaded())
-                            return;
-
-                        boolean success = chunk.unload(useForce);
-                        if (success) {
-                            unloadedCount.incrementAndGet();
-                        } else {
-                            failedCount.incrementAndGet();
+                        for (int[] c : currentBatch) {
+                            Chunk chunk = w.getChunkAt(c[0], c[1]);
+                            if (!chunk.isLoaded())
+                                continue;
+                            boolean success = chunk.unload(useForce);
+                            if (success)
+                                unloadedCount.incrementAndGet();
+                            else
+                                failedCount.incrementAndGet();
                         }
                     });
                 }
 
-                // Schedule a follow-up check after workload completes
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                // Schedule a follow-up check by adding it to the END of the workload queue
+                plugin.getWorkloadDistributor().addWorkload(() -> {
                     World w = Bukkit.getWorld(worldName);
                     if (w == null)
                         return;
@@ -333,7 +359,7 @@ public class WorldChunkGuard {
                     }
 
                     lastTotalUnloaded = unloaded;
-                }, 40L); // 2 seconds later — give WorkloadDistributor time
+                });
             });
         }
 
@@ -391,20 +417,43 @@ public class WorldChunkGuard {
                     // Default world — force-unload chunks via WorkloadDistributor
                     Chunk[] chunks = world.getLoadedChunks();
                     AtomicInteger forceCount = new AtomicInteger(0);
+
+                    int batchSize = 20;
+                    List<Chunk> batch = new ArrayList<>(batchSize);
+
                     for (Chunk chunk : chunks) {
+                        batch.add(chunk);
+                        if (batch.size() >= batchSize) {
+                            final List<Chunk> currentBatch = new ArrayList<>(batch);
+                            plugin.getWorkloadDistributor().addWorkload(() -> {
+                                for (Chunk c : currentBatch) {
+                                    if (c.isLoaded() && c.unload(true)) {
+                                        forceCount.incrementAndGet();
+                                    }
+                                }
+                            });
+                            batch.clear();
+                        }
+                    }
+
+                    if (!batch.isEmpty()) {
+                        final List<Chunk> currentBatch = new ArrayList<>(batch);
                         plugin.getWorkloadDistributor().addWorkload(() -> {
-                            if (chunk.isLoaded() && chunk.unload(true)) {
-                                forceCount.incrementAndGet();
+                            for (Chunk c : currentBatch) {
+                                if (c.isLoaded() && c.unload(true)) {
+                                    forceCount.incrementAndGet();
+                                }
                             }
                         });
                     }
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+
+                    plugin.getWorkloadDistributor().addWorkload(() -> {
                         plugin.getLogger().info("[WorldChunkGuard] Force-unloaded " + forceCount.get()
                                 + " chunks from " + world.getName() + " (world kept loaded)");
                         notifyAdmins("&e⚠ &7[WorldChunkGuard] &f" + world.getName()
                                 + " &7cannot be fully unloaded (default world)."
                                 + " Force-unloaded &e" + forceCount.get() + " &7chunks.");
-                    }, 60L);
+                    });
                 }
             }
         }, 20L);

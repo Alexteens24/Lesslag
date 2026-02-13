@@ -251,16 +251,45 @@ public class ActionExecutor {
      */
     private void processEntities(java.util.function.Predicate<Entity> filter) {
         WorkloadDistributor distributor = plugin.getWorkloadDistributor();
+        int batchSize = 20;
+
         for (World world : Bukkit.getWorlds()) {
             Chunk[] chunks = world.getLoadedChunks();
+            List<Chunk> batch = new ArrayList<>(batchSize);
+
             for (Chunk chunk : chunks) {
+                batch.add(chunk);
+                if (batch.size() >= batchSize) {
+                    final List<Chunk> currentBatch = new ArrayList<>(batch);
+                    distributor.addWorkload(() -> {
+                        for (Chunk c : currentBatch) {
+                            if (!c.isLoaded())
+                                continue;
+                            for (Entity entity : c.getEntities()) {
+                                if (filter.test(entity)) {
+                                    if (!entity.isValid())
+                                        continue;
+                                    entity.remove();
+                                }
+                            }
+                        }
+                    });
+                    batch.clear();
+                }
+            }
+
+            if (!batch.isEmpty()) {
+                final List<Chunk> currentBatch = new ArrayList<>(batch);
                 distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded())
-                        return;
-                    for (Entity entity : chunk.getEntities()) {
-                        if (filter.test(entity)) {
-                            if (!entity.isValid()) continue;
-                            entity.remove();
+                    for (Chunk c : currentBatch) {
+                        if (!c.isLoaded())
+                            continue;
+                        for (Entity entity : c.getEntities()) {
+                            if (filter.test(entity)) {
+                                if (!entity.isValid())
+                                    continue;
+                                entity.remove();
+                            }
                         }
                     }
                 });
@@ -695,14 +724,33 @@ public class ActionExecutor {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     WorkloadDistributor distributor = plugin.getWorkloadDistributor();
                     int totalScheduled = 0;
+                    int batchSize = 50;
 
                     for (List<Entity> list : toRemove.values()) {
+                        List<Entity> batch = new ArrayList<>(batchSize);
                         for (Entity e : list) {
-                            distributor.addWorkload(() -> {
-                                if (e.isValid())
-                                    e.remove();
-                            });
+                            batch.add(e);
+                            if (batch.size() >= batchSize) {
+                                final List<Entity> currentBatch = new ArrayList<>(batch);
+                                distributor.addWorkload(() -> {
+                                    for (Entity entity : currentBatch) {
+                                        if (entity.isValid())
+                                            entity.remove();
+                                    }
+                                });
+                                batch.clear();
+                            }
                             totalScheduled++;
+                        }
+
+                        if (!batch.isEmpty()) {
+                            final List<Entity> currentBatch = new ArrayList<>(batch);
+                            distributor.addWorkload(() -> {
+                                for (Entity entity : currentBatch) {
+                                    if (entity.isValid())
+                                        entity.remove();
+                                }
+                            });
                         }
                     }
 
