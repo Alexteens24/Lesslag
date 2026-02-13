@@ -126,6 +126,20 @@ public class LessLag extends JavaPlugin implements Listener {
         getLogger().info("  Server Performance Guardian (Async)");
         getLogger().info("  Monitoring TPS, Ticks, GC & more");
         getLogger().info("========================================");
+
+        // Initialize bStats Metrics
+        int pluginId = 29516;
+        org.bstats.bukkit.Metrics metrics = new org.bstats.bukkit.Metrics(this, pluginId);
+
+        // Custom Charts
+        metrics.addCustomChart(new org.bstats.charts.SimplePie("redstone_monitor_enabled",
+                () -> String.valueOf(getConfig().getBoolean("modules.redstone.enabled", true))));
+
+        metrics.addCustomChart(new org.bstats.charts.SimplePie("villager_optimizer_enabled",
+                () -> String.valueOf(getConfig().getBoolean("modules.villager-optimizer.enabled", true))));
+
+        metrics.addCustomChart(new org.bstats.charts.SimplePie("density_optimizer_enabled",
+                () -> String.valueOf(getConfig().getBoolean("modules.density-optimizer.enabled", true))));
     }
 
     private void initializeMonitors() {
