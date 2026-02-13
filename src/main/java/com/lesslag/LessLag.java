@@ -13,6 +13,7 @@ import com.lesslag.monitor.PredictiveOptimizer;
 import com.lesslag.monitor.RedstoneMonitor;
 import com.lesslag.monitor.TPSMonitor;
 import com.lesslag.monitor.TickMonitor;
+import com.lesslag.monitor.VillagerOptimizer;
 import com.lesslag.util.CompatibilityManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -44,6 +45,7 @@ public class LessLag extends JavaPlugin implements Listener {
     private LagSourceAnalyzer lagSourceAnalyzer;
     private ChunkLimiter chunkLimiter;
     private RedstoneMonitor redstoneMonitor;
+    private VillagerOptimizer villagerOptimizer;
     private PredictiveOptimizer predictiveOptimizer;
     private FrustumCuller frustumCuller;
     private WorldChunkGuard worldChunkGuard;
@@ -138,6 +140,7 @@ public class LessLag extends JavaPlugin implements Listener {
         frustumCuller = new FrustumCuller(this);
         worldChunkGuard = new WorldChunkGuard(this, actionExecutor);
         memoryLeakDetector = new MemoryLeakDetector(this);
+        villagerOptimizer = new VillagerOptimizer(this);
 
         // Start monitoring
         tpsMonitor.start();
@@ -148,6 +151,7 @@ public class LessLag extends JavaPlugin implements Listener {
         frustumCuller.start();
         worldChunkGuard.start();
         memoryLeakDetector.start();
+        villagerOptimizer.start();
     }
 
     private void stopMonitors() {
@@ -167,6 +171,8 @@ public class LessLag extends JavaPlugin implements Listener {
             worldChunkGuard.stop();
         if (memoryLeakDetector != null)
             memoryLeakDetector.stop();
+        if (villagerOptimizer != null)
+            villagerOptimizer.stop();
     }
 
     @Override
@@ -237,6 +243,10 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public RedstoneMonitor getRedstoneMonitor() {
         return redstoneMonitor;
+    }
+
+    public VillagerOptimizer getVillagerOptimizer() {
+        return villagerOptimizer;
     }
 
     public PredictiveOptimizer getPredictiveOptimizer() {

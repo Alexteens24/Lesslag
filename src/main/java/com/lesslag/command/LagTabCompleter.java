@@ -17,7 +17,7 @@ public class LagTabCompleter implements TabCompleter {
             "status", "health", "tps", "gc", "gcinfo",
             "tickmonitor", "entities", "thresholds", "sources",
             "chunks", "redstone", "predictive", "frustum",
-            "worldguard", "memory", "clear", "ai", "restore", "reload");
+            "worldguard", "memory", "villager", "clear", "ai", "restore", "reload");
 
     private static final List<String> CLEAR_TYPES = Arrays.asList(
             "items", "xp", "mobs", "hostile", "all");

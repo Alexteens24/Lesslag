@@ -12,6 +12,7 @@ import com.lesslag.monitor.PredictiveOptimizer;
 import com.lesslag.monitor.RedstoneMonitor;
 import com.lesslag.monitor.TPSMonitor;
 import com.lesslag.monitor.TickMonitor;
+import com.lesslag.monitor.VillagerOptimizer;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -117,6 +118,9 @@ public class LagCommand implements CommandExecutor {
             case "memory":
                 showMemory(sender);
                 break;
+            case "villager":
+                showVillagerOptimizer(sender);
+                break;
             case "restore":
                 doRestore(sender);
                 break;
@@ -155,6 +159,7 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg frustum     &8- &7Frustum Culler status");
         send(sender, "  &e/lg worldguard  &8- &7World Chunk Guard status");
         send(sender, "  &e/lg memory      &8- &7Memory Leak Detector status");
+        send(sender, "  &e/lg villager    &8- &7Villager Optimizer status");
         send(sender, "  &e/lg clear       &8- &7Clear entities &8[items|mobs|hostile|all]");
         send(sender, "  &e/lg ai          &8- &7AI control &8[disable|restore|status]");
         send(sender, "  &e/lg restore     &8- &7Restore all defaults");
@@ -1085,5 +1090,34 @@ public class LagCommand implements CommandExecutor {
         if (tps >= 12)
             return "&c";
         return "&4";
+    }
+
+    // ══════════════════════════════════════════════════
+    // Villager Optimizer
+    // ══════════════════════════════════════════════════
+
+    private void showVillagerOptimizer(CommandSender sender) {
+        VillagerOptimizer vo = plugin.getVillagerOptimizer();
+        boolean enabled = plugin.getConfig().getBoolean("modules.villager-optimizer.enabled", true);
+
+        send(sender, "");
+        send(sender, "&c&l  ≡ Villager Optimizer ≡");
+        send(sender, "");
+        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
+        send(sender, "  &7Optimize Trapped Only: "
+                + (plugin.getConfig().getBoolean("modules.villager-optimizer.optimize-trapped", true) ? "&aYes"
+                        : "&cNo"));
+        send(sender, "  &7Check Interval: &f"
+                + plugin.getConfig().getInt("modules.villager-optimizer.check-interval", 600) + " ticks");
+        send(sender, "  &7Restore Duration: &f"
+                + plugin.getConfig().getInt("modules.villager-optimizer.ai-restore-duration", 30) + "s");
+
+        if (vo != null && enabled) {
+            send(sender, "");
+            send(sender, "  &7Optimized (AI Disabled): &e" + vo.getOptimizedCount());
+            send(sender, "  &7Active (Restored): &a" + vo.getActiveRestoredCount());
+            send(sender, "  &8(Villagers in trading halls are lobotomized until interaction)");
+        }
+        send(sender, "");
     }
 }
