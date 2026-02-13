@@ -118,6 +118,7 @@ public class RedstoneMonitor implements Listener {
                 activeSuppressedChunks = suppressedChunks.size();
 
                 // Clean stale notification cooldowns
+                // Fix: Ensure map is cleaned up to prevent memory leak
                 notifyCooldowns.entrySet().removeIf(entry -> now - entry.getValue() > NOTIFY_COOLDOWN_MS);
             }
         }.runTaskTimer(plugin, windowSeconds * 20L, windowSeconds * 20L);

@@ -100,11 +100,8 @@ public class CompatibilityManager {
         plugin.getLogger().info("[Compat] Pufferfish detected! DAB is " + (dabEnabled ? "ENABLED" : "DISABLED"));
 
         if (dabEnabled && autoAdjust) {
-            // DAB handles AI optimization — disable LessLag's AI features
-            if (plugin.getConfig().getBoolean("modules.mob-ai.enabled", true)) {
-                plugin.getConfig().set("modules.mob-ai.enabled", false);
-                autoDisabled.add("Mob AI Module (DAB handles AI optimization)");
-            }
+            // Hybrid Mode: LessLag handles visuals, Pufferfish handles distance
+            plugin.getLogger().info("[Compat] Pufferfish detected. Running in Hybrid Mode (LessLag handles Visuals, Pufferfish handles Distance).");
         }
     }
 
