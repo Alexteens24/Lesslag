@@ -64,8 +64,8 @@ public class RedstoneMonitor implements Listener {
     // Refactored: World UUID -> (ChunkCoordKey -> suppression expiry timestamp)
     private final Map<UUID, Map<Long, Long>> suppressedChunks = new ConcurrentHashMap<>();
 
-    // Advanced: Block location hash → activation timestamps (rolling window)
-    private final Map<Long, RollingFrequency> blockFrequencies = new ConcurrentHashMap<>();
+    // Advanced: World UUID -> (BlockKey -> activation timestamps (rolling window))
+    private final Map<UUID, Map<Long, RollingFrequency>> blockFrequencies = new ConcurrentHashMap<>();
 
     // Long-term: World UUID -> (BlockKey -> LongTermClock)
     private final Map<UUID, Map<Long, LongTermClock>> longTermClocks = new ConcurrentHashMap<>();
@@ -124,7 +124,12 @@ public class RedstoneMonitor implements Listener {
 
                 // Advanced: Prune stale block frequencies
                 long now = System.currentTimeMillis();
-                blockFrequencies.entrySet().removeIf(e -> e.getValue().isStale(now));
+                for (Map.Entry<UUID, Map<Long, RollingFrequency>> entry : blockFrequencies.entrySet()) {
+                    entry.getValue().values().removeIf(freq -> freq.isStale(now));
+                    if (entry.getValue().isEmpty()) {
+                        blockFrequencies.remove(entry.getKey());
+                    }
+                }
 
                 // Long-term: Prune expired clocks
                 for (Map.Entry<UUID, Map<Long, LongTermClock>> entry : longTermClocks.entrySet()) {
@@ -216,7 +221,9 @@ public class RedstoneMonitor implements Listener {
         // 2. Local Block Frequency Check (Advanced Feature)
         if (advancedEnabled) {
             long blockKey = getBlockKey(block);
-            RollingFrequency freq = blockFrequencies.computeIfAbsent(blockKey, k -> new RollingFrequency());
+            Map<Long, RollingFrequency> worldFreqs = blockFrequencies.computeIfAbsent(worldUID,
+                    k -> new ConcurrentHashMap<>());
+            RollingFrequency freq = worldFreqs.computeIfAbsent(blockKey, k -> new RollingFrequency());
             if (freq.incrementAndCheck(System.currentTimeMillis(), maxFrequency)) {
                 // Throttled!
                 event.setNewCurrent(event.getOldCurrent());
@@ -345,9 +352,8 @@ public class RedstoneMonitor implements Listener {
                 int newY = b.getY() + dy;
                 int newZ = b.getZ() + dz;
 
-                long worldHash = worldUID.getMostSignificantBits();
                 long newKey = (((long) newX & 0x7FFFFFF) | (((long) newZ & 0x7FFFFFF) << 27)
-                        | ((long) newY << 54)) ^ worldHash;
+                        | ((long) newY << 54));
 
                 updates.put(newKey, clock);
             }
@@ -403,10 +409,9 @@ public class RedstoneMonitor implements Listener {
     }
 
     private long getBlockKey(Block block) {
-        // Include world hash to prevent cross-world collisions
-        long worldHash = block.getWorld().getUID().getMostSignificantBits();
+        // Just packed coordinates (key is unique within a world map)
         return (((long) block.getX() & 0x7FFFFFF) | (((long) block.getZ() & 0x7FFFFFF) << 27)
-                | ((long) block.getY() << 54)) ^ worldHash;
+                | ((long) block.getY() << 54));
     }
 
     private long getChunkKey(int x, int z) {
