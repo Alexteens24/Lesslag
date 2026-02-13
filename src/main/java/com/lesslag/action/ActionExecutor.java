@@ -22,23 +22,6 @@ public class ActionExecutor {
     private FileConfiguration messagesConfig;
 
     /**
-     * All valid action keys that users can use in threshold configs.
-     */
-    public static final Set<String> AVAILABLE_ACTIONS = Set.of(
-            "clear-ground-items",
-            "clear-xp-orbs",
-            "clear-mobs",
-            "kill-hostile-mobs",
-            "reduce-view-distance",
-            "reduce-simulation-distance",
-            "disable-mob-ai",
-            "force-gc",
-            "chunk-clean",
-            "enforce-entity-limits",
-            "unload-world-chunks",
-            "notify-admin");
-
-    /**
      * Sorted list for consistent display order.
      */
     public static final List<String> ACTIONS_SORTED = List.of(
@@ -54,6 +37,12 @@ public class ActionExecutor {
             "enforce-entity-limits",
             "unload-world-chunks",
             "notify-admin");
+
+    /**
+     * All valid action keys that users can use in threshold configs.
+     * Derived from ACTIONS_SORTED to ensure consistency.
+     */
+    public static final Set<String> AVAILABLE_ACTIONS = new HashSet<>(ACTIONS_SORTED);
 
     public ActionExecutor(LessLag plugin) {
         this.plugin = plugin;
@@ -258,9 +247,9 @@ public class ActionExecutor {
     // ══════════════════════════════════════════════════
 
     /**
-     * Clear all dropped items on the ground
+     * Helper method to process entities with a filter
      */
-    public void clearGroundItems() {
+    private void processEntities(java.util.function.Predicate<Entity> filter) {
         WorkloadDistributor distributor = plugin.getWorkloadDistributor();
         for (World world : Bukkit.getWorlds()) {
             Chunk[] chunks = world.getLoadedChunks();
@@ -269,7 +258,7 @@ public class ActionExecutor {
                     if (!chunk.isLoaded())
                         return;
                     for (Entity entity : chunk.getEntities()) {
-                        if (entity instanceof Item) {
+                        if (filter.test(entity)) {
                             if (!entity.isValid()) continue;
                             entity.remove();
                         }
@@ -277,72 +266,34 @@ public class ActionExecutor {
                 });
             }
         }
+    }
+
+    /**
+     * Clear all dropped items on the ground
+     */
+    public void clearGroundItems() {
+        processEntities(entity -> entity instanceof Item);
     }
 
     /**
      * Clear all XP orbs on the ground
      */
     public void clearXPOrbs() {
-        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
-        for (World world : Bukkit.getWorlds()) {
-            Chunk[] chunks = world.getLoadedChunks();
-            for (Chunk chunk : chunks) {
-                distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded())
-                        return;
-                    for (Entity entity : chunk.getEntities()) {
-                        if (entity instanceof ExperienceOrb) {
-                            if (!entity.isValid()) continue;
-                            entity.remove();
-                        }
-                    }
-                });
-            }
-        }
+        processEntities(entity -> entity instanceof ExperienceOrb);
     }
 
     /**
      * Clear excess non-whitelisted, unnamed, untamed living entities
      */
     public void clearExcessMobs() {
-        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
-        for (World world : Bukkit.getWorlds()) {
-            Chunk[] chunks = world.getLoadedChunks();
-            for (Chunk chunk : chunks) {
-                distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded())
-                        return;
-                    for (Entity entity : chunk.getEntities()) {
-                        if (entity instanceof LivingEntity && shouldRemoveEntity(entity)) {
-                            if (!entity.isValid()) continue;
-                            entity.remove();
-                        }
-                    }
-                });
-            }
-        }
+        processEntities(entity -> entity instanceof LivingEntity && shouldRemoveEntity(entity));
     }
 
     /**
      * Kill all hostile mobs without custom names
      */
     public void killHostileMobs() {
-        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
-        for (World world : Bukkit.getWorlds()) {
-            Chunk[] chunks = world.getLoadedChunks();
-            for (Chunk chunk : chunks) {
-                distributor.addWorkload(() -> {
-                    if (!chunk.isLoaded())
-                        return;
-                    for (Entity entity : chunk.getEntities()) {
-                        if (entity instanceof Monster && !isProtected(entity)) {
-                            if (!entity.isValid()) continue;
-                            entity.remove();
-                        }
-                    }
-                });
-            }
-        }
+        processEntities(entity -> entity instanceof Monster && !isProtected(entity));
     }
 
     /**
@@ -505,7 +456,7 @@ public class ActionExecutor {
                         break;
                     distributor.addWorkload(() -> {
                         if (chunk.isLoaded()) {
-                            chunk.unload(true);
+                            chunk.unload();
                         }
                     });
                     scheduled++;

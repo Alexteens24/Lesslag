@@ -106,43 +106,67 @@ public class FrustumCuller {
         double maxRadiusSq = maxRadius * maxRadius;
         double behindRadiusSq = behindRadius * behindRadius;
 
-        // Brief SYNC snapshot
+        // Start incremental snapshot builder on main thread
         Bukkit.getScheduler().runTask(plugin, () -> {
-            SnapshotResult snapshot = collectSnapshot();
-            if (snapshot.mobs.isEmpty())
-                return;
+            new IncrementalCullSnapshotBuilder(snapshot -> {
+                if (snapshot.mobs.isEmpty())
+                    return;
 
-            // Back to ASYNC for heavy calculations
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                analyzeAndDispatch(snapshot, fovCosine, maxRadiusSq, behindRadiusSq);
-            });
+                // Back to ASYNC for heavy calculations
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    analyzeAndDispatch(snapshot, fovCosine, maxRadiusSq, behindRadiusSq);
+                });
+            }).start();
         });
     }
 
     // ══════════════════════════════════════════════════
-    // Phase 2: SYNC — Quick snapshot
+    // Phase 2: SYNC — Incremental snapshot
     // ══════════════════════════════════════════════════
 
-    private SnapshotResult collectSnapshot() {
-        Map<UUID, List<PlayerView>> worldViewData = new HashMap<>();
-        List<MobSnapshot> mobs = new ArrayList<>();
-        Set<UUID> processedMobs = new HashSet<>(); // Avoid duplicates
+    private class IncrementalCullSnapshotBuilder implements Runnable {
+        private final java.util.function.Consumer<SnapshotResult> callback;
+        private final List<Player> allPlayers;
+        private int playerIndex = 0;
 
-        for (World world : Bukkit.getWorlds()) {
-            List<Player> players = world.getPlayers();
-            if (players.isEmpty())
-                continue;
+        private final Map<UUID, List<PlayerView>> worldViewData = new HashMap<>();
+        private final List<MobSnapshot> mobs = new ArrayList<>();
+        private final Set<UUID> processedMobs = new HashSet<>();
 
-            // Snapshot player views
-            List<PlayerView> views = new ArrayList<>(players.size());
-            for (Player player : players) {
+        private static final long MAX_NANOS_PER_TICK = 500_000; // 0.5ms budget
+
+        IncrementalCullSnapshotBuilder(java.util.function.Consumer<SnapshotResult> callback) {
+            this.callback = callback;
+            this.allPlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
+        }
+
+        public void start() {
+            run();
+        }
+
+        @Override
+        public void run() {
+            long stopTime = System.nanoTime() + MAX_NANOS_PER_TICK;
+
+            while (playerIndex < allPlayers.size()) {
+                if (System.nanoTime() > stopTime) {
+                    Bukkit.getScheduler().runTask(plugin, this);
+                    return;
+                }
+
+                Player player = allPlayers.get(playerIndex++);
+                if (!player.isOnline()) continue;
+
+                World world = player.getWorld();
                 Location eye = player.getEyeLocation();
-                views.add(new PlayerView(
+
+                worldViewData.computeIfAbsent(world.getUID(), k -> new ArrayList<>())
+                        .add(new PlayerView(
                         eye.getX(), eye.getY(), eye.getZ(),
                         eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
                         world.getUID()));
 
-                // Fixed: Optimized to O(m) - iterate primarily through Players
+                // Iterate nearby entities
                 for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
                     if (!(entity instanceof Mob)) continue;
                     Mob mob = (Mob) entity;
@@ -170,10 +194,9 @@ public class FrustumCuller {
                             currentlyAware));
                 }
             }
-            worldViewData.put(world.getUID(), views);
-        }
 
-        return new SnapshotResult(worldViewData, mobs);
+            callback.accept(new SnapshotResult(worldViewData, mobs));
+        }
     }
 
     // ══════════════════════════════════════════════════
