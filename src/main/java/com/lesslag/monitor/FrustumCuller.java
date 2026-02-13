@@ -11,6 +11,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -124,6 +126,7 @@ public class FrustumCuller {
     private SnapshotResult collectSnapshot() {
         Map<UUID, List<PlayerView>> worldViewData = new HashMap<>();
         List<MobSnapshot> mobs = new ArrayList<>();
+        Set<UUID> processedMobs = new HashSet<>(); // Avoid duplicates
 
         for (World world : Bukkit.getWorlds()) {
             List<Player> players = world.getPlayers();
@@ -138,27 +141,36 @@ public class FrustumCuller {
                         eye.getX(), eye.getY(), eye.getZ(),
                         eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
                         world.getUID()));
+
+                // Fixed: Optimized to O(m) - iterate primarily through Players
+                for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
+                    if (!(entity instanceof Mob)) continue;
+                    Mob mob = (Mob) entity;
+
+                    // Optimization: Use distanceSquared() for precise range check
+                    if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                        continue;
+
+                    if (!processedMobs.add(mob.getUniqueId())) continue;
+
+                    if (protectedTypes.contains(mob.getType().name()))
+                        continue;
+                    if (LessLag.hasCustomName(mob))
+                        continue;
+                    if (mob instanceof org.bukkit.entity.Tameable
+                            && ((org.bukkit.entity.Tameable) mob).isTamed())
+                        continue;
+
+                    Location loc = mob.getLocation();
+                    boolean currentlyAware = plugin.isMobAwareSafe(mob);
+
+                    mobs.add(new MobSnapshot(
+                            mob.getUniqueId(), world.getUID(),
+                            loc.getX(), loc.getY(), loc.getZ(),
+                            currentlyAware));
+                }
             }
             worldViewData.put(world.getUID(), views);
-
-            // Snapshot mob data
-            for (Mob mob : world.getEntitiesByClass(Mob.class)) {
-                if (protectedTypes.contains(mob.getType().name()))
-                    continue;
-                if (LessLag.hasCustomName(mob))
-                    continue;
-                if (mob instanceof org.bukkit.entity.Tameable
-                        && ((org.bukkit.entity.Tameable) mob).isTamed())
-                    continue;
-
-                Location loc = mob.getLocation();
-                boolean currentlyAware = plugin.isMobAwareSafe(mob);
-
-                mobs.add(new MobSnapshot(
-                        mob.getUniqueId(), world.getUID(),
-                        loc.getX(), loc.getY(), loc.getZ(),
-                        currentlyAware));
-            }
         }
 
         return new SnapshotResult(worldViewData, mobs);

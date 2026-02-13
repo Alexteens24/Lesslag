@@ -270,6 +270,7 @@ public class ActionExecutor {
                         return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof Item) {
+                            if (!entity.isValid()) continue;
                             entity.remove();
                         }
                     }
@@ -291,6 +292,7 @@ public class ActionExecutor {
                         return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof ExperienceOrb) {
+                            if (!entity.isValid()) continue;
                             entity.remove();
                         }
                     }
@@ -312,6 +314,7 @@ public class ActionExecutor {
                         return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof LivingEntity && shouldRemoveEntity(entity)) {
+                            if (!entity.isValid()) continue;
                             entity.remove();
                         }
                     }
@@ -333,6 +336,7 @@ public class ActionExecutor {
                         return;
                     for (Entity entity : chunk.getEntities()) {
                         if (entity instanceof Monster && !isProtected(entity)) {
+                            if (!entity.isValid()) continue;
                             entity.remove();
                         }
                     }
@@ -516,18 +520,9 @@ public class ActionExecutor {
      * Force Java garbage collection
      */
     public long forceGC() {
-        plugin.getLogger().warning(
-                "Manual GC triggered! This causes a 'Stop-The-World' pause and should not be used automatically.");
-        Runtime runtime = Runtime.getRuntime();
-        long beforeMB = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
-        System.gc();
-        long afterMB = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
-        long freedMB = Math.max(0, beforeMB - afterMB);
-        if (freedMB > 0) {
-            plugin.getLogger()
-                    .info("GC: Freed " + freedMB + "MB (before: " + beforeMB + "MB, after: " + afterMB + "MB)");
-        }
-        return freedMB;
+        // Safety: Removed explicit GC to prevent "Stop-the-world" lag spikes
+        plugin.getLogger().warning("Manual GC is disabled for safety reasons.");
+        return 0;
     }
 
     /**

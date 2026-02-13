@@ -94,6 +94,7 @@ public class ChunkLimiter {
                     final int end = Math.min(i + batchSize, loadedChunks.length);
                     final Chunk[] chunks = loadedChunks;
 
+                    // Thread Safety: Dispatched to main thread via WorkloadDistributor
                     plugin.getWorkloadDistributor().addWorkload(() -> {
                         processChunkBatch(chunks, start, end, whitelist);
                     });
