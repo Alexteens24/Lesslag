@@ -27,6 +27,9 @@ modules:
   # -----------------------------------------------------------
   redstone:
     enabled: true
+    # Adaptive Monitoring: Skip checks if TPS is high (Saves performance)
+    adaptive-monitoring: true
+    min-tps: 19.5
     # Stabilization (Suppressor)
     # How many times a chunk can activate redstone before being suppressed?
     max-activations-per-chunk: 200
@@ -50,6 +53,18 @@ modules:
       piston-limit:
         enabled: true
         max-pushes-per-chunk: 50
+
+      # Long-term Detection (Slow but persistent clocks)
+      long-term:
+        enabled: true
+        # Window duration (seconds) to track activations
+        window-seconds: 120
+        # Max activations allowed in this window
+        max-activations: 100
+        # Actions to take
+        actions:
+          - "notify-admin"
+          - "break-block" # Drops item naturally
 
   # -----------------------------------------------------------
   # Entity Management
