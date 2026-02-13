@@ -74,7 +74,16 @@ public class WorkloadDistributor {
             return false;
         }
 
-        workloadQueue.add(workload);
+        boolean success = false;
+        try {
+            workloadQueue.add(workload);
+            success = true;
+        } finally {
+            if (!success) {
+                queueSize.decrementAndGet();
+            }
+        }
+
         ensureRunning();
         return true;
     }

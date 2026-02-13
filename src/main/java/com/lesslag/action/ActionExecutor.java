@@ -655,7 +655,7 @@ public class ActionExecutor {
                 if (entity instanceof Ambient)
                     categories.add("AMBIENT");
 
-                entitySnapshots.add(new EntitySnapshot(entity, entity.getLocation().toVector(), entity.getType().name(),
+                entitySnapshots.add(new EntitySnapshot(entity.getUniqueId(), entity.getLocation().toVector(), entity.getType().name(),
                         categories));
             }
 
@@ -670,7 +670,7 @@ public class ActionExecutor {
         }
 
         plugin.getAsyncExecutor().execute(() -> {
-            Map<UUID, List<Entity>> toRemove = new HashMap<>();
+            Map<UUID, List<UUID>> toRemove = new HashMap<>();
 
             for (Map.Entry<UUID, WorldSnapshot> entry : snapshots.entrySet()) {
                 UUID worldId = entry.getKey();
@@ -683,7 +683,7 @@ public class ActionExecutor {
                     byType.computeIfAbsent(es.type, k -> new ArrayList<>()).add(es);
                 }
 
-                List<Entity> worldRemovalList = new ArrayList<>();
+                List<UUID> worldRemovalList = new ArrayList<>();
 
                 for (Map.Entry<String, List<EntitySnapshot>> typeEntry : byType.entrySet()) {
                     String type = typeEntry.getKey();
@@ -723,7 +723,7 @@ public class ActionExecutor {
 
                     // Mark for removal
                     for (int i = 0; i < excess; i++) {
-                        worldRemovalList.add(entities.get(i).entity);
+                        worldRemovalList.add(entities.get(i).uuid);
                     }
 
                     if (excess > 0) {
@@ -745,15 +745,16 @@ public class ActionExecutor {
                     int totalScheduled = 0;
                     int batchSize = 50;
 
-                    for (List<Entity> list : toRemove.values()) {
-                        List<Entity> batch = new ArrayList<>(batchSize);
-                        for (Entity e : list) {
-                            batch.add(e);
+                    for (List<UUID> list : toRemove.values()) {
+                        List<UUID> batch = new ArrayList<>(batchSize);
+                        for (UUID uuid : list) {
+                            batch.add(uuid);
                             if (batch.size() >= batchSize) {
-                                final List<Entity> currentBatch = new ArrayList<>(batch);
+                                final List<UUID> currentBatch = new ArrayList<>(batch);
                                 distributor.addWorkload(() -> {
-                                    for (Entity entity : currentBatch) {
-                                        if (entity.isValid())
+                                    for (UUID id : currentBatch) {
+                                        Entity entity = Bukkit.getEntity(id);
+                                        if (entity != null && entity.isValid())
                                             entity.remove();
                                     }
                                 });
@@ -763,10 +764,11 @@ public class ActionExecutor {
                         }
 
                         if (!batch.isEmpty()) {
-                            final List<Entity> currentBatch = new ArrayList<>(batch);
+                            final List<UUID> currentBatch = new ArrayList<>(batch);
                             distributor.addWorkload(() -> {
-                                for (Entity entity : currentBatch) {
-                                    if (entity.isValid())
+                                for (UUID id : currentBatch) {
+                                    Entity entity = Bukkit.getEntity(id);
+                                    if (entity != null && entity.isValid())
                                         entity.remove();
                                 }
                             });
@@ -804,14 +806,14 @@ public class ActionExecutor {
     }
 
     private static class EntitySnapshot {
-        final Entity entity;
+        final UUID uuid;
         final org.bukkit.util.Vector loc;
         final String type;
         final List<String> categories;
         double distanceSq = 0;
 
-        EntitySnapshot(Entity e, org.bukkit.util.Vector l, String t, List<String> c) {
-            this.entity = e;
+        EntitySnapshot(UUID uuid, org.bukkit.util.Vector l, String t, List<String> c) {
+            this.uuid = uuid;
             this.loc = l;
             this.type = t;
             this.categories = c;

@@ -286,25 +286,69 @@ public class FrustumCuller {
         // Dispatch AI changes to main thread via WorkloadDistributor (batched)
         if (!toCull.isEmpty() || !toRestore.isEmpty()) {
             Bukkit.getScheduler().runTask(plugin, () -> {
+                int batchSize = 50;
+
                 // Batch cull
+                List<UUID> cullBatch = new ArrayList<>(batchSize);
                 for (UUID uuid : toCull) {
+                    cullBatch.add(uuid);
+                    if (cullBatch.size() >= batchSize) {
+                        final List<UUID> currentBatch = new ArrayList<>(cullBatch);
+                        plugin.getWorkloadDistributor().addWorkload(() -> {
+                            for (UUID id : currentBatch) {
+                                Entity entity = Bukkit.getEntity(id);
+                                if (entity instanceof Mob && entity.isValid()) {
+                                    if (plugin.setMobAwareSafe((Mob) entity, false)) {
+                                        lastCulled.incrementAndGet();
+                                    }
+                                }
+                            }
+                        });
+                        cullBatch.clear();
+                    }
+                }
+                if (!cullBatch.isEmpty()) {
+                    final List<UUID> currentBatch = new ArrayList<>(cullBatch);
                     plugin.getWorkloadDistributor().addWorkload(() -> {
-                        Entity entity = Bukkit.getEntity(uuid);
-                        if (entity instanceof Mob && entity.isValid()) {
-                            if (plugin.setMobAwareSafe((Mob) entity, false)) {
-                                lastCulled.incrementAndGet();
+                        for (UUID id : currentBatch) {
+                            Entity entity = Bukkit.getEntity(id);
+                            if (entity instanceof Mob && entity.isValid()) {
+                                if (plugin.setMobAwareSafe((Mob) entity, false)) {
+                                    lastCulled.incrementAndGet();
+                                }
                             }
                         }
                     });
                 }
 
                 // Batch restore
+                List<UUID> restoreBatch = new ArrayList<>(batchSize);
                 for (UUID uuid : toRestore) {
+                    restoreBatch.add(uuid);
+                    if (restoreBatch.size() >= batchSize) {
+                        final List<UUID> currentBatch = new ArrayList<>(restoreBatch);
+                        plugin.getWorkloadDistributor().addWorkload(() -> {
+                            for (UUID id : currentBatch) {
+                                Entity entity = Bukkit.getEntity(id);
+                                if (entity instanceof Mob && entity.isValid()) {
+                                    if (plugin.setMobAwareSafe((Mob) entity, true)) {
+                                        lastRestored.incrementAndGet();
+                                    }
+                                }
+                            }
+                        });
+                        restoreBatch.clear();
+                    }
+                }
+                if (!restoreBatch.isEmpty()) {
+                    final List<UUID> currentBatch = new ArrayList<>(restoreBatch);
                     plugin.getWorkloadDistributor().addWorkload(() -> {
-                        Entity entity = Bukkit.getEntity(uuid);
-                        if (entity instanceof Mob && entity.isValid()) {
-                            if (plugin.setMobAwareSafe((Mob) entity, true)) {
-                                lastRestored.incrementAndGet();
+                        for (UUID id : currentBatch) {
+                            Entity entity = Bukkit.getEntity(id);
+                            if (entity instanceof Mob && entity.isValid()) {
+                                if (plugin.setMobAwareSafe((Mob) entity, true)) {
+                                    lastRestored.incrementAndGet();
+                                }
                             }
                         }
                     });
