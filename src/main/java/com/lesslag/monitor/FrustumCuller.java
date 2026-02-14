@@ -224,6 +224,7 @@ public class FrustumCuller {
                 continue;
 
             boolean visibleToAny = false;
+            boolean tooClose = false;
             boolean withinRange = false;
 
             for (PlayerView pv : views) {
@@ -234,6 +235,12 @@ public class FrustumCuller {
                 double dy = mob.y - pv.y;
                 double dz = mob.z - pv.z;
                 double distSq = dx * dx + dy * dy + dz * dz;
+
+                if (distSq < behindRadiusSq) {
+                    tooClose = true;
+                    // If too close, AI should be active regardless of visibility
+                    break;
+                }
 
                 if (distSq > maxRadiusSq)
                     continue;
@@ -258,58 +265,29 @@ public class FrustumCuller {
                 }
             }
 
-            if (withinRange && !visibleToAny) {
-                // Check behind-safe-radius
-                boolean tooClose = false;
-                for (PlayerView pv : views) {
-                    if (!pv.worldUID.equals(mob.worldUID))
-                        continue;
-                    double dx = mob.x - pv.x;
-                    double dy = mob.y - pv.y;
-                    double dz = mob.z - pv.z;
-                    if (dx * dx + dy * dy + dz * dz < behindRadiusSq) {
-                        tooClose = true;
-                        break;
-                    }
-                }
+            boolean shouldEnable = visibleToAny || tooClose;
 
-                if (!tooClose && mob.currentlyAware) {
-                    toCull.add(mob.uuid);
-                }
-            } else if (visibleToAny && !mob.currentlyAware) {
+            if (shouldEnable && !mob.currentlyAware) {
                 toRestore.add(mob.uuid);
+            } else if (!shouldEnable && mob.currentlyAware && withinRange) {
+                toCull.add(mob.uuid);
             }
 
             lastProcessed.incrementAndGet();
         }
 
-        // Dispatch AI changes to main thread via WorkloadDistributor (batched)
-        if (!toCull.isEmpty() || !toRestore.isEmpty()) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                int batchSize = 50;
+        // Dispatch AI changes to main thread via WorkloadDistributor (direct async submission)
+        int batchSize = 50;
+        int droppedBatches = 0;
 
-                // Batch cull
-                List<UUID> cullBatch = new ArrayList<>(batchSize);
-                for (UUID uuid : toCull) {
-                    cullBatch.add(uuid);
-                    if (cullBatch.size() >= batchSize) {
-                        final List<UUID> currentBatch = new ArrayList<>(cullBatch);
-                        plugin.getWorkloadDistributor().addWorkload(() -> {
-                            for (UUID id : currentBatch) {
-                                Entity entity = Bukkit.getEntity(id);
-                                if (entity instanceof Mob && entity.isValid()) {
-                                    if (plugin.setMobAwareSafe((Mob) entity, false)) {
-                                        lastCulled.incrementAndGet();
-                                    }
-                                }
-                            }
-                        });
-                        cullBatch.clear();
-                    }
-                }
-                if (!cullBatch.isEmpty()) {
+        // Batch cull
+        if (!toCull.isEmpty()) {
+            List<UUID> cullBatch = new ArrayList<>(batchSize);
+            for (UUID uuid : toCull) {
+                cullBatch.add(uuid);
+                if (cullBatch.size() >= batchSize) {
                     final List<UUID> currentBatch = new ArrayList<>(cullBatch);
-                    plugin.getWorkloadDistributor().addWorkload(() -> {
+                    if (!plugin.getWorkloadDistributor().addWorkload(() -> {
                         for (UUID id : currentBatch) {
                             Entity entity = Bukkit.getEntity(id);
                             if (entity instanceof Mob && entity.isValid()) {
@@ -318,31 +296,37 @@ public class FrustumCuller {
                                 }
                             }
                         }
-                    });
-                }
-
-                // Batch restore
-                List<UUID> restoreBatch = new ArrayList<>(batchSize);
-                for (UUID uuid : toRestore) {
-                    restoreBatch.add(uuid);
-                    if (restoreBatch.size() >= batchSize) {
-                        final List<UUID> currentBatch = new ArrayList<>(restoreBatch);
-                        plugin.getWorkloadDistributor().addWorkload(() -> {
-                            for (UUID id : currentBatch) {
-                                Entity entity = Bukkit.getEntity(id);
-                                if (entity instanceof Mob && entity.isValid()) {
-                                    if (plugin.setMobAwareSafe((Mob) entity, true)) {
-                                        lastRestored.incrementAndGet();
-                                    }
-                                }
-                            }
-                        });
-                        restoreBatch.clear();
+                    })) {
+                        droppedBatches++;
                     }
+                    cullBatch.clear();
                 }
-                if (!restoreBatch.isEmpty()) {
+            }
+            if (!cullBatch.isEmpty()) {
+                final List<UUID> currentBatch = new ArrayList<>(cullBatch);
+                if (!plugin.getWorkloadDistributor().addWorkload(() -> {
+                    for (UUID id : currentBatch) {
+                        Entity entity = Bukkit.getEntity(id);
+                        if (entity instanceof Mob && entity.isValid()) {
+                            if (plugin.setMobAwareSafe((Mob) entity, false)) {
+                                lastCulled.incrementAndGet();
+                            }
+                        }
+                    }
+                })) {
+                    droppedBatches++;
+                }
+            }
+        }
+
+        // Batch restore
+        if (!toRestore.isEmpty()) {
+            List<UUID> restoreBatch = new ArrayList<>(batchSize);
+            for (UUID uuid : toRestore) {
+                restoreBatch.add(uuid);
+                if (restoreBatch.size() >= batchSize) {
                     final List<UUID> currentBatch = new ArrayList<>(restoreBatch);
-                    plugin.getWorkloadDistributor().addWorkload(() -> {
+                    if (!plugin.getWorkloadDistributor().addWorkload(() -> {
                         for (UUID id : currentBatch) {
                             Entity entity = Bukkit.getEntity(id);
                             if (entity instanceof Mob && entity.isValid()) {
@@ -351,9 +335,31 @@ public class FrustumCuller {
                                 }
                             }
                         }
-                    });
+                    })) {
+                        droppedBatches++;
+                    }
+                    restoreBatch.clear();
                 }
-            });
+            }
+            if (!restoreBatch.isEmpty()) {
+                final List<UUID> currentBatch = new ArrayList<>(restoreBatch);
+                if (!plugin.getWorkloadDistributor().addWorkload(() -> {
+                    for (UUID id : currentBatch) {
+                        Entity entity = Bukkit.getEntity(id);
+                        if (entity instanceof Mob && entity.isValid()) {
+                            if (plugin.setMobAwareSafe((Mob) entity, true)) {
+                                lastRestored.incrementAndGet();
+                            }
+                        }
+                    }
+                })) {
+                    droppedBatches++;
+                }
+            }
+        }
+
+        if (droppedBatches > 0) {
+            plugin.getLogger().warning("[FrustumCuller] WorkloadDistributor queue full! Dropped " + droppedBatches + " batches of AI updates.");
         }
     }
 

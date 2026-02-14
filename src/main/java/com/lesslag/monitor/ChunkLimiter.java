@@ -31,10 +31,15 @@ public class ChunkLimiter {
     private int scanInterval;
     private Set<String> cachedWhitelist = Collections.emptySet();
 
-    // Stats (atomic for cross-thread safety)
-    private final AtomicInteger lastHotChunks = new AtomicInteger(0);
-    private final AtomicInteger lastEntitiesRemoved = new AtomicInteger(0);
+    // Stats (cached from last scan)
+    private volatile int lastHotChunks = 0;
+    private volatile int lastEntitiesRemoved = 0;
     private volatile long lastScanTime = 0;
+
+    private static class ScanContext {
+        final AtomicInteger hotChunks = new AtomicInteger(0);
+        final AtomicInteger removedEntities = new AtomicInteger(0);
+    }
 
     public ChunkLimiter(LessLag plugin) {
         this.plugin = plugin;
@@ -78,8 +83,7 @@ public class ChunkLimiter {
 
     private void beginAsyncScan() {
         Set<String> whitelist = cachedWhitelist;
-        lastHotChunks.set(0);
-        lastEntitiesRemoved.set(0);
+        ScanContext context = new ScanContext();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             for (World world : Bukkit.getWorlds()) {
@@ -96,7 +100,7 @@ public class ChunkLimiter {
 
                     // Thread Safety: Dispatched to main thread via WorkloadDistributor
                     plugin.getWorkloadDistributor().addWorkload(() -> {
-                        processChunkBatch(chunks, start, end, whitelist);
+                        processChunkBatch(chunks, start, end, whitelist, context);
                     });
                 }
             }
@@ -104,16 +108,22 @@ public class ChunkLimiter {
             // Final reporting task
             plugin.getWorkloadDistributor().addWorkload(() -> {
                 lastScanTime = System.currentTimeMillis();
-                int removed = lastEntitiesRemoved.get();
+                int removed = context.removedEntities.get();
+                int hot = context.hotChunks.get();
+
+                // Update cached stats for getters
+                lastEntitiesRemoved = removed;
+                lastHotChunks = hot;
+
                 if (removed > 0) {
                     plugin.getLogger().info("[ChunkLimiter] Cleaned " + removed
-                            + " entities from " + lastHotChunks.get() + " overloaded chunk(s)");
+                            + " entities from " + hot + " overloaded chunk(s)");
                 }
             });
         });
     }
 
-    private void processChunkBatch(Chunk[] chunks, int start, int end, Set<String> whitelist) {
+    private void processChunkBatch(Chunk[] chunks, int start, int end, Set<String> whitelist, ScanContext context) {
         for (int i = start; i < end; i++) {
             Chunk chunk = chunks[i];
             if (!chunk.isLoaded())
@@ -124,12 +134,12 @@ public class ChunkLimiter {
                 continue;
 
             // Hot chunk logic
-            processHotChunk(chunk, entities, whitelist);
+            processHotChunk(chunk, entities, whitelist, context);
         }
     }
 
-    private void processHotChunk(Chunk chunk, Entity[] entities, Set<String> whitelist) {
-        lastHotChunks.incrementAndGet();
+    private void processHotChunk(Chunk chunk, Entity[] entities, Set<String> whitelist, ScanContext context) {
+        context.hotChunks.incrementAndGet();
         int excess = entities.length - maxPerChunk;
 
         List<Entity> removable = new ArrayList<>();
@@ -150,7 +160,7 @@ public class ChunkLimiter {
         int toRemoveCount = Math.min(excess, removable.size());
         for (int i = 0; i < toRemoveCount; i++) {
             removable.get(i).remove();
-            lastEntitiesRemoved.incrementAndGet();
+            context.removedEntities.incrementAndGet();
         }
 
         if (toRemoveCount > 0) {
@@ -208,11 +218,11 @@ public class ChunkLimiter {
     // ══════════════════════════════════════════════════
 
     public int getLastHotChunks() {
-        return lastHotChunks.get();
+        return lastHotChunks;
     }
 
     public int getLastEntitiesRemoved() {
-        return lastEntitiesRemoved.get();
+        return lastEntitiesRemoved;
     }
 
     public long getLastScanTime() {
