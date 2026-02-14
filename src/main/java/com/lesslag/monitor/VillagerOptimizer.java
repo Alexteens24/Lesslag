@@ -1,6 +1,7 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
+import com.lesslag.WorkloadDistributor;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -127,7 +128,8 @@ public class VillagerOptimizer implements Listener {
 
                         // Check throttling: If already optimized, skip check if checked recently
                         long now = System.nanoTime();
-                        if (villager.hasMetadata("LessLag.VillagerOptimized") && villager.hasMetadata("LessLag.LastTrappedCheck")) {
+                        if (villager.hasMetadata("LessLag.VillagerOptimized")
+                                && villager.hasMetadata("LessLag.LastTrappedCheck")) {
                             long lastCheck = villager.getMetadata("LessLag.LastTrappedCheck").get(0).asLong();
                             if (now - lastCheck < 120_000_000_000L) { // 2 minutes
                                 continue;
@@ -163,28 +165,15 @@ public class VillagerOptimizer implements Listener {
      * Simple check: 1x1 hole.
      */
     private boolean isTrapped(Villager v) {
+        // Vehicle Check (e.g. Minecart, Boat) - Often used in farms
+        if (v.getVehicle() != null) {
+            return true;
+        }
+
         Location loc = v.getLocation();
         Block feet = loc.getBlock();
 
-        // Check if movement is restricted
-        // A simple heuristic: check if there are 3+ solid blocks around at feet level?
-        // Or if they are in a 1x1 hole (surrounded by 4 or corners).
-
-        // Strict 1x1 check: North, South, East, West must be solid/blocking.
-        // This might be too strict for some designs (e.g. slab/fence).
-        // VillagerLobotimizer often relies on pathfinding result, but that's heavy.
-
-        // Let's use a "movement restricted" check.
-        // If they haven't moved in X seconds? No, that requires tracking.
-
-        // Let's check for "Claustrophobic":
-        // 1. Standing on something solid?
-        // 2. Head or feet surrounded by collision?
-
-        // Optimized approach: Check if they are inside a block collision box that
-        // prevents movement.
-        // For trading halls, they are usually in 1x1.
-
+        // Check 1x1 confinement
         int confiningBlocks = 0;
         Block[] surroundings = {
                 feet.getRelative(BlockFace.NORTH),
@@ -195,8 +184,19 @@ public class VillagerOptimizer implements Listener {
 
         for (Block b : surroundings) {
             String name = b.getType().name();
-            if (b.getType().isSolid() || name.contains("GLASS") || name.contains("FENCE")
-                    || name.contains("WALL") || name.contains("TRAPDOOR") || name.contains("CARPET")) {
+            // Check for solid OR obstructing blocks (like glass, fences, trapdoors)
+            // Trapdoors are strictly blocking if closed, but hard to check state simply
+            // without casting.
+            // However, in farms, they are almost always used to block pathing.
+            // We assume if it's a "barrier-like" block, it contributes to trapping.
+            if (b.getType().isSolid() ||
+                    name.contains("GLASS") ||
+                    name.contains("FENCE") ||
+                    name.contains("WALL") ||
+                    name.contains("TRAPDOOR") ||
+                    name.contains("IRON_BARS") ||
+                    name.contains("DOOR") ||
+                    name.contains("GATE")) {
                 confiningBlocks++;
             }
         }

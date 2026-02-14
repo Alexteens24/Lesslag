@@ -435,7 +435,7 @@ public class ActionExecutor {
         distributor.addWorkload(() -> {
             plugin.getLogger()
                     .info("[Action] Mob AI restoration batches completed. Restored " + restoredCount.get() + " mobs.");
-        });
+        }, WorkloadDistributor.WorkloadPriority.HIGH);
     }
 
     /**

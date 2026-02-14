@@ -15,13 +15,14 @@ import org.bukkit.scheduler.BukkitTask;
  */
 public class WorkloadDistributor {
 
-    private final Deque<Runnable> workloadQueue = new ArrayDeque<>();
+    private final Deque<Runnable> highPriorityQueue = new ArrayDeque<>();
+    private final Deque<Runnable> usageQueue = new ArrayDeque<>(); // Low priority, ring buffer
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile BukkitTask task;
     private Logger logger;
 
     private long maxNanosPerTick = 2_000_000; // Default 2ms
-    private static final int MAX_QUEUE_SIZE = 2000;
+    private static final int MAX_USAGE_QUEUE_SIZE = 2000;
 
     public WorkloadDistributor() {
         // Delay config loading until onEnable
@@ -53,22 +54,35 @@ public class WorkloadDistributor {
         }
     }
 
+    public enum WorkloadPriority {
+        HIGH, // Critical (User commands, restores) - Never dropped
+        LOW // Background (Scanners, particles) - Ring buffer (drops oldest)
+    }
+
     /**
-     * Add a workload to process on the main thread, spread across ticks.
-     * Thread-safe — can be called from any thread.
-     * Uses a Ring Buffer strategy: if full, drops the oldest task.
-     *
-     * @return always true (as we overwrite oldest)
+     * Add a workload with LOW priority (default).
      */
     public boolean addWorkload(Runnable workload) {
+        return addWorkload(workload, WorkloadPriority.LOW);
+    }
+
+    /**
+     * Add a workload with specified priority.
+     * Thread-safe.
+     */
+    public boolean addWorkload(Runnable workload, WorkloadPriority priority) {
         if (workload == null)
             return false;
 
-        synchronized (workloadQueue) {
-            if (workloadQueue.size() >= MAX_QUEUE_SIZE) {
-                workloadQueue.pollFirst(); // Drop oldest to make space
+        synchronized (this) {
+            if (priority == WorkloadPriority.HIGH) {
+                highPriorityQueue.addLast(workload);
+            } else {
+                if (usageQueue.size() >= MAX_USAGE_QUEUE_SIZE) {
+                    usageQueue.pollFirst(); // Drop oldest to make space
+                }
+                usageQueue.addLast(workload);
             }
-            workloadQueue.addLast(workload); // Add newest
         }
 
         ensureRunning();
@@ -110,12 +124,17 @@ public class WorkloadDistributor {
             long stopTime = System.nanoTime() + budget;
 
             while (System.nanoTime() < stopTime) {
-                Runnable work;
-                synchronized (workloadQueue) {
-                    work = workloadQueue.pollFirst();
+                Runnable work = null;
+                synchronized (this) {
+                    // Drain High Priority first
+                    work = highPriorityQueue.pollFirst();
+                    if (work == null) {
+                        work = usageQueue.pollFirst();
+                    }
                 }
 
-                if (work == null) break;
+                if (work == null)
+                    break;
 
                 try {
                     long start = System.nanoTime();
@@ -132,8 +151,8 @@ public class WorkloadDistributor {
             }
 
             boolean isEmpty;
-            synchronized (workloadQueue) {
-                isEmpty = workloadQueue.isEmpty();
+            synchronized (this) {
+                isEmpty = highPriorityQueue.isEmpty() && usageQueue.isEmpty();
             }
 
             if (isEmpty) {
@@ -145,8 +164,8 @@ public class WorkloadDistributor {
 
                 // Double-check: items may have been added between isEmpty() and running.set()
                 boolean recheckNotEmpty;
-                synchronized (workloadQueue) {
-                    recheckNotEmpty = !workloadQueue.isEmpty();
+                synchronized (this) {
+                    recheckNotEmpty = !highPriorityQueue.isEmpty() || !usageQueue.isEmpty();
                 }
 
                 if (recheckNotEmpty) {
@@ -160,8 +179,8 @@ public class WorkloadDistributor {
      * Get current queue size for monitoring.
      */
     public int getQueueSize() {
-        synchronized (workloadQueue) {
-            return workloadQueue.size();
+        synchronized (this) {
+            return highPriorityQueue.size() + usageQueue.size();
         }
     }
 
@@ -181,8 +200,9 @@ public class WorkloadDistributor {
             task = null;
         }
         running.set(false);
-        synchronized (workloadQueue) {
-            workloadQueue.clear();
+        synchronized (this) {
+            highPriorityQueue.clear();
+            usageQueue.clear();
         }
     }
 }

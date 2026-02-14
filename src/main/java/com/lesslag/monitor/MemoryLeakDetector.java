@@ -140,7 +140,15 @@ public class MemoryLeakDetector {
         // ── 4. Check for leak (need enough samples) ──
         List<PostGCSample> samples;
         synchronized (baselineHistory) {
-            samples = new ArrayList<>(baselineHistory);
+            // Filter samples to only include those within the last 60 minutes
+            // This prevents "natural growth" over 24h from looking like a leak.
+            long oneHourAgo = now - (60 * 60 * 1000L);
+            samples = new ArrayList<>();
+            for (PostGCSample s : baselineHistory) {
+                if (s.timestamp >= oneHourAgo) {
+                    samples.add(s);
+                }
+            }
         }
 
         if (samples.size() < minSamples)
