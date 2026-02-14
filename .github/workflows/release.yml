@@ -90,5 +90,6 @@ jobs:
           files: target/LessLag-*.jar
           prerelease: ${{ env.IS_PRERELEASE }}
           generate_release_notes: ${{ env.GENERATE_NOTES }}
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
