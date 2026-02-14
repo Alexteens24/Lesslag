@@ -70,9 +70,37 @@ public class DensityOptimizer {
             return;
 
         // Use WorkloadDistributor to avoid lag spikes
+        // Optimization: Batch chunks to reduce object churn in WorkloadDistributor
+        // queue
+        int batchSize = 20;
+
         for (World world : Bukkit.getWorlds()) {
-            for (Chunk chunk : world.getLoadedChunks()) {
-                plugin.getWorkloadDistributor().addWorkload(() -> processChunk(chunk));
+            Chunk[] loaded = world.getLoadedChunks();
+            List<Chunk> batch = new ArrayList<>(batchSize);
+
+            for (Chunk chunk : loaded) {
+                batch.add(chunk);
+
+                if (batch.size() >= batchSize) {
+                    // Create stable copy for lambda capture
+                    final List<Chunk> currentBatch = new ArrayList<>(batch);
+                    plugin.getWorkloadDistributor().addWorkload(() -> {
+                        for (Chunk c : currentBatch) {
+                            processChunk(c);
+                        }
+                    });
+                    batch.clear();
+                }
+            }
+
+            // Process remaining
+            if (!batch.isEmpty()) {
+                final List<Chunk> currentBatch = new ArrayList<>(batch);
+                plugin.getWorkloadDistributor().addWorkload(() -> {
+                    for (Chunk c : currentBatch) {
+                        processChunk(c);
+                    }
+                });
             }
         }
     }

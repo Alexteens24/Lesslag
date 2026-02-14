@@ -55,6 +55,9 @@ public class BreedingLimiter implements Listener {
         for (Entity e : chunk.getEntities()) {
             if (e.getType() == type) {
                 count++;
+                if (count >= maxAnimalsPerChunk) {
+                    break;
+                }
             }
         }
 

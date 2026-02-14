@@ -2,6 +2,7 @@ package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -97,39 +98,44 @@ public class VillagerOptimizer implements Listener {
 
     private void runOptimizationScan() {
         // Collect candidates (Sync because we need Bukkit API involved in isTrapped
-        // check
-        // heavily)
-        // Optimization: checking blocks around entity must be sync.
-        // To avoid lag, we can slice this using WorkloadDistributor if needed,
-        // but for now we'll do a simple per-world loop with a limit or just direct.
+        // check heavily)
+        // Optimization: Iterate loaded chunks to avoid massive entity list copy.
+        // Batch workloads per chunk to reduce WorkloadDistributor queue pressure.
 
-        // Actually, let's use the distributor to avoid spikes.
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity.getType() != EntityType.VILLAGER)
-                    continue;
+            for (Chunk chunk : world.getLoadedChunks()) {
+                // Quick check if chunk has villagers before scheduling?
+                // getEntities() on chunk is array copy too, but much smaller.
+                // We'll schedule the chunk processing as a single unit.
 
-                Villager villager = (Villager) entity;
-
-                // Skip if currently active (recently traded)
-                if (activeVillagers.containsKey(villager.getUniqueId()))
-                    continue;
-
-                // Use distributor to spread the "AI disabling" checks
                 plugin.getWorkloadDistributor().addWorkload(() -> {
-                    if (!villager.isValid())
+                    if (!chunk.isLoaded())
                         return;
 
-                    boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(villager);
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity.getType() != EntityType.VILLAGER)
+                            continue;
 
-                    if (shouldOptimize && plugin.isMobAwareSafe(villager)) {
-                        plugin.setMobAwareSafe(villager, false);
-                        villager.setMetadata("LessLag.VillagerOptimized",
-                                new org.bukkit.metadata.FixedMetadataValue(plugin, true));
-                    } else if (!shouldOptimize && !plugin.isMobAwareSafe(villager)) {
-                        // If no longer trapped (e.g. player broke the cell), re-enable
-                        plugin.setMobAwareSafe(villager, true);
-                        villager.removeMetadata("LessLag.VillagerOptimized", plugin);
+                        Villager villager = (Villager) entity;
+
+                        // Skip if currently active (recently traded)
+                        if (activeVillagers.containsKey(villager.getUniqueId()))
+                            continue;
+
+                        if (!villager.isValid())
+                            continue;
+
+                        boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(villager);
+
+                        if (shouldOptimize && plugin.isMobAwareSafe(villager)) {
+                            plugin.setMobAwareSafe(villager, false);
+                            villager.setMetadata("LessLag.VillagerOptimized",
+                                    new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                        } else if (!shouldOptimize && !plugin.isMobAwareSafe(villager)) {
+                            // If no longer trapped (e.g. player broke the cell), re-enable
+                            plugin.setMobAwareSafe(villager, true);
+                            villager.removeMetadata("LessLag.VillagerOptimized", plugin);
+                        }
                     }
                 });
             }
