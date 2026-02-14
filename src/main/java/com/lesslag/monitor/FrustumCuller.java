@@ -48,23 +48,6 @@ public class FrustumCuller {
 
     private void loadConfig() {
         maxRadius = plugin.getConfig().getDouble("modules.mob-ai.active-radius", 48);
-        // Assuming user might want advanced frustum culling config, but for now mapping
-        // to existing keys or general 'mob-ai'
-        // Since I moved 'frustum-culling' logic into 'mob-ai', I should use those keys.
-        // However, the config I wrote has `active-radius` and `update-interval` in
-        // `mob-ai`.
-        // I did not explicitly add `fov-degrees` or `behind-safe-radius` to the new
-        // `config.yml`.
-        // I should stick to defaults or allow them to be hidden settings, OR ideally
-        // add them to the config.
-        // For now, I will use "modules.mob-ai.frustum-culling" namespace for detailed
-        // settings if I didn't verify them in config.
-        // Let's re-read config.yml I just wrote.
-        // It has `modules.mob-ai` with `active-radius`, `update-interval` and
-        // `protected`.
-        // It does NOT have `fov-degrees` or `behind-safe-radius`. I should use default
-        // or look for them in `modules.mob-ai`.
-
         fovDegrees = plugin.getConfig().getDouble("modules.mob-ai.fov-degrees", 110);
         behindRadius = plugin.getConfig().getDouble("modules.mob-ai.behind-safe-radius", 12);
         intervalTicks = plugin.getConfig().getInt("modules.mob-ai.update-interval", 20);
@@ -277,90 +260,49 @@ public class FrustumCuller {
         }
 
         // Dispatch AI changes to main thread via WorkloadDistributor (direct async submission)
-        int batchSize = 50;
         int droppedBatches = 0;
-
-        // Batch cull
-        if (!toCull.isEmpty()) {
-            List<UUID> cullBatch = new ArrayList<>(batchSize);
-            for (UUID uuid : toCull) {
-                cullBatch.add(uuid);
-                if (cullBatch.size() >= batchSize) {
-                    final List<UUID> currentBatch = new ArrayList<>(cullBatch);
-                    if (!plugin.getWorkloadDistributor().addWorkload(() -> {
-                        for (UUID id : currentBatch) {
-                            Entity entity = Bukkit.getEntity(id);
-                            if (entity instanceof Mob && entity.isValid()) {
-                                if (plugin.setMobAwareSafe((Mob) entity, false)) {
-                                    lastCulled.incrementAndGet();
-                                }
-                            }
-                        }
-                    })) {
-                        droppedBatches++;
-                    }
-                    cullBatch.clear();
-                }
-            }
-            if (!cullBatch.isEmpty()) {
-                final List<UUID> currentBatch = new ArrayList<>(cullBatch);
-                if (!plugin.getWorkloadDistributor().addWorkload(() -> {
-                    for (UUID id : currentBatch) {
-                        Entity entity = Bukkit.getEntity(id);
-                        if (entity instanceof Mob && entity.isValid()) {
-                            if (plugin.setMobAwareSafe((Mob) entity, false)) {
-                                lastCulled.incrementAndGet();
-                            }
-                        }
-                    }
-                })) {
-                    droppedBatches++;
-                }
-            }
-        }
-
-        // Batch restore
-        if (!toRestore.isEmpty()) {
-            List<UUID> restoreBatch = new ArrayList<>(batchSize);
-            for (UUID uuid : toRestore) {
-                restoreBatch.add(uuid);
-                if (restoreBatch.size() >= batchSize) {
-                    final List<UUID> currentBatch = new ArrayList<>(restoreBatch);
-                    if (!plugin.getWorkloadDistributor().addWorkload(() -> {
-                        for (UUID id : currentBatch) {
-                            Entity entity = Bukkit.getEntity(id);
-                            if (entity instanceof Mob && entity.isValid()) {
-                                if (plugin.setMobAwareSafe((Mob) entity, true)) {
-                                    lastRestored.incrementAndGet();
-                                }
-                            }
-                        }
-                    })) {
-                        droppedBatches++;
-                    }
-                    restoreBatch.clear();
-                }
-            }
-            if (!restoreBatch.isEmpty()) {
-                final List<UUID> currentBatch = new ArrayList<>(restoreBatch);
-                if (!plugin.getWorkloadDistributor().addWorkload(() -> {
-                    for (UUID id : currentBatch) {
-                        Entity entity = Bukkit.getEntity(id);
-                        if (entity instanceof Mob && entity.isValid()) {
-                            if (plugin.setMobAwareSafe((Mob) entity, true)) {
-                                lastRestored.incrementAndGet();
-                            }
-                        }
-                    }
-                })) {
-                    droppedBatches++;
-                }
-            }
-        }
+        droppedBatches += submitBatchedUpdates(toCull, false);
+        droppedBatches += submitBatchedUpdates(toRestore, true);
 
         if (droppedBatches > 0) {
             plugin.getLogger().warning("[FrustumCuller] WorkloadDistributor queue full! Dropped " + droppedBatches + " batches of AI updates.");
         }
+    }
+
+    private int submitBatchedUpdates(List<UUID> targets, boolean enableAI) {
+        int batchSize = 50;
+        int dropped = 0;
+        List<UUID> batch = new ArrayList<>(batchSize);
+
+        for (UUID uuid : targets) {
+            batch.add(uuid);
+            if (batch.size() >= batchSize) {
+                if (!dispatchBatch(batch, enableAI)) dropped++;
+                batch.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            if (!dispatchBatch(batch, enableAI)) dropped++;
+        }
+        return dropped;
+    }
+
+    private boolean dispatchBatch(List<UUID> batch, boolean enableAI) {
+        final List<UUID> currentBatch = new ArrayList<>(batch);
+        return plugin.getWorkloadDistributor().addWorkload(() -> {
+            for (UUID id : currentBatch) {
+                Entity entity = Bukkit.getEntity(id);
+                if (entity instanceof Mob && entity.isValid()) {
+                    if (plugin.setMobAwareSafe((Mob) entity, enableAI)) {
+                        if (enableAI) {
+                            lastRestored.incrementAndGet();
+                        } else {
+                            lastCulled.incrementAndGet();
+                        }
+                    }
+                }
+            }
+        });
     }
 
     // ══════════════════════════════════════════════════
