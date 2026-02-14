@@ -47,7 +47,7 @@ jobs:
             echo "RELEASE_BODY=" >> $GITHUB_ENV
           else
             # Branch push
-            VERSION="v${POM_VERSION}-${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
+            VERSION="v${POM_VERSION}-b${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
             IS_PRERELEASE=true
             TAG_NAME=$VERSION
             GENERATE_NOTES=false
