@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Redstone Suppressor & Limiter
@@ -63,9 +62,9 @@ public class RedstoneMonitor implements Listener {
     // Data Structures (Standard HashMap for Main Thread speed)
 
     // World UUID -> ChunkCoordKey -> activation counter
-    private final Map<UUID, Map<Long, AtomicInteger>> chunkActivations = new HashMap<>();
+    private final Map<UUID, Map<Long, MutableInt>> chunkActivations = new HashMap<>();
 
-    // World UUID -> ChunkCoordKey -> suppression expiry timestamp
+    // World UUID -> ChunkCoordKey -> suppression expiry timestamp (nano)
     private final Map<UUID, Map<Long, Long>> suppressedChunks = new HashMap<>();
 
     // Advanced: World UUID -> BlockKey -> rolling frequency
@@ -75,11 +74,11 @@ public class RedstoneMonitor implements Listener {
     private final Map<UUID, Map<Long, LongTermClock>> longTermClocks = new HashMap<>();
 
     // World UUID -> ChunkCoordKey -> Piston count per tick
-    private final Map<UUID, Map<Long, AtomicInteger>> pistonCounts = new HashMap<>();
+    private final Map<UUID, Map<Long, MutableInt>> pistonCounts = new HashMap<>();
 
     // Notification cooldown per chunk (prevent spam)
     private final Map<UUID, Map<Long, Long>> notifyCooldowns = new HashMap<>();
-    private static final long NOTIFY_COOLDOWN_MS = 10_000;
+    private static final long NOTIFY_COOLDOWN_NANO = 10_000_000_000L;
 
     // Stats
     private long totalSuppressed = 0;
@@ -128,14 +127,14 @@ public class RedstoneMonitor implements Listener {
                 // Reset activation counters every window
                 chunkActivations.clear();
 
-                long now = System.currentTimeMillis();
+                long now = System.nanoTime();
 
                 // Advanced: Prune stale block frequencies
                 cleanupMap(blockFrequencies, now, (freq, time) -> freq.isStale(time));
 
                 // Long-term: Prune expired clocks
-                long windowMillis = longTermWindow * 1000L;
-                cleanupMap(longTermClocks, now, (clock, time) -> clock.isExpired(time, windowMillis));
+                long windowNanos = longTermWindow * 1_000_000_000L;
+                cleanupMap(longTermClocks, now, (clock, time) -> clock.isExpired(time, windowNanos));
 
                 // Remove expired suppressions and update counts
                 int activeCount = 0;
@@ -154,7 +153,7 @@ public class RedstoneMonitor implements Listener {
                 activeSuppressedChunks = activeCount;
 
                 // Clean stale notification cooldowns
-                cleanupMap(notifyCooldowns, now, (lastNotify, time) -> time - lastNotify > NOTIFY_COOLDOWN_MS);
+                cleanupMap(notifyCooldowns, now, (lastNotify, time) -> time - lastNotify > NOTIFY_COOLDOWN_NANO);
             }
         }.runTaskTimer(plugin, windowSeconds * 20L, windowSeconds * 20L);
 
@@ -221,7 +220,7 @@ public class RedstoneMonitor implements Listener {
         if (worldSuppressed != null) {
             Long expiresAt = worldSuppressed.get(chunkKey);
             if (expiresAt != null) {
-                if (System.currentTimeMillis() < expiresAt) {
+                if (System.nanoTime() < expiresAt) {
                     event.setNewCurrent(event.getOldCurrent()); // Cancel change
                     return;
                 } else {
@@ -237,7 +236,7 @@ public class RedstoneMonitor implements Listener {
             RollingFrequency freq = worldFreqs.computeIfAbsent(blockKey, k -> new RollingFrequency());
 
             // Note: rolling check can involve system time, so we call it here
-            if (freq.incrementAndCheck(System.currentTimeMillis(), maxFrequency)) {
+            if (freq.incrementAndCheck(System.nanoTime(), maxFrequency)) {
                 event.setNewCurrent(event.getOldCurrent());
                 return;
             }
@@ -248,12 +247,12 @@ public class RedstoneMonitor implements Listener {
             long blockKey = getBlockKey(block);
             Map<Long, LongTermClock> worldClocks = longTermClocks.computeIfAbsent(worldUID, k -> new HashMap<>());
             LongTermClock clock = worldClocks.computeIfAbsent(blockKey,
-                    k -> new LongTermClock(System.currentTimeMillis()));
+                    k -> new LongTermClock(System.nanoTime()));
 
             clock.increment();
 
             if (clock.getCount() > longTermMax
-                    && !clock.isExpired(System.currentTimeMillis(), longTermWindow * 1000L)) {
+                    && !clock.isExpired(System.nanoTime(), longTermWindow * 1_000_000_000L)) {
                 handleLongTermViolation(block, clock);
                 event.setNewCurrent(event.getOldCurrent());
                 return;
@@ -261,8 +260,8 @@ public class RedstoneMonitor implements Listener {
         }
 
         // 4. Update Chunk Activation Counter
-        Map<Long, AtomicInteger> worldActivations = chunkActivations.computeIfAbsent(worldUID, k -> new HashMap<>());
-        AtomicInteger counter = worldActivations.computeIfAbsent(chunkKey, k -> new AtomicInteger(0));
+        Map<Long, MutableInt> worldActivations = chunkActivations.computeIfAbsent(worldUID, k -> new HashMap<>());
+        MutableInt counter = worldActivations.computeIfAbsent(chunkKey, k -> new MutableInt());
 
         if (counter.incrementAndGet() >= maxActivations) {
             suppressChunk(worldUID, chunkKey, block);
@@ -293,8 +292,8 @@ public class RedstoneMonitor implements Listener {
         UUID worldUID = block.getWorld().getUID();
         long chunkKey = getChunkKey(block.getX() >> 4, block.getZ() >> 4);
 
-        Map<Long, AtomicInteger> worldPistons = pistonCounts.computeIfAbsent(worldUID, k -> new HashMap<>());
-        AtomicInteger count = worldPistons.computeIfAbsent(chunkKey, k -> new AtomicInteger(0));
+        Map<Long, MutableInt> worldPistons = pistonCounts.computeIfAbsent(worldUID, k -> new HashMap<>());
+        MutableInt count = worldPistons.computeIfAbsent(chunkKey, k -> new MutableInt());
 
         if (count.incrementAndGet() > maxPistonsPerChunkTick) {
             event.setCancelled(true);
@@ -362,18 +361,18 @@ public class RedstoneMonitor implements Listener {
     }
 
     private void suppressChunk(UUID worldUID, long chunkKey, Block block) {
-        long expiry = System.currentTimeMillis() + (cooldownSeconds * 1000L);
+        long expiry = System.nanoTime() + (cooldownSeconds * 1_000_000_000L);
 
         Map<Long, Long> worldSuppressed = suppressedChunks.computeIfAbsent(worldUID, k -> new HashMap<>());
         worldSuppressed.put(chunkKey, expiry);
         totalSuppressed++;
 
         if (notify) {
-            long now = System.currentTimeMillis();
+            long now = System.nanoTime();
             Map<Long, Long> worldCooldowns = notifyCooldowns.computeIfAbsent(worldUID, k -> new HashMap<>());
             Long lastNotify = worldCooldowns.get(chunkKey);
 
-            if (lastNotify == null || now - lastNotify >= NOTIFY_COOLDOWN_MS) {
+            if (lastNotify == null || now - lastNotify >= NOTIFY_COOLDOWN_NANO) {
                 worldCooldowns.put(chunkKey, now);
 
                 Location loc = block.getLocation();
@@ -420,12 +419,20 @@ public class RedstoneMonitor implements Listener {
     }
 
     // Data Classes
+    private static class MutableInt {
+        int value;
+
+        public int incrementAndGet() {
+            return ++value;
+        }
+    }
+
     private static class RollingFrequency {
         private long lastSecondStart = 0;
         private int count = 0;
 
         public boolean incrementAndCheck(long now, int maxPerSec) {
-            if (now - lastSecondStart > 1000) {
+            if (now - lastSecondStart > 1_000_000_000L) {
                 lastSecondStart = now;
                 count = 0;
             }
@@ -434,7 +441,7 @@ public class RedstoneMonitor implements Listener {
         }
 
         public boolean isStale(long now) {
-            return now - lastSecondStart > 5000;
+            return now - lastSecondStart > 5_000_000_000L;
         }
     }
 
@@ -455,8 +462,8 @@ public class RedstoneMonitor implements Listener {
             return count;
         }
 
-        public boolean isExpired(long now, long windowMillis) {
-            return (now - startTime) > windowMillis;
+        public boolean isExpired(long now, long windowNanos) {
+            return (now - startTime) > windowNanos;
         }
     }
 

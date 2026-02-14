@@ -125,16 +125,31 @@ public class VillagerOptimizer implements Listener {
                         if (!villager.isValid())
                             continue;
 
+                        // Check throttling: If already optimized, skip check if checked recently
+                        long now = System.nanoTime();
+                        if (villager.hasMetadata("LessLag.VillagerOptimized") && villager.hasMetadata("LessLag.LastTrappedCheck")) {
+                            long lastCheck = villager.getMetadata("LessLag.LastTrappedCheck").get(0).asLong();
+                            if (now - lastCheck < 120_000_000_000L) { // 2 minutes
+                                continue;
+                            }
+                        }
+
                         boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(villager);
 
-                        if (shouldOptimize && plugin.isMobAwareSafe(villager)) {
-                            plugin.setMobAwareSafe(villager, false);
-                            villager.setMetadata("LessLag.VillagerOptimized",
-                                    new org.bukkit.metadata.FixedMetadataValue(plugin, true));
-                        } else if (!shouldOptimize && !plugin.isMobAwareSafe(villager)) {
+                        if (shouldOptimize) {
+                            if (plugin.isMobAwareSafe(villager)) {
+                                plugin.setMobAwareSafe(villager, false);
+                                villager.setMetadata("LessLag.VillagerOptimized",
+                                        new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                            }
+                            // Update last check timestamp
+                            villager.setMetadata("LessLag.LastTrappedCheck",
+                                    new org.bukkit.metadata.FixedMetadataValue(plugin, now));
+                        } else if (!plugin.isMobAwareSafe(villager)) {
                             // If no longer trapped (e.g. player broke the cell), re-enable
                             plugin.setMobAwareSafe(villager, true);
                             villager.removeMetadata("LessLag.VillagerOptimized", plugin);
+                            villager.removeMetadata("LessLag.LastTrappedCheck", plugin);
                         }
                     }
                 });
@@ -179,8 +194,9 @@ public class VillagerOptimizer implements Listener {
         };
 
         for (Block b : surroundings) {
-            if (b.getType().isSolid() || b.getType().name().contains("GLASS") || b.getType().name().contains("FENCE")
-                    || b.getType().name().contains("WALL")) {
+            String name = b.getType().name();
+            if (b.getType().isSolid() || name.contains("GLASS") || name.contains("FENCE")
+                    || name.contains("WALL") || name.contains("TRAPDOOR") || name.contains("CARPET")) {
                 confiningBlocks++;
             }
         }
@@ -213,12 +229,12 @@ public class VillagerOptimizer implements Listener {
         }
 
         // 2. Mark as active
-        long expiry = System.currentTimeMillis() + (restoreDuration * 1000L);
+        long expiry = System.nanoTime() + (restoreDuration * 1_000_000_000L);
         activeVillagers.put(villager.getUniqueId(), expiry);
     }
 
     private void cleanupActiveVillagers() {
-        long now = System.currentTimeMillis();
+        long now = System.nanoTime();
         Iterator<Map.Entry<UUID, Long>> it = activeVillagers.entrySet().iterator();
 
         while (it.hasNext()) {

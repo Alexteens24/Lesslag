@@ -12,6 +12,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class TPSMonitor {
 
@@ -29,11 +30,11 @@ public class TPSMonitor {
     private int historyIndex = 0;
 
     // Multi-window TPS averages
-    private final LinkedList<Double> tps5s = new LinkedList<>();
-    private final LinkedList<Double> tps10s = new LinkedList<>();
-    private final LinkedList<Double> tps1m = new LinkedList<>();
-    private final LinkedList<Double> tps5m = new LinkedList<>();
-    private final LinkedList<Double> tps15m = new LinkedList<>();
+    private final ConcurrentLinkedDeque<Double> tps5s = new ConcurrentLinkedDeque<>();
+    private final ConcurrentLinkedDeque<Double> tps10s = new ConcurrentLinkedDeque<>();
+    private final ConcurrentLinkedDeque<Double> tps1m = new ConcurrentLinkedDeque<>();
+    private final ConcurrentLinkedDeque<Double> tps5m = new ConcurrentLinkedDeque<>();
+    private final ConcurrentLinkedDeque<Double> tps15m = new ConcurrentLinkedDeque<>();
 
     // MSPT tracking
     private volatile double currentMSPT = 50.0;
@@ -49,6 +50,7 @@ public class TPSMonitor {
     private int consecutiveLowCount = 0;
     private long lastNotifyTime = 0;
     private long lastDiscordAlertTime = 0;
+    private long lastAnalysisTime = 0;
 
     // Recovery state
     private int consecutiveGoodCount = 0;
@@ -163,13 +165,13 @@ public class TPSMonitor {
         }
     }
 
-    private void addToWindow(LinkedList<Double> window, double value, int maxSize) {
+    private void addToWindow(ConcurrentLinkedDeque<Double> window, double value, int maxSize) {
         window.addLast(value);
         while (window.size() > maxSize)
             window.removeFirst();
     }
 
-    private double averageOf(LinkedList<Double> list) {
+    private double averageOf(ConcurrentLinkedDeque<Double> list) {
         if (list.isEmpty())
             return 20.0;
         double sum = 0;
@@ -234,8 +236,13 @@ public class TPSMonitor {
 
                 // Run lag source analysis if enabled
                 if (plugin.getConfig().getDouble("system.lag-source-analyzer.auto-analyze-tps", 15.0) >= currentTPS) {
-                    if (isAnalyzing.compareAndSet(false, true)) {
-                        triggerLagAnalysis();
+                    long now = System.nanoTime();
+                    // 60s cooldown for auto-analysis
+                    if (now - lastAnalysisTime > 60_000_000_000L) {
+                        if (isAnalyzing.compareAndSet(false, true)) {
+                            lastAnalysisTime = now;
+                            triggerLagAnalysis();
+                        }
                     }
                 }
 
@@ -308,8 +315,8 @@ public class TPSMonitor {
      */
     private void sendNotifications(ThresholdConfig threshold) {
         int cooldown = plugin.getConfig().getInt("notifications.cooldown", 10);
-        long now = System.currentTimeMillis();
-        if (now - lastNotifyTime < cooldown * 1000L)
+        long now = System.nanoTime();
+        if (now - lastNotifyTime < cooldown * 1_000_000_000L)
             return;
         lastNotifyTime = now;
 
@@ -416,9 +423,9 @@ public class TPSMonitor {
         if (currentTPS > alertThreshold)
             return;
 
-        long now = System.currentTimeMillis();
+        long now = System.nanoTime();
         // Fixed 1 minute cooldown for Discord to prevent spam
-        if (now - lastDiscordAlertTime < 60000)
+        if (now - lastDiscordAlertTime < 60_000_000_000L)
             return;
 
         lastDiscordAlertTime = now;

@@ -635,9 +635,13 @@ public class ActionExecutor {
 
         for (World world : Bukkit.getWorlds()) {
             List<Player> players = world.getPlayers();
-            List<org.bukkit.util.Vector> playerLocs = new ArrayList<>(players.size());
+            // Spatial hashing: Group players by Chunk Key for faster lookup
+            Map<Long, List<org.bukkit.util.Vector>> playerChunks = new HashMap<>();
             for (Player p : players) {
-                playerLocs.add(p.getLocation().toVector());
+                int cx = p.getLocation().getBlockX() >> 4;
+                int cz = p.getLocation().getBlockZ() >> 4;
+                long key = ((long) cx << 32) | (cz & 0xFFFFFFFFL);
+                playerChunks.computeIfAbsent(key, k -> new ArrayList<>()).add(p.getLocation().toVector());
             }
 
             List<EntitySnapshot> entitySnapshots = new ArrayList<>();
@@ -659,7 +663,7 @@ public class ActionExecutor {
                         categories));
             }
 
-            snapshots.put(world.getUID(), new WorldSnapshot(playerLocs, entitySnapshots));
+            snapshots.put(world.getUID(), new WorldSnapshot(playerChunks, entitySnapshots));
             worldNames.put(world.getUID(), world.getName());
         }
 
@@ -712,10 +716,10 @@ public class ActionExecutor {
                     int excess = entities.size() - limit;
 
                     // Sort by distance to nearest player (furthest first)
-                    if (!snap.playerLocs.isEmpty()) {
-                        // Pre-calculate distances
+                    if (!snap.playerChunks.isEmpty()) {
+                        // Pre-calculate distances using spatial hashing
                         for (EntitySnapshot es : entities) {
-                            es.distanceSq = nearestPlayerDistSq(es.loc, snap.playerLocs);
+                            es.distanceSq = nearestPlayerDistSq(es.loc, snap.playerChunks);
                         }
 
                         entities.sort((a, b) -> Double.compare(b.distanceSq, a.distanceSq));
@@ -784,23 +788,36 @@ public class ActionExecutor {
         });
     }
 
-    private double nearestPlayerDistSq(org.bukkit.util.Vector entityLoc, List<org.bukkit.util.Vector> playerLocs) {
+    private double nearestPlayerDistSq(org.bukkit.util.Vector entityLoc, Map<Long, List<org.bukkit.util.Vector>> playerChunks) {
         double nearest = Double.MAX_VALUE;
-        for (org.bukkit.util.Vector pLoc : playerLocs) {
-            double dist = entityLoc.distanceSquared(pLoc);
-            if (dist < nearest)
-                nearest = dist;
+        int cx = entityLoc.getBlockX() >> 4;
+        int cz = entityLoc.getBlockZ() >> 4;
+
+        // Check current and neighbor chunks (3x3 area)
+        for (int x = cx - 1; x <= cx + 1; x++) {
+            for (int z = cz - 1; z <= cz + 1; z++) {
+                long key = ((long) x << 32) | (z & 0xFFFFFFFFL);
+                List<org.bukkit.util.Vector> chunkPlayers = playerChunks.get(key);
+                if (chunkPlayers != null) {
+                    for (org.bukkit.util.Vector pLoc : chunkPlayers) {
+                        double dist = entityLoc.distanceSquared(pLoc);
+                        if (dist < nearest) {
+                            nearest = dist;
+                        }
+                    }
+                }
+            }
         }
         return nearest;
     }
 
     // Snapshot classes
     private static class WorldSnapshot {
-        final List<org.bukkit.util.Vector> playerLocs;
+        final Map<Long, List<org.bukkit.util.Vector>> playerChunks;
         final List<EntitySnapshot> entities;
 
-        WorldSnapshot(List<org.bukkit.util.Vector> p, List<EntitySnapshot> e) {
-            this.playerLocs = p;
+        WorldSnapshot(Map<Long, List<org.bukkit.util.Vector>> p, List<EntitySnapshot> e) {
+            this.playerChunks = p;
             this.entities = e;
         }
     }
