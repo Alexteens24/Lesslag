@@ -632,8 +632,9 @@ public class LagCommand implements CommandExecutor {
                 break;
             }
             case "restore": {
-                int count = plugin.getActionExecutor().restoreMobAI();
-                send(sender, plugin.getPrefix() + "&aRestored AI for &e" + count + " &amobs.");
+                plugin.getActionExecutor().restoreMobAI();
+                send(sender, plugin.getPrefix()
+                        + "&aScheduled AI restoration for all mobs. This process is batched to prevent lag.");
                 break;
             }
             case "status":

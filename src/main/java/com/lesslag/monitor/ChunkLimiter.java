@@ -85,42 +85,53 @@ public class ChunkLimiter {
         Set<String> whitelist = cachedWhitelist;
         ScanContext context = new ScanContext();
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            for (World world : Bukkit.getWorlds()) {
-                Chunk[] loadedChunks = world.getLoadedChunks();
-                if (loadedChunks.length == 0)
-                    continue;
-
-                // Process chunks in batches of 10 to avoid lag spikes
-                int batchSize = 10;
-                for (int i = 0; i < loadedChunks.length; i += batchSize) {
-                    final int start = i;
-                    final int end = Math.min(i + batchSize, loadedChunks.length);
-                    final Chunk[] chunks = loadedChunks;
-
-                    // Thread Safety: Dispatched to main thread via WorkloadDistributor
-                    plugin.getWorkloadDistributor().addWorkload(() -> {
-                        processChunkBatch(chunks, start, end, whitelist, context);
-                    });
-                }
+        // Start the chain on the main thread
+        plugin.getWorkloadDistributor().addWorkload(() -> {
+            List<World> worlds = Bukkit.getWorlds();
+            if (!worlds.isEmpty()) {
+                scheduleWorldScan(worlds, 0, whitelist, context);
             }
-
-            // Final reporting task
-            plugin.getWorkloadDistributor().addWorkload(() -> {
-                lastScanTime = System.currentTimeMillis();
-                int removed = context.removedEntities.get();
-                int hot = context.hotChunks.get();
-
-                // Update cached stats for getters
-                lastEntitiesRemoved = removed;
-                lastHotChunks = hot;
-
-                if (removed > 0) {
-                    plugin.getLogger().info("[ChunkLimiter] Cleaned " + removed
-                            + " entities from " + hot + " overloaded chunk(s)");
-                }
-            });
         });
+    }
+
+    private void scheduleWorldScan(List<World> worlds, int index, Set<String> whitelist, ScanContext context) {
+        if (index >= worlds.size()) {
+            // Done with all worlds, schedule report
+            plugin.getWorkloadDistributor().addWorkload(() -> finishScan(context));
+            return;
+        }
+
+        World world = worlds.get(index);
+        Chunk[] loadedChunks = world.getLoadedChunks();
+
+        // Schedule chunk batches for this world
+        int batchSize = 10;
+        for (int i = 0; i < loadedChunks.length; i += batchSize) {
+            final int start = i;
+            final int end = Math.min(i + batchSize, loadedChunks.length);
+            final Chunk[] chunks = loadedChunks; // Capture
+
+            plugin.getWorkloadDistributor()
+                    .addWorkload(() -> processChunkBatch(chunks, start, end, whitelist, context));
+        }
+
+        // Schedule next world processing
+        plugin.getWorkloadDistributor().addWorkload(() -> scheduleWorldScan(worlds, index + 1, whitelist, context));
+    }
+
+    private void finishScan(ScanContext context) {
+        lastScanTime = System.currentTimeMillis();
+        int removed = context.removedEntities.get();
+        int hot = context.hotChunks.get();
+
+        // Update cached stats for getters
+        lastEntitiesRemoved = removed;
+        lastHotChunks = hot;
+
+        if (removed > 0) {
+            plugin.getLogger().info("[ChunkLimiter] Cleaned " + removed
+                    + " entities from " + hot + " overloaded chunk(s)");
+        }
     }
 
     private void processChunkBatch(Chunk[] chunks, int start, int end, Set<String> whitelist, ScanContext context) {

@@ -380,20 +380,62 @@ public class ActionExecutor {
 
     /**
      * Re-enable AI for all mobs (used during recovery)
+     * Batched via WorkloadDistributor to prevent lag spikes.
      */
-    public int restoreMobAI() {
+    public void restoreMobAI() {
+        plugin.getLogger().info("[Action] Starting batched mob AI restoration...");
+        WorkloadDistributor distributor = plugin.getWorkloadDistributor();
+        java.util.concurrent.atomic.AtomicInteger restoredCount = new java.util.concurrent.atomic.AtomicInteger(0);
 
-        int count = 0;
-        for (World world : Bukkit.getWorlds()) {
-            for (Mob mob : world.getEntitiesByClass(Mob.class)) {
-                if (!plugin.isMobAwareSafe(mob)) {
-                    if (plugin.setMobAwareSafe(mob, true)) {
-                        count++;
+        // Collect worlds sync
+        List<World> worlds = Bukkit.getWorlds();
+
+        for (World world : worlds) {
+            // Get all mobs in the world
+            Collection<Mob> mobs = world.getEntitiesByClass(Mob.class);
+            if (mobs.isEmpty())
+                continue;
+
+            // Convert to list for batching
+            List<Mob> mobList = new ArrayList<>(mobs);
+            int batchSize = 50;
+
+            for (int i = 0; i < mobList.size(); i += batchSize) {
+                int end = Math.min(i + batchSize, mobList.size());
+                List<Mob> batch = mobList.subList(i, end);
+
+                // Copy batch for lambda capture
+                final List<Mob> currentBatch = new ArrayList<>(batch);
+
+                distributor.addWorkload(() -> {
+                    for (Mob mob : currentBatch) {
+                        if (mob.isValid() && !plugin.isMobAwareSafe(mob)) {
+                            if (plugin.setMobAwareSafe(mob, true)) {
+                                restoredCount.incrementAndGet();
+                            }
+                        }
                     }
-                }
+                });
             }
         }
-        return count;
+
+        // Schedule a final "report" task (will run after all batches are added,
+        // theoretically,
+        // IF they are added in order. WorkloadDistributor is FIFO/LIFO?
+        // It's a Deque, addLast/pollFirst -> FIFO.
+        // So this report will likely run after most batches, but since batch execution
+        // is spread over ticks,
+        // we can't guarantee EXACTLY when it finishes without a proper callback chain.
+        // For simple logging, we can just log that it started.
+        // Or we can schedule a task to checks occasionally?
+        // Let's just log "Scheduled restoration of X entities" if we knew the total
+        // count,
+        // but we only know the total mobs, not how many NEEDED restoration.
+        // Simplified: Just log start.
+        distributor.addWorkload(() -> {
+            plugin.getLogger()
+                    .info("[Action] Mob AI restoration batches completed. Restored " + restoredCount.get() + " mobs.");
+        });
     }
 
     /**
@@ -526,9 +568,8 @@ public class ActionExecutor {
             }
         }
 
-        int restored = restoreMobAI();
-        plugin.getLogger().info("Restored view/simulation distances and re-enabled AI for "
-                + restored + " mobs");
+        restoreMobAI();
+        plugin.getLogger().info("Restored view/simulation distances. Mob AI restoration scheduled.");
     }
 
     // ══════════════════════════════════════════════════
@@ -659,7 +700,8 @@ public class ActionExecutor {
                 if (entity instanceof Ambient)
                     categories.add("AMBIENT");
 
-                entitySnapshots.add(new EntitySnapshot(entity.getUniqueId(), entity.getLocation().toVector(), entity.getType().name(),
+                entitySnapshots.add(new EntitySnapshot(entity.getUniqueId(), entity.getLocation().toVector(),
+                        entity.getType().name(),
                         categories));
             }
 
@@ -788,7 +830,8 @@ public class ActionExecutor {
         });
     }
 
-    private double nearestPlayerDistSq(org.bukkit.util.Vector entityLoc, Map<Long, List<org.bukkit.util.Vector>> playerChunks) {
+    private double nearestPlayerDistSq(org.bukkit.util.Vector entityLoc,
+            Map<Long, List<org.bukkit.util.Vector>> playerChunks) {
         double nearest = Double.MAX_VALUE;
         int cx = entityLoc.getBlockX() >> 4;
         int cz = entityLoc.getBlockZ() >> 4;

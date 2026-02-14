@@ -335,6 +335,8 @@ public class RedstoneMonitor implements Listener {
                 if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4))
                     return;
 
+                plugin.getLogger().warning("[Redstone] Breaking persistent clock at " + worldName + " " + x + "," + y
+                        + "," + z + " (" + block.getType() + ")");
                 block.breakNaturally();
                 Long2ObjectOpenHashMap<LongTermClock> worldMap = longTermClocks.get(block.getWorld().getUID());
                 if (worldMap != null)
