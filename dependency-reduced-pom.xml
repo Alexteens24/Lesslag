@@ -29,7 +29,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <id>shade-premium</id>
@@ -71,10 +71,15 @@
           </execution>
         </executions>
         <configuration>
+          <minimizeJar>true</minimizeJar>
           <relocations>
             <relocation>
               <pattern>org.bstats</pattern>
               <shadedPattern>com.lesslag.metrics</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>it.unimi.dsi.fastutil</pattern>
+              <shadedPattern>com.lesslag.lib.fastutil</shadedPattern>
             </relocation>
           </relocations>
         </configuration>
