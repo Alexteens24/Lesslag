@@ -41,7 +41,7 @@ public class ChunkLimiter {
         loadConfig();
     }
 
-    private void loadConfig() {
+    public void loadConfig() {
         maxPerChunk = plugin.getConfig().getInt("modules.entities.chunk-limiter.max-entities-per-chunk", 50);
         scanInterval = plugin.getConfig().getInt("modules.entities.chunk-limiter.scan-interval", 30);
 

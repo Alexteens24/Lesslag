@@ -501,5 +501,10 @@ public class LessLag extends JavaPlugin implements Listener {
         public boolean isEnabled() {
             return false;
         }
+
+        @Override
+        public void reload() {
+            // Do nothing
+        }
     }
 }

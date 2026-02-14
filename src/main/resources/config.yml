@@ -359,3 +359,42 @@ premium:
     webhook-url: "" # Paste your Discord Webhook URL here
     alert-tps-threshold: 18.0
 
+  # Player Scaler (Auto-Scale Settings by Player Count)
+  player-scaler:
+    enabled: true
+    # How often to check player count (in ticks) - also checks on Join/Quit
+    check-interval: 600
+    
+    # Smart Mode: Increases "virtual" player count when TPS drops.
+    # This forces stricter settings during lag, even with few players.
+    smart-mode:
+      enabled: true
+      # How many "virtual players" to add per 1.0 TPS drop below 20.
+      # Example: 15 TPS (5 drop) * sensitivity 5 = +25 virtual players.
+      sensitivity: 5.0
+      # Only apply penalty if TPS is below this value
+      min-tps-check: 19.5
+    
+    # Define tiers based on player count (Sorted by min-players desc)
+    tiers:
+      low:
+        min-players: 0
+        view-distance: 10
+        simulation-distance: 8
+        max-entities-per-chunk: 50
+      medium:
+        min-players: 20
+        view-distance: 8
+        simulation-distance: 6
+        max-entities-per-chunk: 35
+      high:
+        min-players: 50
+        view-distance: 6
+        simulation-distance: 4
+        max-entities-per-chunk: 20
+      extreme:
+        min-players: 100
+        view-distance: 4
+        simulation-distance: 4
+        max-entities-per-chunk: 10
+
