@@ -9,3 +9,6 @@ target/
 # OS
 .DS_Store
 Thumbs.db
+
+# Premium Source Code
+src/main/java/com/lesslag/premium/

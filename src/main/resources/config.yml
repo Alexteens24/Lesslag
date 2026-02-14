@@ -348,3 +348,14 @@ health-report:
   disk: true
   worlds: true
   entity-breakdown: true
+
+# =============================================================
+#  PREMIUM FEATURES
+# =============================================================
+
+premium:
+  enabled: true
+  discord:
+    webhook-url: "" # Paste your Discord Webhook URL here
+    alert-tps-threshold: 18.0
+

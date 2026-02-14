@@ -128,11 +128,37 @@
                     </relocations>
                 </configuration>
                 <executions>
+                    <!-- Premium Version (Default) -->
                     <execution>
+                        <id>shade-premium</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>premium</shadedClassifierName>
+                        </configuration>
+                    </execution>
+                    <!-- Free Version (Excludes Premium package) -->
+                    <execution>
+                        <id>shade-free</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>free</shadedClassifierName>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>com/lesslag/premium/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

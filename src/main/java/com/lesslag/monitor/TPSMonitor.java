@@ -48,6 +48,7 @@ public class TPSMonitor {
     // Alert state
     private int consecutiveLowCount = 0;
     private long lastNotifyTime = 0;
+    private long lastDiscordAlertTime = 0;
 
     // Recovery state
     private int consecutiveGoodCount = 0;
@@ -237,6 +238,9 @@ public class TPSMonitor {
                         triggerLagAnalysis();
                     }
                 }
+
+                // Discord Alert
+                checkDiscordAlert(detected);
             }
         } else {
             consecutiveLowCount = 0;
@@ -398,6 +402,32 @@ public class TPSMonitor {
             }
         } else {
             consecutiveGoodCount = 0;
+        }
+    }
+
+    /**
+     * Check and send Discord alert - runs on ASYNC thread.
+     */
+    private void checkDiscordAlert(ThresholdConfig threshold) {
+        if (!plugin.getConfig().getBoolean("premium.enabled", false))
+            return;
+
+        double alertThreshold = plugin.getConfig().getDouble("premium.discord.alert-tps-threshold", 18.0);
+        if (currentTPS > alertThreshold)
+            return;
+
+        long now = System.currentTimeMillis();
+        // Fixed 1 minute cooldown for Discord to prevent spam
+        if (now - lastDiscordAlertTime < 60000)
+            return;
+
+        lastDiscordAlertTime = now;
+
+        String message = "**TPS Alert**: Server TPS dropped to **" + String.format("%.1f", currentTPS) + "**!";
+        message += "\\nThreshold: " + threshold.getName();
+
+        if (plugin.getPremiumManager() != null) {
+            plugin.getPremiumManager().sendAlert(message);
         }
     }
 

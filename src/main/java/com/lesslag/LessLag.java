@@ -55,6 +55,7 @@ public class LessLag extends JavaPlugin implements Listener {
     private WorldChunkGuard worldChunkGuard;
     private MemoryLeakDetector memoryLeakDetector;
     private CompatibilityManager compatManager;
+    private PremiumService premiumService;
 
     // Shared async executor for all monitoring tasks
     private ExecutorService asyncExecutor;
@@ -139,6 +140,20 @@ public class LessLag extends JavaPlugin implements Listener {
 
         metrics.addCustomChart(new org.bstats.charts.SimplePie("density_optimizer_enabled",
                 () -> String.valueOf(getConfig().getBoolean("modules.density-optimizer.enabled", true))));
+
+        // Initialize Premium Manager via Reflection
+        try {
+            Class<?> clazz = Class.forName("com.lesslag.premium.PremiumManager");
+            java.lang.reflect.Constructor<?> constructor = clazz.getConstructor(LessLag.class);
+            premiumService = (PremiumService) constructor.newInstance(this);
+            getLogger().info("Premium features loaded.");
+        } catch (ClassNotFoundException e) {
+            premiumService = new NoOpPremiumService();
+            getLogger().info("Running Free/Lite version (Premium features not found).");
+        } catch (Exception e) {
+            getLogger().warning("Failed to load Premium features: " + e.getMessage());
+            premiumService = new NoOpPremiumService();
+        }
     }
 
     private void initializeMonitors() {
@@ -301,6 +316,10 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public MemoryLeakDetector getMemoryLeakDetector() {
         return memoryLeakDetector;
+    }
+
+    public PremiumService getPremiumManager() {
+        return premiumService;
     }
 
     public ExecutorService getAsyncExecutor() {
@@ -470,5 +489,17 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public WorkloadDistributor getWorkloadDistributor() {
         return workloadDistributor;
+    }
+
+    private static class NoOpPremiumService implements PremiumService {
+        @Override
+        public void sendAlert(String message) {
+            // Do nothing
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return false;
+        }
     }
 }
