@@ -5,6 +5,8 @@ api-version: '1.20'
 description: Server performance guardian - automatic TPS rescue, diagnostics, and lag mitigation
 author: SuperezMC
 website: ''
+libraries:
+  - "it.unimi.dsi:fastutil:8.5.15"
 
 commands:
   lg:

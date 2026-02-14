@@ -77,10 +77,6 @@
               <pattern>org.bstats</pattern>
               <shadedPattern>com.lesslag.metrics</shadedPattern>
             </relocation>
-            <relocation>
-              <pattern>it.unimi.dsi.fastutil</pattern>
-              <shadedPattern>com.lesslag.lib.fastutil</shadedPattern>
-            </relocation>
           </relocations>
         </configuration>
       </plugin>
@@ -168,6 +164,12 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <version>5.21.0</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>it.unimi.dsi</groupId>
+      <artifactId>fastutil</artifactId>
+      <version>8.5.18</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>net.citizensnpcs</groupId>

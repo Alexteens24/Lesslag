@@ -74,7 +74,7 @@
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
             <version>8.5.18</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
         <!-- Compatibility Dependencies -->
         <dependency>
@@ -131,10 +131,6 @@
                         <relocation>
                             <pattern>org.bstats</pattern>
                             <shadedPattern>com.lesslag.metrics</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>it.unimi.dsi.fastutil</pattern>
-                            <shadedPattern>com.lesslag.lib.fastutil</shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>
