@@ -40,6 +40,11 @@ public class RedstoneMonitor implements Listener {
     // Config (cached)
     private boolean enabled;
     private int maxActivations;
+
+    public void setMaxActivations(int maxActivations) {
+        this.maxActivations = maxActivations;
+    }
+
     private int cooldownSeconds;
     private int windowSeconds;
     private boolean notify;

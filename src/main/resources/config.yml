@@ -387,6 +387,8 @@ premium:
           animals: 10
         density-limit: -1 # Disabled
         breeding-limit: 20
+        redstone-limit: 500
+        activation-range: 48
       medium:
         min-players: 20
         view-distance: 8
@@ -397,6 +399,8 @@ premium:
           animals: 8
         density-limit: 15
         breeding-limit: 15
+        redstone-limit: 300
+        activation-range: 32
       high:
         min-players: 50
         view-distance: 6
@@ -407,6 +411,8 @@ premium:
           animals: 5
         density-limit: 10
         breeding-limit: 10
+        redstone-limit: 100
+        activation-range: 16
       extreme:
         min-players: 100
         view-distance: 4
@@ -417,4 +423,6 @@ premium:
           animals: 2
         density-limit: 5
         breeding-limit: 5
+        redstone-limit: 50
+        activation-range: 8
 
