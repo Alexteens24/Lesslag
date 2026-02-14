@@ -29,6 +29,10 @@ public class BreedingLimiter implements Listener {
                 "&cFarm limit reached! Cannot breed more animals in this chunk.");
     }
 
+    public void setMaxAnimalsPerChunk(int maxAnimalsPerChunk) {
+        this.maxAnimalsPerChunk = maxAnimalsPerChunk;
+    }
+
     public void start() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }

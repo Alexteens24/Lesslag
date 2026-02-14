@@ -26,12 +26,19 @@ public class DensityOptimizer {
         reloadConfig();
     }
 
+    private int scalingLimit = -1;
+
+    public void setScalingLimit(int limit) {
+        this.scalingLimit = limit;
+    }
+
     public void reloadConfig() {
         this.enabled = plugin.getConfig().getBoolean("modules.density-optimizer.enabled", true);
         this.checkInterval = plugin.getConfig().getInt("modules.density-optimizer.check-interval", 40);
         this.bypassTamed = plugin.getConfig().getBoolean("modules.density-optimizer.bypass-tamed", true);
         this.bypassNamed = plugin.getConfig().getBoolean("modules.density-optimizer.bypass-named", true);
         this.bypassLeashed = plugin.getConfig().getBoolean("modules.density-optimizer.bypass-leashed", true);
+        this.scalingLimit = -1; // Reset on reload
 
         limits.clear();
         if (plugin.getConfig().getConfigurationSection("modules.density-optimizer.limits") != null) {
@@ -129,6 +136,11 @@ public class DensityOptimizer {
             EntityType type = entry.getKey();
             List<Mob> mobs = entry.getValue();
             int limit = limits.get(type);
+
+            // Apply scaling limit if stricter
+            if (scalingLimit > 0 && scalingLimit < limit) {
+                limit = scalingLimit;
+            }
 
             if (mobs.size() > limit) {
                 // Too many mobs! Disable AI for the excess (bottom of list first?)

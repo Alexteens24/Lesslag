@@ -382,19 +382,39 @@ premium:
         view-distance: 10
         simulation-distance: 8
         max-entities-per-chunk: 50
+        spawn-limits:
+          monsters: 70
+          animals: 10
+        density-limit: -1 # Disabled
+        breeding-limit: 20
       medium:
         min-players: 20
         view-distance: 8
         simulation-distance: 6
         max-entities-per-chunk: 35
+        spawn-limits:
+          monsters: 50
+          animals: 8
+        density-limit: 15
+        breeding-limit: 15
       high:
         min-players: 50
         view-distance: 6
         simulation-distance: 4
         max-entities-per-chunk: 20
+        spawn-limits:
+          monsters: 30
+          animals: 5
+        density-limit: 10
+        breeding-limit: 10
       extreme:
         min-players: 100
         view-distance: 4
         simulation-distance: 4
         max-entities-per-chunk: 10
+        spawn-limits:
+          monsters: 15
+          animals: 2
+        density-limit: 5
+        breeding-limit: 5
 
