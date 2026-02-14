@@ -55,6 +55,14 @@
                 <filter>
                   <artifact>*:*</artifact>
                   <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>com.lesslag:LessLag</artifact>
+                  <excludes>
                     <exclude>com/lesslag/premium/**</exclude>
                   </excludes>
                 </filter>
