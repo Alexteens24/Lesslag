@@ -1,9 +1,8 @@
 package com.lesslag;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
@@ -12,17 +11,17 @@ import org.bukkit.scheduler.BukkitTask;
 /**
  * Distributes heavy workloads across multiple ticks to prevent server freeze.
  * Thread-safe — any thread can call addWorkload().
+ * Implements a Ring Buffer (LIFO dropping) to prevent death spirals.
  */
 public class WorkloadDistributor {
 
-    private final Queue<Runnable> workloadQueue = new ConcurrentLinkedQueue<>();
+    private final Deque<Runnable> workloadQueue = new ArrayDeque<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final AtomicInteger queueSize = new AtomicInteger(0);
     private volatile BukkitTask task;
     private Logger logger;
 
     private long maxNanosPerTick = 2_000_000; // Default 2ms
-    private static final int MAX_QUEUE_SIZE = 5000;
+    private static final int MAX_QUEUE_SIZE = 2000;
 
     public WorkloadDistributor() {
         // Delay config loading until onEnable
@@ -48,40 +47,28 @@ public class WorkloadDistributor {
     }
 
     public void reloadConfig() {
-        int maxMillis = LessLag.getInstance().getConfig().getInt("workload-limit-ms", 2);
-        this.maxNanosPerTick = maxMillis * 1_000_000L;
+        if (LessLag.getInstance() != null) {
+            int maxMillis = LessLag.getInstance().getConfig().getInt("workload-limit-ms", 2);
+            this.maxNanosPerTick = maxMillis * 1_000_000L;
+        }
     }
 
     /**
      * Add a workload to process on the main thread, spread across ticks.
      * Thread-safe — can be called from any thread.
+     * Uses a Ring Buffer strategy: if full, drops the oldest task.
      *
-     * @return true if added, false if queue is full
+     * @return always true (as we overwrite oldest)
      */
     public boolean addWorkload(Runnable workload) {
         if (workload == null)
             return false;
 
-        // Optimistic increment to reserve a slot
-        int currentSize = queueSize.incrementAndGet();
-        if (currentSize > MAX_QUEUE_SIZE) {
-            queueSize.decrementAndGet();
-            // Log only on the transition to full to avoid spam
-            if (currentSize == MAX_QUEUE_SIZE + 1) {
-                getLogger().warning(
-                        "[WorkloadDistributor] Queue overflow! Dropping workload (max: " + MAX_QUEUE_SIZE + ")");
+        synchronized (workloadQueue) {
+            if (workloadQueue.size() >= MAX_QUEUE_SIZE) {
+                workloadQueue.pollFirst(); // Drop oldest to make space
             }
-            return false;
-        }
-
-        boolean success = false;
-        try {
-            workloadQueue.add(workload);
-            success = true;
-        } finally {
-            if (!success) {
-                queueSize.decrementAndGet();
-            }
+            workloadQueue.addLast(workload); // Add newest
         }
 
         ensureRunning();
@@ -122,26 +109,34 @@ public class WorkloadDistributor {
 
             long stopTime = System.nanoTime() + budget;
 
-            while (!workloadQueue.isEmpty() && System.nanoTime() < stopTime) {
-                Runnable work = workloadQueue.poll();
-                if (work != null) {
-                    try {
-                        long start = System.nanoTime();
-                        work.run();
-                        long duration = System.nanoTime() - start;
-                        if (duration > 50_000_000L) { // Warn if single task > 50ms
-                            getLogger().warning(
-                                    "[WorkloadDistributor] Slow task detected: " + (duration / 1_000_000.0) + "ms");
-                        }
-                    } catch (Throwable e) {
+            while (System.nanoTime() < stopTime) {
+                Runnable work;
+                synchronized (workloadQueue) {
+                    work = workloadQueue.pollFirst();
+                }
+
+                if (work == null) break;
+
+                try {
+                    long start = System.nanoTime();
+                    work.run();
+                    long duration = System.nanoTime() - start;
+                    if (duration > 50_000_000L) { // Warn if single task > 50ms
                         getLogger().warning(
-                                "[WorkloadDistributor] Workload threw exception: " + e.getMessage());
+                                "[WorkloadDistributor] Slow task detected: " + (duration / 1_000_000.0) + "ms");
                     }
-                    queueSize.decrementAndGet();
+                } catch (Throwable e) {
+                    getLogger().warning(
+                            "[WorkloadDistributor] Workload threw exception: " + e.getMessage());
                 }
             }
 
-            if (workloadQueue.isEmpty()) {
+            boolean isEmpty;
+            synchronized (workloadQueue) {
+                isEmpty = workloadQueue.isEmpty();
+            }
+
+            if (isEmpty) {
                 if (task != null) {
                     task.cancel();
                     task = null;
@@ -149,7 +144,12 @@ public class WorkloadDistributor {
                 running.set(false);
 
                 // Double-check: items may have been added between isEmpty() and running.set()
-                if (!workloadQueue.isEmpty()) {
+                boolean recheckNotEmpty;
+                synchronized (workloadQueue) {
+                    recheckNotEmpty = !workloadQueue.isEmpty();
+                }
+
+                if (recheckNotEmpty) {
                     ensureRunning();
                 }
             }
@@ -160,7 +160,9 @@ public class WorkloadDistributor {
      * Get current queue size for monitoring.
      */
     public int getQueueSize() {
-        return queueSize.get();
+        synchronized (workloadQueue) {
+            return workloadQueue.size();
+        }
     }
 
     /**
@@ -179,7 +181,8 @@ public class WorkloadDistributor {
             task = null;
         }
         running.set(false);
-        workloadQueue.clear();
-        queueSize.set(0);
+        synchronized (workloadQueue) {
+            workloadQueue.clear();
+        }
     }
 }

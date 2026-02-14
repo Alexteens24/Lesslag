@@ -27,18 +27,15 @@ class WorkloadDistributorTest {
 
     @Test
     void testAddWorkloadLimit() {
-        // Add 5000 items
-        for (int i = 0; i < 5000; i++) {
+        // Add 2000 items (new limit)
+        for (int i = 0; i < 2000; i++) {
             assertTrue(distributor.addWorkload(() -> {}), "Should add workload " + i);
         }
-        assertEquals(5000, distributor.getQueueSize());
+        assertEquals(2000, distributor.getQueueSize());
 
-        // Add 5001st item - should fail
-        assertFalse(distributor.addWorkload(() -> {}), "Should reject 5001st workload");
-        assertEquals(5000, distributor.getQueueSize());
-
-        // Verify warning logged
-        verify(mockLogger).warning(contains("Queue overflow"));
+        // Add 2001st item - should succeed (Ring Buffer overwrites)
+        assertTrue(distributor.addWorkload(() -> {}), "Should accept 2001st workload (overwriting oldest)");
+        assertEquals(2000, distributor.getQueueSize());
     }
 
     @Test
@@ -55,12 +52,13 @@ class WorkloadDistributorTest {
     void testAtomicQueueOverflow() throws InterruptedException {
         // Simulate concurrent adds
         int threads = 10;
-        int addsPerThread = 600; // Total 6000 adds, limit is 5000
+        int addsPerThread = 600; // Total 6000 adds, limit is 2000
 
         Thread[] worker = new Thread[threads];
         AtomicInteger successCount = new AtomicInteger(0);
 
         for (int i = 0; i < threads; i++) {
+            final int threadId = i;
             worker[i] = new Thread(() -> {
                 for (int j = 0; j < addsPerThread; j++) {
                     if (distributor.addWorkload(() -> {})) {
@@ -75,8 +73,10 @@ class WorkloadDistributorTest {
             worker[i].join();
         }
 
-        assertEquals(5000, distributor.getQueueSize());
-        assertEquals(5000, successCount.get());
+        // Queue size should be capped at 2000
+        assertEquals(2000, distributor.getQueueSize());
+        // All adds are "successful" (accepted), even if they dropped an old one
+        assertEquals(6000, successCount.get());
     }
 
     // Subclass to override Bukkit calls

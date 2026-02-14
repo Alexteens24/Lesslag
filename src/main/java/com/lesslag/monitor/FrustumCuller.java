@@ -293,6 +293,10 @@ public class FrustumCuller {
             for (UUID id : currentBatch) {
                 Entity entity = Bukkit.getEntity(id);
                 if (entity instanceof Mob && entity.isValid()) {
+                    // Safety check: ensure chunk is loaded (use coordinates to avoid sync load)
+                    Location loc = entity.getLocation();
+                    if (!entity.getWorld().isChunkLoaded(loc.getBlockX() >> 4, loc.getBlockZ() >> 4)) continue;
+
                     if (plugin.setMobAwareSafe((Mob) entity, enableAI)) {
                         if (enableAI) {
                             lastRestored.incrementAndGet();
