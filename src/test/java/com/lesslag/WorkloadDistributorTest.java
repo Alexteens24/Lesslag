@@ -29,18 +29,21 @@ class WorkloadDistributorTest {
     void testAddWorkloadLimit() {
         // Add 2000 items (new limit)
         for (int i = 0; i < 2000; i++) {
-            assertTrue(distributor.addWorkload(() -> {}), "Should add workload " + i);
+            assertTrue(distributor.addWorkload(() -> {
+            }), "Should add workload " + i);
         }
         assertEquals(2000, distributor.getQueueSize());
 
         // Add 2001st item - should succeed (Ring Buffer overwrites)
-        assertTrue(distributor.addWorkload(() -> {}), "Should accept 2001st workload (overwriting oldest)");
+        assertTrue(distributor.addWorkload(() -> {
+        }), "Should accept 2001st workload (overwriting oldest)");
         assertEquals(2000, distributor.getQueueSize());
     }
 
     @Test
     void testShutdownClearsQueue() {
-        distributor.addWorkload(() -> {});
+        distributor.addWorkload(() -> {
+        });
         assertEquals(1, distributor.getQueueSize());
 
         distributor.shutdown();
@@ -58,10 +61,10 @@ class WorkloadDistributorTest {
         AtomicInteger successCount = new AtomicInteger(0);
 
         for (int i = 0; i < threads; i++) {
-            final int threadId = i;
             worker[i] = new Thread(() -> {
                 for (int j = 0; j < addsPerThread; j++) {
-                    if (distributor.addWorkload(() -> {})) {
+                    if (distributor.addWorkload(() -> {
+                    })) {
                         successCount.incrementAndGet();
                     }
                 }
