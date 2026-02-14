@@ -133,7 +133,7 @@ public class WorkloadDistributor {
                             getLogger().warning(
                                     "[WorkloadDistributor] Slow task detected: " + (duration / 1_000_000.0) + "ms");
                         }
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         getLogger().warning(
                                 "[WorkloadDistributor] Workload threw exception: " + e.getMessage());
                     }
