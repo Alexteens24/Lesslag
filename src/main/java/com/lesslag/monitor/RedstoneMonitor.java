@@ -5,6 +5,7 @@ import com.lesslag.util.NotificationHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -16,20 +17,23 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Redstone Suppressor & Limiter
  * 
  * Features:
- * 1. Chunk Suppression: Freezes chunks exceeding max activations (original
- * feature).
+ * 1. Chunk Suppression: Freezes chunks exceeding max activations.
  * 2. Advanced: Frequency Limiter (per block) - Throttles fast clocks.
  * 3. Advanced: Piston Limiter (per chunk/tick) - Prevents massive piston
  * machines.
+ *
+ * Optimization Note:
+ * This class runs entirely on the main server thread (handling Bukkit events).
+ * We use standard HashMaps instead of ConcurrentHashMaps to save CPU cycles.
  */
 public class RedstoneMonitor implements Listener {
 
@@ -40,11 +44,6 @@ public class RedstoneMonitor implements Listener {
     // Config (cached)
     private boolean enabled;
     private int maxActivations;
-
-    public void setMaxActivations(int maxActivations) {
-        this.maxActivations = maxActivations;
-    }
-
     private int cooldownSeconds;
     private int windowSeconds;
     private boolean notify;
@@ -52,7 +51,6 @@ public class RedstoneMonitor implements Listener {
     // Advanced Config
     private boolean advancedEnabled;
     private int maxFrequency; // activations/sec per block
-    // activations/5s
     private boolean pistonLimitEnabled;
     private boolean trackMovingBlocks;
     private int maxPistonsPerChunkTick;
@@ -62,30 +60,30 @@ public class RedstoneMonitor implements Listener {
     private int longTermMax;
     private boolean longTermBreak;
 
-    // Data Structures
+    // Data Structures (Standard HashMap for Main Thread speed)
 
-    // Refactored: World UUID -> (ChunkCoordKey -> activation counter)
-    private final Map<UUID, Map<Long, AtomicInteger>> chunkActivations = new ConcurrentHashMap<>();
+    // World UUID -> ChunkCoordKey -> activation counter
+    private final Map<UUID, Map<Long, AtomicInteger>> chunkActivations = new HashMap<>();
 
-    // Refactored: World UUID -> (ChunkCoordKey -> suppression expiry timestamp)
-    private final Map<UUID, Map<Long, Long>> suppressedChunks = new ConcurrentHashMap<>();
+    // World UUID -> ChunkCoordKey -> suppression expiry timestamp
+    private final Map<UUID, Map<Long, Long>> suppressedChunks = new HashMap<>();
 
-    // Advanced: World UUID -> (BlockKey -> activation timestamps (rolling window))
-    private final Map<UUID, Map<Long, RollingFrequency>> blockFrequencies = new ConcurrentHashMap<>();
+    // Advanced: World UUID -> BlockKey -> rolling frequency
+    private final Map<UUID, Map<Long, RollingFrequency>> blockFrequencies = new HashMap<>();
 
-    // Long-term: World UUID -> (BlockKey -> LongTermClock)
-    private final Map<UUID, Map<Long, LongTermClock>> longTermClocks = new ConcurrentHashMap<>();
+    // Long-term: World UUID -> BlockKey -> LongTermClock
+    private final Map<UUID, Map<Long, LongTermClock>> longTermClocks = new HashMap<>();
 
-    // Refactored: World UUID -> (ChunkCoordKey -> Piston count per tick)
-    private final Map<UUID, Map<Long, AtomicInteger>> pistonCounts = new ConcurrentHashMap<>();
+    // World UUID -> ChunkCoordKey -> Piston count per tick
+    private final Map<UUID, Map<Long, AtomicInteger>> pistonCounts = new HashMap<>();
 
     // Notification cooldown per chunk (prevent spam)
-    private final Map<UUID, Map<Long, Long>> notifyCooldowns = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<Long, Long>> notifyCooldowns = new HashMap<>();
     private static final long NOTIFY_COOLDOWN_MS = 10_000;
 
     // Stats
-    private volatile long totalSuppressed = 0;
-    private volatile int activeSuppressedChunks = 0;
+    private long totalSuppressed = 0;
+    private int activeSuppressedChunks = 0;
 
     public RedstoneMonitor(LessLag plugin) {
         this.plugin = plugin;
@@ -130,30 +128,25 @@ public class RedstoneMonitor implements Listener {
                 // Reset activation counters every window
                 chunkActivations.clear();
 
-                // Advanced: Prune stale block frequencies
                 long now = System.currentTimeMillis();
-                for (Map.Entry<UUID, Map<Long, RollingFrequency>> entry : blockFrequencies.entrySet()) {
-                    entry.getValue().values().removeIf(freq -> freq.isStale(now));
-                    if (entry.getValue().isEmpty()) {
-                        blockFrequencies.remove(entry.getKey());
-                    }
-                }
+
+                // Advanced: Prune stale block frequencies
+                cleanupMap(blockFrequencies, now, (freq, time) -> freq.isStale(time));
 
                 // Long-term: Prune expired clocks
-                for (Map.Entry<UUID, Map<Long, LongTermClock>> entry : longTermClocks.entrySet()) {
-                    entry.getValue().values().removeIf(clock -> clock.isExpired(now, longTermWindow));
-                    if (entry.getValue().isEmpty()) {
-                        longTermClocks.remove(entry.getKey());
-                    }
-                }
+                long windowMillis = longTermWindow * 1000L;
+                cleanupMap(longTermClocks, now, (clock, time) -> clock.isExpired(time, windowMillis));
 
-                // Remove expired suppressions
+                // Remove expired suppressions and update counts
                 int activeCount = 0;
-                for (Map.Entry<UUID, Map<Long, Long>> worldEntry : suppressedChunks.entrySet()) {
-                    Map<Long, Long> chunks = worldEntry.getValue();
-                    chunks.entrySet().removeIf(entry -> entry.getValue() <= now);
+                Iterator<Map.Entry<UUID, Map<Long, Long>>> suppressionIt = suppressedChunks.entrySet().iterator();
+                while (suppressionIt.hasNext()) {
+                    Map.Entry<UUID, Map<Long, Long>> entry = suppressionIt.next();
+                    Map<Long, Long> chunks = entry.getValue();
+                    chunks.values().removeIf(expiry -> expiry <= now);
+
                     if (chunks.isEmpty()) {
-                        suppressedChunks.remove(worldEntry.getKey());
+                        suppressionIt.remove();
                     } else {
                         activeCount += chunks.size();
                     }
@@ -161,13 +154,7 @@ public class RedstoneMonitor implements Listener {
                 activeSuppressedChunks = activeCount;
 
                 // Clean stale notification cooldowns
-                for (Map.Entry<UUID, Map<Long, Long>> worldEntry : notifyCooldowns.entrySet()) {
-                    Map<Long, Long> cooldowns = worldEntry.getValue();
-                    cooldowns.entrySet().removeIf(entry -> now - entry.getValue() > NOTIFY_COOLDOWN_MS);
-                    if (cooldowns.isEmpty()) {
-                        notifyCooldowns.remove(worldEntry.getKey());
-                    }
-                }
+                cleanupMap(notifyCooldowns, now, (lastNotify, time) -> time - lastNotify > NOTIFY_COOLDOWN_MS);
             }
         }.runTaskTimer(plugin, windowSeconds * 20L, windowSeconds * 20L);
 
@@ -181,7 +168,23 @@ public class RedstoneMonitor implements Listener {
             }.runTaskTimer(plugin, 1L, 1L);
         }
 
-        plugin.getLogger().info("Redstone Suppressor & Limiter started.");
+        plugin.getLogger().info("Redstone Suppressor & Limiter started (Main Thread Optimized).");
+    }
+
+    /**
+     * Generic map cleanup helper to reduce code duplication
+     */
+    private <T> void cleanupMap(Map<UUID, Map<Long, T>> map, long now,
+            java.util.function.BiPredicate<T, Long> predicate) {
+        Iterator<Map.Entry<UUID, Map<Long, T>>> it = map.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Map<Long, T>> entry = it.next();
+            Map<Long, T> inner = entry.getValue();
+            inner.values().removeIf(value -> predicate.test(value, now));
+            if (inner.isEmpty()) {
+                it.remove();
+            }
+        }
     }
 
     public void stop() {
@@ -203,16 +206,17 @@ public class RedstoneMonitor implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onRedstone(BlockRedstoneEvent event) {
-        // Optimization: Only care about signal CHANGES (0->15 or 15->0) to filter
-        // constant noise
+        // FAIL-FAST: Only care about signal CHANGES
         if (event.getOldCurrent() == event.getNewCurrent())
             return;
 
         Block block = event.getBlock();
         UUID worldUID = block.getWorld().getUID();
+        // Shift operations are faster than division
         long chunkKey = getChunkKey(block.getX() >> 4, block.getZ() >> 4);
 
-        // 1. Check Global Chunk Suppression (Original Feature)
+        // 1. FAIL-FAST: Chunk Suppression (Check this FIRST to save CPU)
+        // If the chunk is already suppressed, we don't want to do frequency checks
         Map<Long, Long> worldSuppressed = suppressedChunks.get(worldUID);
         if (worldSuppressed != null) {
             Long expiresAt = worldSuppressed.get(chunkKey);
@@ -226,45 +230,41 @@ public class RedstoneMonitor implements Listener {
             }
         }
 
-        // 2. Local Block Frequency Check (Advanced Feature)
+        // 2. Local Block Frequency Check
         if (advancedEnabled) {
             long blockKey = getBlockKey(block);
-            Map<Long, RollingFrequency> worldFreqs = blockFrequencies.computeIfAbsent(worldUID,
-                    k -> new ConcurrentHashMap<>());
+            Map<Long, RollingFrequency> worldFreqs = blockFrequencies.computeIfAbsent(worldUID, k -> new HashMap<>());
             RollingFrequency freq = worldFreqs.computeIfAbsent(blockKey, k -> new RollingFrequency());
+
+            // Note: rolling check can involve system time, so we call it here
             if (freq.incrementAndCheck(System.currentTimeMillis(), maxFrequency)) {
-                // Throttled!
                 event.setNewCurrent(event.getOldCurrent());
                 return;
             }
         }
 
-        // 3. Long-term Check (New Feature)
+        // 3. Long-term Check
         if (longTermEnabled) {
             long blockKey = getBlockKey(block);
-            Map<Long, LongTermClock> worldClocks = longTermClocks.computeIfAbsent(worldUID,
-                    k -> new ConcurrentHashMap<>());
+            Map<Long, LongTermClock> worldClocks = longTermClocks.computeIfAbsent(worldUID, k -> new HashMap<>());
             LongTermClock clock = worldClocks.computeIfAbsent(blockKey,
                     k -> new LongTermClock(System.currentTimeMillis()));
 
             clock.increment();
-            // clock.setCurrentLocation(block.getLocation()); // Removed for now to fix lint
 
-            if (clock.getCount() > longTermMax && !clock.isExpired(System.currentTimeMillis(), longTermWindow)) {
-                // Limit exceeded!
+            if (clock.getCount() > longTermMax
+                    && !clock.isExpired(System.currentTimeMillis(), longTermWindow * 1000L)) {
                 handleLongTermViolation(block, clock);
                 event.setNewCurrent(event.getOldCurrent());
                 return;
             }
         }
 
-        // 3. Update Chunk Activation Counter
-        Map<Long, AtomicInteger> worldActivations = chunkActivations.computeIfAbsent(worldUID,
-                k -> new ConcurrentHashMap<>());
+        // 4. Update Chunk Activation Counter
+        Map<Long, AtomicInteger> worldActivations = chunkActivations.computeIfAbsent(worldUID, k -> new HashMap<>());
         AtomicInteger counter = worldActivations.computeIfAbsent(chunkKey, k -> new AtomicInteger(0));
-        int count = counter.incrementAndGet();
 
-        if (count >= maxActivations) {
+        if (counter.incrementAndGet() >= maxActivations) {
             suppressChunk(worldUID, chunkKey, block);
             event.setNewCurrent(event.getOldCurrent());
         }
@@ -272,31 +272,28 @@ public class RedstoneMonitor implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
-        checkPiston(event.getBlock(), event);
+        checkPiston(event.getBlock(), event, event.getDirection(), event.getBlocks());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent event) {
-        checkPiston(event.getBlock(), event);
+        checkPiston(event.getBlock(), event, event.getDirection(), event.getBlocks());
     }
 
-    private void checkPiston(Block block, org.bukkit.event.Cancellable event) {
-        if (!advancedEnabled || !pistonLimitEnabled)
+    private void checkPiston(Block block, org.bukkit.event.Cancellable event, BlockFace direction,
+            java.util.List<Block> blocks) {
+        if (!pistonLimitEnabled)
             return;
 
-        // Dynamic Tracking: Handle moving clocks (Optional - heavy)
-        if (longTermEnabled && trackMovingBlocks && !event.isCancelled()) {
-            handlePistonMovement(block,
-                    event instanceof BlockPistonExtendEvent ? ((BlockPistonExtendEvent) event).getDirection()
-                            : ((BlockPistonRetractEvent) event).getDirection(),
-                    event instanceof BlockPistonExtendEvent ? ((BlockPistonExtendEvent) event).getBlocks()
-                            : ((BlockPistonRetractEvent) event).getBlocks());
+        // Dynamic Tracking for Moving Clocks (only if enabled)
+        if (longTermEnabled && trackMovingBlocks && !((org.bukkit.event.Cancellable) event).isCancelled()) {
+            handlePistonMovement(block, direction, blocks);
         }
 
         UUID worldUID = block.getWorld().getUID();
         long chunkKey = getChunkKey(block.getX() >> 4, block.getZ() >> 4);
 
-        Map<Long, AtomicInteger> worldPistons = pistonCounts.computeIfAbsent(worldUID, k -> new ConcurrentHashMap<>());
+        Map<Long, AtomicInteger> worldPistons = pistonCounts.computeIfAbsent(worldUID, k -> new HashMap<>());
         AtomicInteger count = worldPistons.computeIfAbsent(chunkKey, k -> new AtomicInteger(0));
 
         if (count.incrementAndGet() > maxPistonsPerChunkTick) {
@@ -305,7 +302,6 @@ public class RedstoneMonitor implements Listener {
     }
 
     private void handleLongTermViolation(Block block, LongTermClock clock) {
-        // Prevent spamming actions every tick
         if (clock.getCount() % 20 != 0)
             return;
 
@@ -316,54 +312,46 @@ public class RedstoneMonitor implements Listener {
 
         if (notify) {
             NotificationHelper.notifyAdmins(
-                    "&c⚠ Persistent Redstone Clock detected at &f" + worldName + " " + x + "," + y + "," + z
-                            + " &7(" + clock.getCount() + " activations/" + longTermWindow + "s)");
+                    "&c⚠ Persistent Redstone Clock (&f" + x + "," + y + "," + z + "&c) in " + worldName
+                            + " &7(" + clock.getCount() + " acts/" + longTermWindow + "s)");
         }
 
         if (longTermBreak) {
-            // Simulate Silk Touch break if possible, or just break naturally
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 block.breakNaturally();
-                // Note: accurate silk touch requires NMS or more complex logic, breakNaturally
-                // is safe default
-                longTermClocks.get(block.getWorld().getUID()).remove(getBlockKey(block));
+                Map<Long, LongTermClock> worldMap = longTermClocks.get(block.getWorld().getUID());
+                if (worldMap != null)
+                    worldMap.remove(getBlockKey(block));
             });
         }
     }
 
-    private void handlePistonMovement(Block piston, org.bukkit.block.BlockFace direction,
-            java.util.List<Block> blocks) {
+    private void handlePistonMovement(Block piston, BlockFace direction, java.util.List<Block> blocks) {
         UUID worldUID = piston.getWorld().getUID();
         Map<Long, LongTermClock> worldClocks = longTermClocks.get(worldUID);
-        if (worldClocks == null)
+        if (worldClocks == null || worldClocks.isEmpty())
             return;
 
-        // Vector shift
         int dx = direction.getModX();
         int dy = direction.getModY();
         int dz = direction.getModZ();
 
-        // Use temporary map to prevent overwriting keys if blocks move into each
-        // other's
-        // previous positions
         Map<Long, LongTermClock> updates = new HashMap<>();
 
         for (Block b : blocks) {
-            if (b.getType() == org.bukkit.Material.AIR)
+            if (b.getType().isAir())
                 continue;
 
             long oldKey = getBlockKey(b);
             LongTermClock clock = worldClocks.remove(oldKey);
 
             if (clock != null) {
-                // Fast re-keying:
+                // Determine new position
                 int newX = b.getX() + dx;
                 int newY = b.getY() + dy;
                 int newZ = b.getZ() + dz;
 
-                long newKey = (((long) newX & 0x7FFFFFF) | (((long) newZ & 0x7FFFFFF) << 27)
-                        | ((long) newY << 54));
-
+                long newKey = getBlockKey(newX, newY, newZ);
                 updates.put(newKey, clock);
             }
         }
@@ -376,19 +364,13 @@ public class RedstoneMonitor implements Listener {
     private void suppressChunk(UUID worldUID, long chunkKey, Block block) {
         long expiry = System.currentTimeMillis() + (cooldownSeconds * 1000L);
 
-        Map<Long, Long> worldSuppressed = suppressedChunks.computeIfAbsent(worldUID, k -> new ConcurrentHashMap<>());
+        Map<Long, Long> worldSuppressed = suppressedChunks.computeIfAbsent(worldUID, k -> new HashMap<>());
         worldSuppressed.put(chunkKey, expiry);
-
-        // Recalculate size roughly? Or just wait for cleanup task to update exact
-        // count.
-        // For simplicity, we just increment counter, but exact count is updated
-        // periodically.
         totalSuppressed++;
 
-        // Notify admins with per-chunk cooldown
         if (notify) {
             long now = System.currentTimeMillis();
-            Map<Long, Long> worldCooldowns = notifyCooldowns.computeIfAbsent(worldUID, k -> new ConcurrentHashMap<>());
+            Map<Long, Long> worldCooldowns = notifyCooldowns.computeIfAbsent(worldUID, k -> new HashMap<>());
             Long lastNotify = worldCooldowns.get(chunkKey);
 
             if (lastNotify == null || now - lastNotify >= NOTIFY_COOLDOWN_MS) {
@@ -404,9 +386,12 @@ public class RedstoneMonitor implements Listener {
             }
         }
 
-        plugin.getLogger().warning("[RedstoneSuppressor] Chunk (" + (block.getX() >> 4)
-                + ", " + (block.getZ() >> 4) + ") in " + block.getWorld().getName()
-                + " suppressed — activations exceeded limit");
+        plugin.getLogger().warning("[Redstone] Suppressed chunk (" + (block.getX() >> 4)
+                + ", " + (block.getZ() >> 4) + ") in " + block.getWorld().getName());
+    }
+
+    public void setMaxActivations(int maxActivations) {
+        this.maxActivations = maxActivations;
     }
 
     public void clearAllSuppressions() {
@@ -414,27 +399,32 @@ public class RedstoneMonitor implements Listener {
         chunkActivations.clear();
         notifyCooldowns.clear();
         blockFrequencies.clear();
+        pistonCounts.clear();
         activeSuppressedChunks = 0;
     }
 
+    // Packing logic
     private long getBlockKey(Block block) {
-        // Just packed coordinates (key is unique within a world map)
-        return (((long) block.getX() & 0x7FFFFFF) | (((long) block.getZ() & 0x7FFFFFF) << 27)
-                | ((long) block.getY() << 54));
+        return getBlockKey(block.getX(), block.getY(), block.getZ());
+    }
+
+    private long getBlockKey(int x, int y, int z) {
+        // 27 bits X, 27 bits Z, 10 bits Y (Y is usually 0-384, fits in 10 bits: 1024)
+        // Note: Y is shifted 54, so we have 64 bits total.
+        // X and Z masking: 0x7FFFFFF (27 bits)
+        return ((long) x & 0x7FFFFFF) | (((long) z & 0x7FFFFFF) << 27) | ((long) y << 54);
     }
 
     private long getChunkKey(int x, int z) {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
-    // ── Data Classes ──────────────────────────────────────
-
+    // Data Classes
     private static class RollingFrequency {
         private long lastSecondStart = 0;
         private int count = 0;
 
-        // Returns true if limit exceeded (throttle)
-        public synchronized boolean incrementAndCheck(long now, int maxPerSec) {
+        public boolean incrementAndCheck(long now, int maxPerSec) {
             if (now - lastSecondStart > 1000) {
                 lastSecondStart = now;
                 count = 0;
@@ -465,13 +455,11 @@ public class RedstoneMonitor implements Listener {
             return count;
         }
 
-        public boolean isExpired(long now, int windowSeconds) {
-            return (now - startTime) > (windowSeconds * 1000L);
+        public boolean isExpired(long now, long windowMillis) {
+            return (now - startTime) > windowMillis;
         }
-
     }
 
-    // Adjusted for compatibility
     public Map<String, Long> getSuppressedChunks() {
         Map<String, Long> result = new HashMap<>();
         for (Map.Entry<UUID, Map<Long, Long>> worldEntry : suppressedChunks.entrySet()) {
@@ -480,14 +468,12 @@ public class RedstoneMonitor implements Listener {
                 long chunkKey = chunkEntry.getKey();
                 int x = (int) (chunkKey >> 32);
                 int z = (int) chunkKey;
-                // Format: WorldUUID:x:z
                 result.put(worldUID + ":" + x + ":" + z, chunkEntry.getValue());
             }
         }
         return result;
     }
 
-    // Getters
     public long getTotalSuppressed() {
         return totalSuppressed;
     }
