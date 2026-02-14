@@ -25,21 +25,55 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Get Version Info
+        id: version_info
+        run: |
+          # Extract version from pom.xml
+          POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          
+          # Get short commit hash
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            # Tagged push
+            VERSION=${GITHUB_REF#refs/tags/}
+            IS_PRERELEASE=false
+            TAG_NAME=$VERSION
+          else
+            # Branch push
+            VERSION="v${POM_VERSION}-${SHORT_SHA}"
+            IS_PRERELEASE=true
+            TAG_NAME=$VERSION
+          fi
+          
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "POM_VERSION=$POM_VERSION" >> $GITHUB_ENV
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+
+      - name: Update Maven Version (Pre-release only)
+        if: env.IS_PRERELEASE == 'true'
+        run: mvn versions:set -DnewVersion=${{ env.POM_VERSION }}-${{ env.SHORT_SHA }}
+
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LessLag-Jar
+          name: LessLag-${{ env.VERSION }}
           path: target/LessLag-*.jar
           retention-days: 5
 
-      - name: Create Release
+      - name: Release to GitHub
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push'
         with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
           files: target/LessLag-*.jar
+          prerelease: ${{ env.IS_PRERELEASE }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
