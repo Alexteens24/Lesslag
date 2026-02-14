@@ -1,7 +1,7 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
-import com.lesslag.WorkloadDistributor;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;

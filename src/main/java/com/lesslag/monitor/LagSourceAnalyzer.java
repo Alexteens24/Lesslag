@@ -3,7 +3,6 @@ package com.lesslag.monitor;
 import com.lesslag.LessLag;
 import org.bukkit.Bukkit;
 
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
@@ -66,18 +65,11 @@ public class LagSourceAnalyzer {
     // ══════════════════════════════════════════════════
 
     private TaskSnapshot[] takeTaskSnapshot() {
-        List<BukkitTask> pendingTasks = Bukkit.getScheduler().getPendingTasks();
-        Map<String, Integer> taskCounts = new HashMap<>();
-
-        for (BukkitTask task : pendingTasks) {
-            Plugin owner = task.getOwner();
-            String ownerName = owner.getName();
-            taskCounts.put(ownerName, taskCounts.getOrDefault(ownerName, 0) + 1);
-        }
-
-        return taskCounts.entrySet().stream()
-                .map(e -> new TaskSnapshot(e.getKey(), e.getValue()))
-                .toArray(TaskSnapshot[]::new);
+        // Disabled by "CTO" optimization - getPendingTasks() is too heavy for main
+        // thread.
+        // Returning empty array to effectively disable this specific metric without
+        // breaking API.
+        return new TaskSnapshot[0];
     }
 
     private AnalysisConfig takeConfigSnapshot() {

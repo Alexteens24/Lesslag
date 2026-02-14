@@ -127,8 +127,12 @@ public class RedstoneMonitor implements Listener {
 
         // Periodic cleanup + counter reset
         cleanupTask = new BukkitRunnable() {
+            // Optimization: dedicated counter field for trimming
+            private int runCounter = 0;
+
             @Override
             public void run() {
+                runCounter++;
                 // Reset activation counters every window
                 chunkActivations.clear();
 
@@ -161,6 +165,16 @@ public class RedstoneMonitor implements Listener {
 
                 // Clean stale notification cooldowns
                 cleanupMapGeneric(notifyCooldowns, now, (lastNotify, time) -> time - lastNotify > NOTIFY_COOLDOWN_NANO);
+
+                // Memory Trim (Every ~5 minutes = 150 runs if window is 2s)
+                if (runCounter % 150 == 0) {
+                    chunkActivations.values().forEach(it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap::trim);
+                    suppressedChunks.values().forEach(it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap::trim);
+                    pistonCounts.values().forEach(it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap::trim);
+                    // blockFrequencies and longTermClocks are Obj maps, also have trim
+                    blockFrequencies.values().forEach(it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap::trim);
+                    longTermClocks.values().forEach(it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap::trim);
+                }
             }
         }.runTaskTimer(plugin, windowSeconds * 20L, windowSeconds * 20L);
 
@@ -175,6 +189,7 @@ public class RedstoneMonitor implements Listener {
         }
 
         plugin.getLogger().info("Redstone Suppressor & Limiter started (Main Thread Optimized + FastUtil).");
+
     }
 
     /**

@@ -153,30 +153,42 @@ public class ChunkLimiter {
         context.hotChunks.incrementAndGet();
         int excess = entities.length - maxPerChunk;
 
-        List<Entity> removable = new ArrayList<>();
+        // Bucket Sort Strategy (O(N)) - CTO Optimization
+        // 0: Item, 1: XP, 2: Monster, 3: Living, 4: Other
+        @SuppressWarnings("unchecked")
+        List<Entity>[] buckets = new List[5];
+        for (int i = 0; i < 5; i++)
+            buckets[i] = new ArrayList<>();
+
         for (Entity entity : entities) {
             if (entity instanceof Player || isProtected(entity, whitelist))
                 continue;
 
-            // Check if removable type
-            if (entity instanceof Item || entity instanceof ExperienceOrb || entity instanceof Monster
-                    || entity instanceof LivingEntity) {
-                removable.add(entity);
+            int ordinal = getCategoryOrdinal(entity);
+            buckets[ordinal].add(entity);
+        }
+
+        int removedCount = 0;
+        int targetToRemove = excess;
+
+        // Iterate buckets in priority order (0 to 4)
+        for (int i = 0; i < 5; i++) {
+            if (removedCount >= targetToRemove)
+                break;
+
+            for (Entity entity : buckets[i]) {
+                if (removedCount >= targetToRemove)
+                    break;
+
+                entity.remove();
+                context.removedEntities.incrementAndGet();
+                removedCount++;
             }
         }
 
-        // Sort directly (ITEM > XP > HOSTILE > PASSIVE)
-        removable.sort((e1, e2) -> Integer.compare(getCategoryOrdinal(e1), getCategoryOrdinal(e2)));
-
-        int toRemoveCount = Math.min(excess, removable.size());
-        for (int i = 0; i < toRemoveCount; i++) {
-            removable.get(i).remove();
-            context.removedEntities.incrementAndGet();
-        }
-
-        if (toRemoveCount > 0) {
+        if (removedCount > 0) {
             plugin.getLogger().fine("[ChunkLimiter] Chunk (" + chunk.getX() + ", " + chunk.getZ()
-                    + ") in " + chunk.getWorld().getName() + ": removed " + toRemoveCount + " entities");
+                    + ") in " + chunk.getWorld().getName() + ": removed " + removedCount + " entities");
         }
     }
 

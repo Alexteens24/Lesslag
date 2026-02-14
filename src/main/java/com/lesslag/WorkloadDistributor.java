@@ -1,6 +1,5 @@
 package com.lesslag;
 
-import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
@@ -15,8 +14,11 @@ import org.bukkit.scheduler.BukkitTask;
  */
 public class WorkloadDistributor {
 
-    private final Deque<Runnable> highPriorityQueue = new ArrayDeque<>();
-    private final Deque<Runnable> usageQueue = new ArrayDeque<>(); // Low priority, ring buffer
+    private final Deque<Runnable> highPriorityQueue = new java.util.concurrent.ConcurrentLinkedDeque<>();
+    private final Deque<Runnable> usageQueue = new java.util.concurrent.ConcurrentLinkedDeque<>();
+    private final java.util.concurrent.atomic.AtomicInteger usageQueueSize = new java.util.concurrent.atomic.AtomicInteger(
+            0);
+
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile BukkitTask task;
     private Logger logger;
@@ -56,7 +58,7 @@ public class WorkloadDistributor {
 
     public enum WorkloadPriority {
         HIGH, // Critical (User commands, restores) - Never dropped
-        LOW // Background (Scanners, particles) - Ring buffer (drops oldest)
+        LOW // Background (Scanners, particles) - Drops if full
     }
 
     /**
@@ -68,21 +70,31 @@ public class WorkloadDistributor {
 
     /**
      * Add a workload with specified priority.
-     * Thread-safe.
+     * Thread-safe & Non-blocking (Lock-free).
      */
     public boolean addWorkload(Runnable workload, WorkloadPriority priority) {
         if (workload == null)
             return false;
 
-        synchronized (this) {
-            if (priority == WorkloadPriority.HIGH) {
-                highPriorityQueue.addLast(workload);
-            } else {
-                if (usageQueue.size() >= MAX_USAGE_QUEUE_SIZE) {
-                    usageQueue.pollFirst(); // Drop oldest to make space
+        if (priority == WorkloadPriority.HIGH) {
+            highPriorityQueue.addLast(workload);
+        } else {
+            // Optimistic check. If we are slightly over limit due to race condition, it is
+            // fine.
+            // Strict counting is less important than throughput.
+            if (usageQueueSize.get() >= MAX_USAGE_QUEUE_SIZE) {
+                // Drop oldest to make space?
+                // In a lock-free concurrent deque, polling specific elements (head) while
+                // adding to tail is safe but
+                // creating a "Slot" is tricky without locking.
+                // Strategy: Just poll one off the head to "make room" then add.
+                Runnable dropped = usageQueue.pollFirst();
+                if (dropped != null) {
+                    usageQueueSize.decrementAndGet();
                 }
-                usageQueue.addLast(workload);
             }
+            usageQueue.addLast(workload);
+            usageQueueSize.incrementAndGet();
         }
 
         ensureRunning();
@@ -113,7 +125,6 @@ public class WorkloadDistributor {
 
             // Emergency Throttle: If server is struggling (MSPT > 45ms), reduce budget to
             // 0.5ms
-            // This prevents the distributor from compounding lag.
             if (LessLag.getInstance() != null && LessLag.getInstance().getTpsMonitor() != null) {
                 double mspt = LessLag.getInstance().getTpsMonitor().getCurrentMSPT();
                 if (mspt > 45.0) {
@@ -124,12 +135,12 @@ public class WorkloadDistributor {
             long stopTime = System.nanoTime() + budget;
 
             while (System.nanoTime() < stopTime) {
-                Runnable work = null;
-                synchronized (this) {
-                    // Drain High Priority first
-                    work = highPriorityQueue.pollFirst();
-                    if (work == null) {
-                        work = usageQueue.pollFirst();
+                Runnable work = highPriorityQueue.pollFirst();
+
+                if (work == null) {
+                    work = usageQueue.pollFirst();
+                    if (work != null) {
+                        usageQueueSize.decrementAndGet();
                     }
                 }
 
@@ -150,25 +161,16 @@ public class WorkloadDistributor {
                 }
             }
 
-            boolean isEmpty;
-            synchronized (this) {
-                isEmpty = highPriorityQueue.isEmpty() && usageQueue.isEmpty();
-            }
-
-            if (isEmpty) {
+            // Check if queues are empty to stop the timer
+            if (highPriorityQueue.isEmpty() && usageQueue.isEmpty()) {
                 if (task != null) {
                     task.cancel();
                     task = null;
                 }
                 running.set(false);
 
-                // Double-check: items may have been added between isEmpty() and running.set()
-                boolean recheckNotEmpty;
-                synchronized (this) {
-                    recheckNotEmpty = !highPriorityQueue.isEmpty() || !usageQueue.isEmpty();
-                }
-
-                if (recheckNotEmpty) {
+                // Double-check (Race condition: item added after check but before set(false))
+                if (!highPriorityQueue.isEmpty() || !usageQueue.isEmpty()) {
                     ensureRunning();
                 }
             }
@@ -177,11 +179,12 @@ public class WorkloadDistributor {
 
     /**
      * Get current queue size for monitoring.
+     * Note: size() on ConcurrentLinkedDeque is O(n), so we use the counter for
+     * usage queue
+     * and accept O(n) for high priority (which should be small).
      */
     public int getQueueSize() {
-        synchronized (this) {
-            return highPriorityQueue.size() + usageQueue.size();
-        }
+        return highPriorityQueue.size() + usageQueueSize.get();
     }
 
     /**
@@ -200,9 +203,9 @@ public class WorkloadDistributor {
             task = null;
         }
         running.set(false);
-        synchronized (this) {
-            highPriorityQueue.clear();
-            usageQueue.clear();
-        }
+
+        highPriorityQueue.clear();
+        usageQueue.clear();
+        usageQueueSize.set(0);
     }
 }
