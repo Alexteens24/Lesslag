@@ -80,6 +80,42 @@
           </relocations>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>com.github.wvengen</groupId>
+        <artifactId>proguard-maven-plugin</artifactId>
+        <version>2.6.1</version>
+        <executions>
+          <execution>
+            <id>obfuscate-premium</id>
+            <phase>package</phase>
+            <goals>
+              <goal>proguard</goal>
+            </goals>
+            <configuration>
+              <obfuscate>true</obfuscate>
+              <proguardInclude>${project.basedir}/.proguard.secret.conf</proguardInclude>
+              <injar>LessLag-${project.version}-premium.jar</injar>
+              <outjar>LessLag-${project.version}-premium-obfuscated.jar</outjar>
+              <libs>
+                <lib>${java.home}/jmods/java.base.jmod</lib>
+                <lib>${java.home}/jmods/java.desktop.jmod</lib>
+              </libs>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>com.guardsquare</groupId>
+            <artifactId>proguard-base</artifactId>
+            <version>7.4.2</version>
+          </dependency>
+          <dependency>
+            <groupId>com.guardsquare</groupId>
+            <artifactId>proguard-core</artifactId>
+            <version>9.1.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
   </build>
   <repositories>

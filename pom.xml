@@ -177,6 +177,49 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- ProGuard Obfuscator Plugin (Hidden Config) -->
+            <plugin>
+                <groupId>com.github.wvengen</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <version>2.6.1</version>
+                <executions>
+                    <execution>
+                        <id>obfuscate-premium</id>
+                        <!-- Chạy sau khi Maven Shade đã gộp thư viện xong -->
+                        <phase>package</phase>
+                        <goals>
+                            <goal>proguard</goal>
+                        </goals>
+                        <configuration>
+                            <obfuscate>true</obfuscate>
+                            <proguardInclude>${project.basedir}/.proguard.secret.conf</proguardInclude>
+                            <!-- Lấy file jar Premium (đã được shade) làm đầu vào -->
+                            <injar>LessLag-${project.version}-premium.jar</injar>
+                            <!-- Tên file xuất ra là -premium-obfuscated.jar -->
+                            <outjar>LessLag-${project.version}-premium-obfuscated.jar</outjar>
+                            
+                            <!-- Bắt buộc cho Java 9+ (Java 21) -->
+                            <libs>
+                                <lib>${java.home}/jmods/java.base.jmod</lib>
+                                <lib>${java.home}/jmods/java.desktop.jmod</lib>
+                            </libs>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <!-- Core của ProGuard (Cập nhật lên 7.4.x để tương thích Java 21) -->
+                    <dependency>
+                        <groupId>com.guardsquare</groupId>
+                        <artifactId>proguard-base</artifactId>
+                        <version>7.4.2</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.guardsquare</groupId>
+                        <artifactId>proguard-core</artifactId>
+                        <version>9.1.1</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
         </plugins>
     </build>
 </project>

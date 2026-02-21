@@ -13,6 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      IS_PRERELEASE: ''
+      POM_VERSION: ''
+      SHORT_SHA: ''
+      VERSION: ''
+      TAG_NAME: ''
+      RELEASE_BODY: ''
+      GENERATE_NOTES: ''
 
     steps:
       - name: Checkout code
@@ -69,6 +77,11 @@ jobs:
       - name: Update Maven Version (Pre-release only)
         if: env.IS_PRERELEASE == 'true'
         run: mvn versions:set -DnewVersion=${{ env.POM_VERSION }}-${{ env.SHORT_SHA }}
+
+      - name: Create ProGuard Config
+        env:
+          PROGUARD_CONF: ${{ secrets.PROGUARD_CONF }}
+        run: echo "$PROGUARD_CONF" > .proguard.secret.conf
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml

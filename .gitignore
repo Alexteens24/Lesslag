@@ -12,3 +12,4 @@ Thumbs.db
 
 # Premium Source Code
 src/main/java/com/lesslag/premium/
+.proguard.secret.conf
