@@ -221,7 +221,13 @@ public class BottleneckAnalyzer {
                 Map.Entry.comparingByValue());
 
         double percentage = (worstMethod.getValue() * 100.0) / totalSamples;
-        long durationMs = (System.nanoTime() - lastTickTimeNano) / 1_000_000L;
+        // The lastTickTimeNano was already updated by the pingWatchdog before this
+        // method was called,
+        // so we calculate the approximate duration based on the number of samples
+        // taken.
+        // We add thresholdMs because sampling only starts AFTER the threshold is
+        // reached.
+        long durationMs = thresholdMs + (totalSamples * sampleIntervalMs);
 
         // Format the name nicely
         String methodName = worstMethod.getKey();
