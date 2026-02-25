@@ -100,6 +100,9 @@ public class LagCommand implements CommandExecutor {
             case "sources":
                 showSources(sender);
                 break;
+            case "trace":
+                doTrace(sender);
+                break;
             case "chunks":
                 showChunkLimiter(sender);
                 break;
@@ -153,6 +156,7 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg entities    &8- &7Entity type breakdown");
         send(sender, "  &e/lg thresholds  &8- &7View threshold config & status");
         send(sender, "  &e/lg sources     &8- &7Analyze lag sources (async)");
+        send(sender, "  &e/lg trace       &8- &7Shows Bottleneck Analyzer config");
         send(sender, "  &e/lg chunks      &8- &7Smart Chunk Limiter status");
         send(sender, "  &e/lg redstone    &8- &7Redstone Suppressor status");
         send(sender, "  &e/lg predictive  &8- &7Predictive Optimizer status");
@@ -713,6 +717,28 @@ public class LagCommand implements CommandExecutor {
             });
             return null;
         });
+    }
+
+    // ══════════════════════════════════════════════════
+    // Bottleneck Analyzer (Trace)
+    // ══════════════════════════════════════════════════
+
+    private void doTrace(CommandSender sender) {
+        boolean enabled = plugin.getConfig().getBoolean("system.bottleneck-analyzer.enabled", true);
+
+        send(sender, "");
+        send(sender, "&c&l  ≡ Bottleneck Analyzer (Trace) ≡");
+        send(sender, "");
+        send(sender, "  &7Status: " + (enabled ? "&aEnabled (Running as Watchdog)" : "&cDisabled"));
+        send(sender, "  &7Lag Threshold: &f"
+                + plugin.getConfig().getLong("system.bottleneck-analyzer.threshold-ms", 100L) + "ms");
+        send(sender, "  &7Sampling Interval: &f"
+                + plugin.getConfig().getLong("system.bottleneck-analyzer.sample-interval-ms", 5L) + "ms");
+        send(sender, "");
+        send(sender, "  &8Note: The Bottleneck Analyzer runs constantly in the background.");
+        send(sender, "  &8If a tick takes longer than the threshold, it immediately samples");
+        send(sender, "  &8the main thread and warns admins containing the exact cause.");
+        send(sender, "");
     }
 
     // ══════════════════════════════════════════════════

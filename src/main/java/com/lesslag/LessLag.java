@@ -9,6 +9,7 @@ import com.lesslag.monitor.WorldChunkGuard;
 import com.lesslag.monitor.MemoryLeakDetector;
 import com.lesslag.monitor.GCMonitor;
 import com.lesslag.monitor.LagSourceAnalyzer;
+import com.lesslag.monitor.BottleneckAnalyzer;
 import com.lesslag.monitor.PredictiveOptimizer;
 import com.lesslag.monitor.RedstoneMonitor;
 import com.lesslag.monitor.TPSMonitor;
@@ -45,6 +46,7 @@ public class LessLag extends JavaPlugin implements Listener {
     private GCMonitor gcMonitor;
     private ActionExecutor actionExecutor;
     private LagSourceAnalyzer lagSourceAnalyzer;
+    private BottleneckAnalyzer bottleneckAnalyzer;
     private ChunkLimiter chunkLimiter;
     private RedstoneMonitor redstoneMonitor;
     private VillagerOptimizer villagerOptimizer;
@@ -164,6 +166,7 @@ public class LessLag extends JavaPlugin implements Listener {
         compatManager = new CompatibilityManager(this);
         compatManager.detect();
         lagSourceAnalyzer = new LagSourceAnalyzer(this);
+        bottleneckAnalyzer = new BottleneckAnalyzer(this);
         predictiveOptimizer = new PredictiveOptimizer(this, actionExecutor);
         tpsMonitor = new TPSMonitor(this, actionExecutor, lagSourceAnalyzer, predictiveOptimizer);
         tickMonitor = new TickMonitor(this);
@@ -181,6 +184,7 @@ public class LessLag extends JavaPlugin implements Listener {
         tpsMonitor.start();
         tickMonitor.start();
         gcMonitor.start();
+        bottleneckAnalyzer.start();
         chunkLimiter.start();
         redstoneMonitor.start();
         frustumCuller.start();
@@ -198,6 +202,8 @@ public class LessLag extends JavaPlugin implements Listener {
             tickMonitor.stop();
         if (gcMonitor != null)
             gcMonitor.stop();
+        if (bottleneckAnalyzer != null)
+            bottleneckAnalyzer.stop();
         if (chunkLimiter != null)
             chunkLimiter.stop();
         if (redstoneMonitor != null)
@@ -276,6 +282,10 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public LagSourceAnalyzer getLagSourceAnalyzer() {
         return lagSourceAnalyzer;
+    }
+
+    public BottleneckAnalyzer getBottleneckAnalyzer() {
+        return bottleneckAnalyzer;
     }
 
     public ChunkLimiter getChunkLimiter() {
