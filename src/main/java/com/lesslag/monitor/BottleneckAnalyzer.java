@@ -3,12 +3,14 @@ package com.lesslag.monitor;
 import com.lesslag.LessLag;
 import com.lesslag.util.NotificationHelper;
 import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * An async watchdog that constantly monitors the main server thread.
@@ -22,6 +24,7 @@ public class BottleneckAnalyzer {
     private final ThreadMXBean threadBean;
 
     private Thread watchdogThread;
+    private BukkitTask pingTask;
     private volatile boolean running = false;
 
     // Config values
@@ -33,9 +36,9 @@ public class BottleneckAnalyzer {
     private long mainThreadId = -1;
 
     // Sampling context
-    private boolean isSpiking = false;
+    private volatile boolean isSpiking = false;
     private final Map<String, Integer> currentSpikeSamples = new ConcurrentHashMap<>();
-    private int totalSamplesInCurrentSpike = 0;
+    private final AtomicInteger totalSamplesInCurrentSpike = new AtomicInteger(0);
 
     public BottleneckAnalyzer(LessLag plugin) {
         this.plugin = plugin;
@@ -88,7 +91,7 @@ public class BottleneckAnalyzer {
                 "BottleneckAnalyzer started (Threshold: " + thresholdMs + "ms, Sampling: " + sampleIntervalMs + "ms)");
 
         // Register sync task to ping the watchdog every tick
-        Bukkit.getScheduler().runTaskTimer(plugin, this::pingWatchdog, 1L, 1L);
+        pingTask = Bukkit.getScheduler().runTaskTimer(plugin, this::pingWatchdog, 1L, 1L);
     }
 
     public void stop() {
@@ -96,6 +99,10 @@ public class BottleneckAnalyzer {
         if (watchdogThread != null) {
             watchdogThread.interrupt();
             watchdogThread = null;
+        }
+        if (pingTask != null) {
+            pingTask.cancel();
+            pingTask = null;
         }
     }
 
@@ -109,10 +116,10 @@ public class BottleneckAnalyzer {
         // If we were spiking but now the tick completed, process the samples
         if (isSpiking) {
             isSpiking = false;
-            if (totalSamplesInCurrentSpike > 0) {
-                processAndReportSpike(new HashMap<>(currentSpikeSamples), totalSamplesInCurrentSpike);
+            int totalSamples = totalSamplesInCurrentSpike.getAndSet(0);
+            if (totalSamples > 0) {
+                processAndReportSpike(new HashMap<>(currentSpikeSamples), totalSamples);
                 currentSpikeSamples.clear();
-                totalSamplesInCurrentSpike = 0;
             }
         }
     }
@@ -167,7 +174,7 @@ public class BottleneckAnalyzer {
         String key = extractMeaningfulMethod(stack);
         if (key != null) {
             currentSpikeSamples.put(key, currentSpikeSamples.getOrDefault(key, 0) + 1);
-            totalSamplesInCurrentSpike++;
+            totalSamplesInCurrentSpike.incrementAndGet();
         }
     }
 
