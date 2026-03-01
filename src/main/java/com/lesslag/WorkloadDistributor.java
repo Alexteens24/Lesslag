@@ -18,6 +18,10 @@ public class WorkloadDistributor {
     private final Deque<Runnable> usageQueue = new java.util.concurrent.ConcurrentLinkedDeque<>();
     private final java.util.concurrent.atomic.AtomicInteger usageQueueSize = new java.util.concurrent.atomic.AtomicInteger(
             0);
+    private final java.util.concurrent.atomic.AtomicInteger highQueueSize = new java.util.concurrent.atomic.AtomicInteger(
+            0);
+    private final java.util.concurrent.atomic.AtomicInteger highQueueDropped = new java.util.concurrent.atomic.AtomicInteger(
+            0);
 
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile BukkitTask task;
@@ -25,6 +29,7 @@ public class WorkloadDistributor {
 
     private long maxNanosPerTick = 2_000_000; // Default 2ms
     private static final int MAX_USAGE_QUEUE_SIZE = 2000;
+    private static final int MAX_HIGH_QUEUE_SIZE = 5000;
 
     public WorkloadDistributor() {
         // Delay config loading until onEnable
@@ -77,7 +82,14 @@ public class WorkloadDistributor {
             return false;
 
         if (priority == WorkloadPriority.HIGH) {
+            if (highQueueSize.get() >= MAX_HIGH_QUEUE_SIZE) {
+                highQueueDropped.incrementAndGet();
+                getLogger().warning("[WorkloadDistributor] HIGH queue full (" + MAX_HIGH_QUEUE_SIZE
+                        + " items). Dropping workload to prevent memory pressure.");
+                return false;
+            }
             highPriorityQueue.addLast(workload);
+            highQueueSize.incrementAndGet();
         } else {
             // Optimistic check. If we are slightly over limit due to race condition, it is
             // fine.
@@ -136,6 +148,9 @@ public class WorkloadDistributor {
 
             while (System.nanoTime() < stopTime) {
                 Runnable work = highPriorityQueue.pollFirst();
+                if (work != null) {
+                    highQueueSize.decrementAndGet();
+                }
 
                 if (work == null) {
                     work = usageQueue.pollFirst();
@@ -184,7 +199,14 @@ public class WorkloadDistributor {
      * and accept O(n) for high priority (which should be small).
      */
     public int getQueueSize() {
-        return highPriorityQueue.size() + usageQueueSize.get();
+        return highQueueSize.get() + usageQueueSize.get();
+    }
+
+    /**
+     * Number of HIGH-priority workloads dropped due to queue cap since startup.
+     */
+    public int getHighQueueDropped() {
+        return highQueueDropped.get();
     }
 
     /**

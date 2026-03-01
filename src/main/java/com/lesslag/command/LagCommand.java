@@ -547,10 +547,13 @@ public class LagCommand implements CommandExecutor {
 
     private void showEntityBreakdown(CommandSender sender) {
         Map<String, Integer> breakdown = plugin.getActionExecutor().getEntityBreakdown();
+        // Derive total from the snapshot map once — avoids re-iterating all worlds
+        // for every single row in the formatted output.
+        int total = breakdown.values().stream().mapToInt(Integer::intValue).sum();
 
         send(sender, "");
         send(sender, "&c&l  ≡ Entity Breakdown ≡");
-        send(sender, "  &7Total: &f" + plugin.getActionExecutor().getTotalEntityCount());
+        send(sender, "  &7Total: &f" + total);
         send(sender, "");
 
         breakdown.entrySet().stream()
@@ -558,8 +561,6 @@ public class LagCommand implements CommandExecutor {
                 .limit(15)
                 .forEach(entry -> {
                     String color = entry.getValue() > 100 ? "&c" : entry.getValue() > 50 ? "&e" : "&a";
-                    // Percentage
-                    int total = plugin.getActionExecutor().getTotalEntityCount();
                     String pct = total > 0 ? String.format("%.0f", entry.getValue() * 100.0 / total) + "%" : "";
                     send(sender, "  &8▸ &f" + entry.getKey() + " &8- " + color + entry.getValue()
                             + " &8(" + pct + ")");
@@ -640,27 +641,36 @@ public class LagCommand implements CommandExecutor {
             }
             case "status":
             default: {
-                int noAI = 0, total = 0;
+                // Snapshot world/entity references on main thread first,
+                // then count async to avoid stalling the tick with a full entity scan.
+                send(sender, plugin.getPrefix() + "&7Counting mobs (async)...");
+                final List<World> worlds = Bukkit.getWorlds();
+                final int activeRadius = plugin.getConfig().getInt("modules.mob-ai.active-radius", 48);
+                final int protectedTypes = plugin.getConfig().getStringList("modules.mob-ai.protected").size();
 
-                for (World world : Bukkit.getWorlds()) {
-                    for (org.bukkit.entity.Entity entity : world.getEntities()) {
-                        if (entity instanceof org.bukkit.entity.Mob) {
-                            total++;
-                            if (!plugin.isMobAwareSafe((org.bukkit.entity.Mob) entity))
-                                noAI++;
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    int countTotal = 0, countNoAI = 0;
+                    for (World world : worlds) {
+                        for (org.bukkit.entity.Entity entity : world.getEntities()) {
+                            if (entity instanceof org.bukkit.entity.Mob) {
+                                countTotal++;
+                                if (!plugin.isMobAwareSafe((org.bukkit.entity.Mob) entity))
+                                    countNoAI++;
+                            }
                         }
                     }
-                }
-                send(sender, "");
-                send(sender, "&c&l  ≡ AI Status ≡");
-                send(sender, "  &7Total mobs: &f" + total);
-                send(sender, "  &7AI disabled: &e" + noAI);
-                send(sender, "  &7AI active: &a" + (total - noAI));
-                send(sender, "  &7Active radius: &f" + plugin.getConfig().getInt("modules.mob-ai.active-radius", 48)
-                        + " blocks");
-                send(sender, "  &7Protected types: &f"
-                        + plugin.getConfig().getStringList("modules.mob-ai.protected").size());
-                send(sender, "");
+                    final int ft = countTotal, fn = countNoAI;
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        send(sender, "");
+                        send(sender, "&c&l  ≡ AI Status ≡");
+                        send(sender, "  &7Total mobs: &f" + ft);
+                        send(sender, "  &7AI disabled: &e" + fn);
+                        send(sender, "  &7AI active: &a" + (ft - fn));
+                        send(sender, "  &7Active radius: &f" + activeRadius + " blocks");
+                        send(sender, "  &7Protected types: &f" + protectedTypes);
+                        send(sender, "");
+                    });
+                });
                 break;
             }
         }
