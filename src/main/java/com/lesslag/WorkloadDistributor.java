@@ -1,11 +1,13 @@
 package com.lesslag;
 
+import com.lesslag.util.SchedulerAdapter;
+import org.bukkit.Chunk;
+import org.bukkit.entity.Entity;
+
 import java.util.Deque;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
-
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitTask;
 
 /**
  * Distributes heavy workloads across multiple ticks to prevent server freeze.
@@ -24,7 +26,7 @@ public class WorkloadDistributor {
             0);
 
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private volatile BukkitTask task;
+    private volatile SchedulerAdapter.TaskHandle task;
     private Logger logger;
 
     private long maxNanosPerTick = 2_000_000; // Default 2ms
@@ -121,11 +123,11 @@ public class WorkloadDistributor {
     }
 
     protected void scheduleStartTimer(Runnable run) {
-        Bukkit.getScheduler().runTask(LessLag.getInstance(), run);
+        SchedulerAdapter.runGlobal(LessLag.getInstance(), run);
     }
 
-    protected BukkitTask scheduleTimerTask(Runnable run, long delay, long period) {
-        return Bukkit.getScheduler().runTaskTimer(LessLag.getInstance(), run, delay, period);
+    protected SchedulerAdapter.TaskHandle scheduleTimerTask(Runnable run, long delay, long period) {
+        return SchedulerAdapter.runGlobalRepeating(LessLag.getInstance(), run, delay, period);
     }
 
     private void startTimer() {
@@ -190,6 +192,72 @@ public class WorkloadDistributor {
                 }
             }
         }, 1L, 1L);
+    }
+
+    // ═══════════════════════════════════════════
+    //  Folia-aware workload helpers
+    // ═══════════════════════════════════════════
+
+    /**
+     * Add a workload that touches entities in a specific chunk.
+     * On Folia: dispatched directly to the chunk's owning region thread.
+     * On Paper/Spigot: queued normally in the WorkloadDistributor.
+     */
+    public boolean addChunkWorkload(Chunk chunk, Runnable workload) {
+        return addChunkWorkload(chunk, workload, WorkloadPriority.LOW);
+    }
+
+    public boolean addChunkWorkload(Chunk chunk, Runnable workload, WorkloadPriority priority) {
+        if (SchedulerAdapter.isFolia()) {
+            try {
+                SchedulerAdapter.runAtChunk(LessLag.getInstance(),
+                        chunk.getWorld(), chunk.getX(), chunk.getZ(), workload);
+            } catch (Exception e) {
+                getLogger().warning("[WorkloadDistributor] Folia chunk dispatch failed: " + e.getMessage());
+            }
+            return true;
+        }
+        return addWorkload(workload, priority);
+    }
+
+    /**
+     * Add a workload that touches a specific entity.
+     * On Folia: dispatched to the entity's owning region thread.
+     * On Paper/Spigot: queued normally.
+     */
+    public boolean addEntityWorkload(Entity entity, Runnable workload) {
+        return addEntityWorkload(entity, workload, WorkloadPriority.LOW);
+    }
+
+    public boolean addEntityWorkload(Entity entity, Runnable workload, WorkloadPriority priority) {
+        if (SchedulerAdapter.isFolia()) {
+            try {
+                SchedulerAdapter.runAtEntity(LessLag.getInstance(), entity, workload);
+            } catch (Exception e) {
+                getLogger().warning("[WorkloadDistributor] Folia entity dispatch failed: " + e.getMessage());
+            }
+            return true;
+        }
+        return addWorkload(workload, priority);
+    }
+
+    /**
+     * Process a batch of chunks where each chunk's work touches entities.
+     * On Folia: dispatched per-chunk to each chunk's owning region thread.
+     * On Paper/Spigot: all chunks processed in one batched workload.
+     */
+    public void addChunkBatchWorkload(List<Chunk> chunks, java.util.function.Consumer<Chunk> processor) {
+        if (SchedulerAdapter.isFolia()) {
+            for (Chunk chunk : chunks) {
+                addChunkWorkload(chunk, () -> processor.accept(chunk));
+            }
+        } else {
+            addWorkload(() -> {
+                for (Chunk chunk : chunks) {
+                    processor.accept(chunk);
+                }
+            });
+        }
     }
 
     /**

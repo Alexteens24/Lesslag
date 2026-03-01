@@ -1,6 +1,7 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -291,7 +292,7 @@ public class MemoryLeakDetector {
                 + " Post-GC baseline rising at +" + String.format("%.1f", slopeMBPerMin) + " MB/min"
                 + " (current: " + String.format("%.0f", currentBaseline) + "MB)");
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        SchedulerAdapter.runGlobal(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.hasPermission("lesslag.notify")) {
                     LessLag.sendMessage(player, plugin.getPrefix() + msg);

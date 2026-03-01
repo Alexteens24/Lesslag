@@ -3,12 +3,11 @@ package com.lesslag.monitor;
 import com.lesslag.LessLag;
 import com.lesslag.action.ActionExecutor;
 import com.lesslag.action.ThresholdConfig;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -21,8 +20,8 @@ public class TPSMonitor {
     private final LagSourceAnalyzer lagSourceAnalyzer;
     private final PredictiveOptimizer predictiveOptimizer;
 
-    private BukkitTask tickTask;
-    private BukkitTask monitorTask;
+    private SchedulerAdapter.TaskHandle tickTask;
+    private SchedulerAdapter.TaskHandle monitorTask;
 
     // TPS calculation (volatile for cross-thread visibility)
     private volatile double currentTPS = 20.0;
@@ -80,16 +79,14 @@ public class TPSMonitor {
         }
 
         // Tick counter — SYNC (must measure actual server ticks)
-        tickTask = new BukkitRunnable() {
-            private int tickCount = 0;
-            private long lastMeasureTime = System.nanoTime();
-            private long lastTickNano = System.nanoTime();
-
-            @Override
-            public void run() {
+        // State fields for tick measurement
+        final long[] tpsLastMeasureTime = { System.nanoTime() };
+        final long[] tpsLastTickNano = { System.nanoTime() };
+        final int[] tpsTickCount = { 0 };
+        tickTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
                 long now = System.nanoTime();
-                double tickMs = (now - lastTickNano) / 1_000_000.0;
-                lastTickNano = now;
+                double tickMs = (now - tpsLastTickNano[0]) / 1_000_000.0;
+                tpsLastTickNano[0] = now;
 
                 synchronized (msptHistory) {
                     msptHistory.addLast(tickMs);
@@ -97,12 +94,12 @@ public class TPSMonitor {
                         msptHistory.removeFirst();
                 }
 
-                tickCount++;
-                long elapsedNano = now - lastMeasureTime;
+                tpsTickCount[0]++;
+                long elapsedNano = now - tpsLastMeasureTime[0];
 
                 if (elapsedNano >= 1_000_000_000L) {
                     double elapsedSeconds = elapsedNano / 1_000_000_000.0;
-                    double measuredTPS = Math.min(20.0, tickCount / elapsedSeconds);
+                    double measuredTPS = Math.min(20.0, tpsTickCount[0] / elapsedSeconds);
 
                     tpsHistory[historyIndex] = measuredTPS;
                     historyIndex = (historyIndex + 1) % tpsHistory.length;
@@ -125,11 +122,10 @@ public class TPSMonitor {
                         predictiveOptimizer.feed(currentMSPT);
                     }
 
-                    tickCount = 0;
-                    lastMeasureTime = now;
+                    tpsTickCount[0] = 0;
+                    tpsLastMeasureTime[0] = now;
                 }
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
+        }, 1L, 1L);
 
         // Monitor task — runs ASYNC, dispatches actions to main thread
         // to seconds
@@ -144,12 +140,9 @@ public class TPSMonitor {
         // The code `checkInterval * 20L` implies `checkInterval` is in seconds.
         // Let's stick to the new config having ticks, so `100` ticks.
         int checkIntervalTicks = plugin.getConfig().getInt("system.tps-monitor.check-interval", 100);
-        monitorTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                checkTPS(); // This runs on async thread
-            }
-        }.runTaskTimerAsynchronously(plugin, 100L, checkIntervalTicks);
+        monitorTask = SchedulerAdapter.runAsyncRepeating(plugin, () -> {
+            checkTPS(); // This runs on async thread
+        }, 100L, checkIntervalTicks);
 
         plugin.getLogger().info("TPS Monitor started (interval: " + checkIntervalTicks + " ticks, async mode)");
     }
@@ -229,7 +222,7 @@ public class TPSMonitor {
                     activeThreshold = detected;
                     // Dispatch actions to MAIN THREAD
                     final ThresholdConfig toTrigger = detected;
-                    Bukkit.getScheduler().runTask(plugin, () -> triggerActions(toTrigger));
+                    SchedulerAdapter.runGlobal(plugin, () -> triggerActions(toTrigger));
                 }
                 // Send notifications async (safe — Adventure API is thread-safe)
                 sendNotifications(detected);
@@ -289,7 +282,7 @@ public class TPSMonitor {
                     return;
 
                 // Send lag source report to admins (async-safe with Adventure)
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
                     String header = plugin.getPrefix() + "&7Possible lag causes:";
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         if (player.hasPermission("lesslag.notify")) {
@@ -324,7 +317,7 @@ public class TPSMonitor {
                 .replace("{tps}", String.format("%.1f", currentTPS));
         String fullMessage = plugin.getPrefix() + message;
         // Dispatch player interaction to main thread
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        SchedulerAdapter.runGlobal(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.hasPermission("lesslag.notify")) {
                     if (threshold.isNotifyActionbar()) {
@@ -387,7 +380,7 @@ public class TPSMonitor {
             consecutiveGoodCount++;
             if (consecutiveGoodCount >= neededChecks) {
                 // Dispatch recovery to MAIN THREAD
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
                     plugin.getLogger()
                             .info("TPS stabilized (" + String.format("%.1f", currentTPS) + "). Restoring defaults...");
                     actionExecutor.restoreDefaults();

@@ -2,13 +2,12 @@ package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
 import com.lesslag.action.ActionExecutor;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +32,7 @@ public class WorldChunkGuard {
 
     private final LessLag plugin;
     private final ActionExecutor actionExecutor;
-    private BukkitTask checkTask;
+    private SchedulerAdapter.TaskHandle checkTask;
 
     // Per-world retry counter
     private final Map<String, Integer> retryCounters = new ConcurrentHashMap<>();
@@ -57,12 +56,9 @@ public class WorldChunkGuard {
         int intervalTicks = plugin.getConfig().getInt("modules.chunks.world-guard.check-interval", 1200);
 
         // ── ASYNC periodic check ──
-        checkTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                beginAsyncCheck();
-            }
-        }.runTaskTimerAsynchronously(plugin, 200L, intervalTicks);
+        checkTask = SchedulerAdapter.runAsyncRepeating(plugin, () -> {
+            beginAsyncCheck();
+        }, 200L, intervalTicks);
 
         plugin.getLogger().info("World Chunk Guard started ASYNC (interval: " + intervalTicks + " ticks)");
     }
@@ -89,11 +85,11 @@ public class WorldChunkGuard {
         boolean keepSpawnLoaded = plugin.getConfig().getBoolean("modules.chunks.world-guard.keep-spawn-loaded", true);
 
         // Brief SYNC dispatch to collect world snapshots
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        SchedulerAdapter.runGlobal(plugin, () -> {
             List<WorldSnapshot> snapshots = collectSnapshots(ignoredWorlds, keepSpawnLoaded);
 
             // Back to ASYNC for analysis
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            SchedulerAdapter.runAsync(plugin, () -> {
                 analyzeSnapshots(snapshots, overloadMultiplier, maxRetries, notify, evacuateWorldName,
                         maxChunksPerPlayer, actions);
             });
@@ -204,7 +200,7 @@ public class WorldChunkGuard {
             int excess = snap.chunkCount - expectedMax;
 
             if (retries == 0 && actions != null && !actions.isEmpty()) {
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
                     World w = Bukkit.getWorld(snap.worldName);
                     if (w != null) {
                         for (String action : actions) {
@@ -276,7 +272,7 @@ public class WorldChunkGuard {
             final AtomicInteger failedCount = new AtomicInteger(0);
 
             // Submit batched unload work to main thread
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            SchedulerAdapter.runGlobal(plugin, () -> {
                 World world = Bukkit.getWorld(worldName);
                 if (world == null)
                     return;
@@ -419,7 +415,7 @@ public class WorldChunkGuard {
 
         for (Player player : playersToMove) {
             try {
-                player.teleport(spawnLoc);
+                SchedulerAdapter.teleportEntity(plugin, player, spawnLoc);
                 LessLag.sendMessage(player,
                         "&c&l⚠ &fYou have been evacuated from &e" + world.getName()
                                 + " &fdue to critical chunk overload.");
@@ -430,7 +426,7 @@ public class WorldChunkGuard {
         }
 
         final World finalTargetWorld = targetWorld;
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        SchedulerAdapter.runGlobalDelayed(plugin, () -> {
             if (world.getPlayers().isEmpty()) {
                 boolean unloaded = Bukkit.unloadWorld(world, true);
                 if (unloaded) {

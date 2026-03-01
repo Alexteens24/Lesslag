@@ -2,6 +2,7 @@ package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
 import com.lesslag.monitor.LagSourceAnalyzer.WorldSnapshot;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -37,7 +38,7 @@ public class IncrementalSnapshotBuilder implements Runnable {
     }
 
     public void start() {
-        Bukkit.getScheduler().runTask(plugin, this);
+        SchedulerAdapter.runGlobal(plugin, this);
     }
 
     @Override
@@ -60,7 +61,7 @@ public class IncrementalSnapshotBuilder implements Runnable {
             while (currentChunkIndex < currentWorldChunks.length) {
                 if (System.nanoTime() > stopTime) {
                     // Time up, reschedule
-                    Bukkit.getScheduler().runTask(plugin, this);
+                    SchedulerAdapter.runGlobal(plugin, this);
                     return;
                 }
 

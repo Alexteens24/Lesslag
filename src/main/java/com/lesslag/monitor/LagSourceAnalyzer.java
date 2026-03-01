@@ -1,7 +1,7 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
-import org.bukkit.Bukkit;
+import com.lesslag.util.SchedulerAdapter;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -393,7 +393,7 @@ public class LagSourceAnalyzer {
     public CompletableFuture<FullAnalysisResult> analyzeFullAsync() {
         CompletableFuture<FullAnalysisResult> future = new CompletableFuture<>();
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        SchedulerAdapter.runGlobal(plugin, () -> {
             new IncrementalSnapshotBuilder(plugin, (worldSnaps) -> {
                 try {
                     TaskSnapshot[] taskSnaps = takeTaskSnapshot();

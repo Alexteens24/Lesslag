@@ -1,12 +1,11 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.*;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ChunkLimiter {
 
     private final LessLag plugin;
-    private BukkitTask scanTask;
+    private SchedulerAdapter.TaskHandle scanTask;
 
     // Config (cached)
     private int maxPerChunk;
@@ -60,12 +59,9 @@ public class ChunkLimiter {
             return;
 
         // ASYNC periodic trigger
-        scanTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                beginAsyncScan();
-            }
-        }.runTaskTimerAsynchronously(plugin, 200L, scanInterval * 20L);
+        scanTask = SchedulerAdapter.runAsyncRepeating(plugin, () -> {
+            beginAsyncScan();
+        }, 200L, scanInterval * 20L);
 
         plugin.getLogger().info("Smart Chunk Limiter started ASYNC (interval: " + scanInterval + "s)");
     }
@@ -85,13 +81,31 @@ public class ChunkLimiter {
         Set<String> whitelist = cachedWhitelist;
         ScanContext context = new ScanContext();
 
-        // Start the chain on the main thread
-        plugin.getWorkloadDistributor().addWorkload(() -> {
-            List<World> worlds = Bukkit.getWorlds();
-            if (!worlds.isEmpty()) {
-                scheduleWorldScan(worlds, 0, whitelist, context);
+        if (SchedulerAdapter.isFolia()) {
+            // On Folia: dispatch each chunk's work to its owning region thread
+            for (World world : Bukkit.getWorlds()) {
+                Chunk[] loadedChunks = world.getLoadedChunks();
+                for (Chunk chunk : loadedChunks) {
+                    final Chunk c = chunk;
+                    SchedulerAdapter.runAtChunk(plugin, c.getWorld(), c.getX(), c.getZ(), () -> {
+                        if (!c.isLoaded()) return;
+                        Entity[] entities = c.getEntities();
+                        if (entities.length <= maxPerChunk) return;
+                        processHotChunk(c, entities, whitelist, context);
+                    });
+                }
             }
-        });
+            // Schedule report on global thread after a short delay to let region tasks complete
+            SchedulerAdapter.runGlobalDelayed(plugin, () -> finishScan(context), 20L);
+        } else {
+            // On Paper/Spigot: use WorkloadDistributor for tick-spreading
+            plugin.getWorkloadDistributor().addWorkload(() -> {
+                List<World> worlds = Bukkit.getWorlds();
+                if (!worlds.isEmpty()) {
+                    scheduleWorldScan(worlds, 0, whitelist, context);
+                }
+            });
+        }
     }
 
     private void scheduleWorldScan(List<World> worlds, int index, Set<String> whitelist, ScanContext context) {

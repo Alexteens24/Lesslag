@@ -1,6 +1,7 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
+import com.lesslag.util.SchedulerAdapter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -15,8 +16,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,8 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VillagerOptimizer implements Listener {
 
     private final LessLag plugin;
-    private BukkitTask scanTask;
-    private BukkitTask cleanupTask;
+    private SchedulerAdapter.TaskHandle scanTask;
+    private SchedulerAdapter.TaskHandle cleanupTask;
 
     // Config
     private boolean enabled;
@@ -69,20 +68,14 @@ public class VillagerOptimizer implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
 
         // Periodic scan task (ASYNC for finding candidates, SYNC for modifying)
-        scanTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                runOptimizationScan();
-            }
-        }.runTaskTimer(plugin, 100L, checkInterval);
+        scanTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
+            runOptimizationScan();
+        }, 100L, checkInterval);
 
         // Cleanup task for temporary AI (runs faster, e.g. every 5s)
-        cleanupTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                cleanupActiveVillagers();
-            }
-        }.runTaskTimer(plugin, 100L, 100L);
+        cleanupTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
+            cleanupActiveVillagers();
+        }, 100L, 100L);
 
         plugin.getLogger().info("Villager Optimizer started (Interval: " + checkInterval + " ticks)");
     }
@@ -115,7 +108,7 @@ public class VillagerOptimizer implements Listener {
                 // getEntities() on chunk is array copy too, but much smaller.
                 // We'll schedule the chunk processing as a single unit.
 
-                plugin.getWorkloadDistributor().addWorkload(() -> {
+                plugin.getWorkloadDistributor().addChunkWorkload(chunk, () -> {
                     if (!chunk.isLoaded())
                         return;
 
@@ -256,19 +249,35 @@ public class VillagerOptimizer implements Listener {
                 it.remove();
 
                 // Queuing the re-check/disable
-                plugin.getWorkloadDistributor().addWorkload(() -> {
+                if (SchedulerAdapter.isFolia()) {
                     Entity entity = Bukkit.getEntity(uuid);
                     if (entity instanceof Villager && entity.isValid()) {
-                        Villager v = (Villager) entity;
-                        // Determine if we should optimize again
-                        boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(v);
-                        if (shouldOptimize) {
-                            plugin.setMobAwareSafe(v, false);
-                            v.setMetadata("LessLag.VillagerOptimized",
-                                    new org.bukkit.metadata.FixedMetadataValue(plugin, true));
-                        }
+                        plugin.getWorkloadDistributor().addEntityWorkload(entity, () -> {
+                            if (entity.isValid()) {
+                                Villager v = (Villager) entity;
+                                boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(v);
+                                if (shouldOptimize) {
+                                    plugin.setMobAwareSafe(v, false);
+                                    v.setMetadata("LessLag.VillagerOptimized",
+                                            new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                                }
+                            }
+                        });
                     }
-                });
+                } else {
+                    plugin.getWorkloadDistributor().addWorkload(() -> {
+                        Entity entity = Bukkit.getEntity(uuid);
+                        if (entity instanceof Villager && entity.isValid()) {
+                            Villager v = (Villager) entity;
+                            boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(v);
+                            if (shouldOptimize) {
+                                plugin.setMobAwareSafe(v, false);
+                                v.setMetadata("LessLag.VillagerOptimized",
+                                        new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                            }
+                        }
+                    });
+                }
             }
         }
     }

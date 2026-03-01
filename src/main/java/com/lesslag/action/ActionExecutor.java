@@ -3,6 +3,7 @@ package com.lesslag.action;
 import com.lesslag.LessLag;
 import com.lesslag.WorkloadDistributor;
 import com.lesslag.util.NotificationHelper;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -116,7 +117,7 @@ public class ActionExecutor {
 
         // Log analysis info async (safe — read-only)
         if (plugin.getAsyncExecutor() == null || plugin.getAsyncExecutor().isShutdown()) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            SchedulerAdapter.runGlobal(plugin, () -> {
                 try {
                     executeActions(syncActions);
                     future.complete(null);
@@ -139,7 +140,7 @@ public class ActionExecutor {
                 }
 
                 // Dispatch all modifications to the main thread
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
                     try {
                         executeActions(syncActions);
                         future.complete(null);
@@ -255,44 +256,57 @@ public class ActionExecutor {
 
         for (World world : Bukkit.getWorlds()) {
             Chunk[] chunks = world.getLoadedChunks();
-            List<Chunk> batch = new ArrayList<>(batchSize);
 
-            for (Chunk chunk : chunks) {
-                batch.add(chunk);
-                if (batch.size() >= batchSize) {
+            if (SchedulerAdapter.isFolia()) {
+                // On Folia: dispatch per-chunk to owning region thread
+                for (Chunk chunk : chunks) {
+                    distributor.addChunkWorkload(chunk, () -> {
+                        if (!chunk.isLoaded()) return;
+                        for (Entity entity : chunk.getEntities()) {
+                            if (filter.test(entity)) {
+                                if (!entity.isValid()) continue;
+                                entity.remove();
+                            }
+                        }
+                    });
+                }
+            } else {
+                // On Paper/Spigot: batch chunks for tick-spreading
+                List<Chunk> batch = new ArrayList<>(batchSize);
+
+                for (Chunk chunk : chunks) {
+                    batch.add(chunk);
+                    if (batch.size() >= batchSize) {
+                        final List<Chunk> currentBatch = new ArrayList<>(batch);
+                        distributor.addWorkload(() -> {
+                            for (Chunk c : currentBatch) {
+                                if (!c.isLoaded()) continue;
+                                for (Entity entity : c.getEntities()) {
+                                    if (filter.test(entity)) {
+                                        if (!entity.isValid()) continue;
+                                        entity.remove();
+                                    }
+                                }
+                            }
+                        });
+                        batch.clear();
+                    }
+                }
+
+                if (!batch.isEmpty()) {
                     final List<Chunk> currentBatch = new ArrayList<>(batch);
                     distributor.addWorkload(() -> {
                         for (Chunk c : currentBatch) {
-                            if (!c.isLoaded())
-                                continue;
+                            if (!c.isLoaded()) continue;
                             for (Entity entity : c.getEntities()) {
                                 if (filter.test(entity)) {
-                                    if (!entity.isValid())
-                                        continue;
+                                    if (!entity.isValid()) continue;
                                     entity.remove();
                                 }
                             }
                         }
                     });
-                    batch.clear();
                 }
-            }
-
-            if (!batch.isEmpty()) {
-                final List<Chunk> currentBatch = new ArrayList<>(batch);
-                distributor.addWorkload(() -> {
-                    for (Chunk c : currentBatch) {
-                        if (!c.isLoaded())
-                            continue;
-                        for (Entity entity : c.getEntities()) {
-                            if (filter.test(entity)) {
-                                if (!entity.isValid())
-                                    continue;
-                                entity.remove();
-                            }
-                        }
-                    }
-                });
             }
         }
     }
@@ -353,7 +367,7 @@ public class ActionExecutor {
 
             Chunk[] chunks = world.getLoadedChunks();
             for (Chunk chunk : chunks) {
-                distributor.addWorkload(() -> {
+                distributor.addChunkWorkload(chunk, () -> {
                     if (!chunk.isLoaded())
                         return;
                     long chunkKey = ((long) chunk.getX() << 32) | (chunk.getZ() & 0xFFFFFFFFL);
@@ -390,52 +404,56 @@ public class ActionExecutor {
         // Collect worlds sync
         List<World> worlds = Bukkit.getWorlds();
 
-        for (World world : worlds) {
-            // Get all mobs in the world
-            Collection<Mob> mobs = world.getEntitiesByClass(Mob.class);
-            if (mobs.isEmpty())
-                continue;
-
-            // Convert to list for batching
-            List<Mob> mobList = new ArrayList<>(mobs);
-            int batchSize = 50;
-
-            for (int i = 0; i < mobList.size(); i += batchSize) {
-                int end = Math.min(i + batchSize, mobList.size());
-                List<Mob> batch = mobList.subList(i, end);
-
-                // Copy batch for lambda capture
-                final List<Mob> currentBatch = new ArrayList<>(batch);
-
-                distributor.addWorkload(() -> {
-                    for (Mob mob : currentBatch) {
+        if (SchedulerAdapter.isFolia()) {
+            // On Folia: dispatch per-entity to owning region thread
+            for (World world : worlds) {
+                Collection<Mob> mobs = world.getEntitiesByClass(Mob.class);
+                for (Mob mob : mobs) {
+                    distributor.addEntityWorkload(mob, () -> {
                         if (mob.isValid() && !plugin.isMobAwareSafe(mob)) {
                             if (plugin.setMobAwareSafe(mob, true)) {
                                 restoredCount.incrementAndGet();
                             }
                         }
-                    }
-                });
+                    });
+                }
             }
-        }
+            // Log completion after a short delay
+            SchedulerAdapter.runGlobalDelayed(plugin, () -> {
+                plugin.getLogger().info("[Action] Mob AI restoration completed. Restored " + restoredCount.get() + " mobs.");
+            }, 20L);
+        } else {
+            // On Paper/Spigot: batch via WorkloadDistributor for tick-spreading
+            for (World world : worlds) {
+                Collection<Mob> mobs = world.getEntitiesByClass(Mob.class);
+                if (mobs.isEmpty())
+                    continue;
 
-        // Schedule a final "report" task (will run after all batches are added,
-        // theoretically,
-        // IF they are added in order. WorkloadDistributor is FIFO/LIFO?
-        // It's a Deque, addLast/pollFirst -> FIFO.
-        // So this report will likely run after most batches, but since batch execution
-        // is spread over ticks,
-        // we can't guarantee EXACTLY when it finishes without a proper callback chain.
-        // For simple logging, we can just log that it started.
-        // Or we can schedule a task to checks occasionally?
-        // Let's just log "Scheduled restoration of X entities" if we knew the total
-        // count,
-        // but we only know the total mobs, not how many NEEDED restoration.
-        // Simplified: Just log start.
-        distributor.addWorkload(() -> {
-            plugin.getLogger()
-                    .info("[Action] Mob AI restoration batches completed. Restored " + restoredCount.get() + " mobs.");
-        }, WorkloadDistributor.WorkloadPriority.HIGH);
+                List<Mob> mobList = new ArrayList<>(mobs);
+                int batchSize = 50;
+
+                for (int i = 0; i < mobList.size(); i += batchSize) {
+                    int end = Math.min(i + batchSize, mobList.size());
+                    List<Mob> batch = mobList.subList(i, end);
+                    final List<Mob> currentBatch = new ArrayList<>(batch);
+
+                    distributor.addWorkload(() -> {
+                        for (Mob mob : currentBatch) {
+                            if (mob.isValid() && !plugin.isMobAwareSafe(mob)) {
+                                if (plugin.setMobAwareSafe(mob, true)) {
+                                    restoredCount.incrementAndGet();
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            distributor.addWorkload(() -> {
+                plugin.getLogger()
+                        .info("[Action] Mob AI restoration batches completed. Restored " + restoredCount.get() + " mobs.");
+            }, WorkloadDistributor.WorkloadPriority.HIGH);
+        }
     }
 
     /**
@@ -530,7 +548,7 @@ public class ActionExecutor {
                 for (org.bukkit.Chunk chunk : chunks) {
                     if (scheduled >= excess)
                         break;
-                    distributor.addWorkload(() -> {
+                    distributor.addChunkWorkload(chunk, () -> {
                         if (chunk.isLoaded()) {
                             chunk.unload();
                         }
@@ -570,6 +588,42 @@ public class ActionExecutor {
 
         restoreMobAI();
         plugin.getLogger().info("Restored view/simulation distances. Mob AI restoration scheduled.");
+    }
+
+    /**
+     * Synchronous restore for use during onDisable when no scheduler is available.
+     * Restores world settings and mob AI directly without WorkloadDistributor.
+     */
+    public void restoreDefaultsSync() {
+        for (World world : Bukkit.getWorlds()) {
+            int originalVD = plugin.getOriginalViewDistance(world);
+            Integer originalSD = plugin.getOriginalSimulationDistance(world);
+            try {
+                world.setViewDistance(originalVD);
+            } catch (Exception ignored) {
+            }
+            if (originalSD != null) {
+                plugin.setSimulationDistanceSafe(world, originalSD);
+            }
+        }
+
+        // Restore mob AI synchronously — no scheduler or WorkloadDistributor needed
+        int restored = 0;
+        for (World world : Bukkit.getWorlds()) {
+            for (Mob mob : world.getEntitiesByClass(Mob.class)) {
+                try {
+                    if (mob.isValid() && !plugin.isMobAwareSafe(mob)) {
+                        if (plugin.setMobAwareSafe(mob, true)) {
+                            restored++;
+                        }
+                    }
+                } catch (Exception e) {
+                    // On Folia shutdown, entity access from shutdown thread may throw
+                    // — this is expected and non-critical since mobs reset on restart anyway
+                }
+            }
+        }
+        plugin.getLogger().info("[Action] Sync mob AI restoration completed: " + restored + " mobs restored.");
     }
 
     // ══════════════════════════════════════════════════
@@ -782,16 +836,42 @@ public class ActionExecutor {
 
             // ── Phase 3: SYNC Execution ──
             if (!toRemove.isEmpty()) {
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
                     WorkloadDistributor distributor = plugin.getWorkloadDistributor();
                     int totalScheduled = 0;
                     int batchSize = 50;
 
                     for (List<UUID> list : toRemove.values()) {
-                        List<UUID> batch = new ArrayList<>(batchSize);
-                        for (UUID uuid : list) {
-                            batch.add(uuid);
-                            if (batch.size() >= batchSize) {
+                        if (SchedulerAdapter.isFolia()) {
+                            // On Folia: dispatch per-entity to owning region thread
+                            for (UUID uuid : list) {
+                                Entity entity = Bukkit.getEntity(uuid);
+                                if (entity != null && entity.isValid()) {
+                                    distributor.addEntityWorkload(entity, () -> {
+                                        if (entity.isValid()) entity.remove();
+                                    });
+                                }
+                            }
+                            totalScheduled += list.size();
+                        } else {
+                            List<UUID> batch = new ArrayList<>(batchSize);
+                            for (UUID uuid : list) {
+                                batch.add(uuid);
+                                if (batch.size() >= batchSize) {
+                                    final List<UUID> currentBatch = new ArrayList<>(batch);
+                                    distributor.addWorkload(() -> {
+                                        for (UUID id : currentBatch) {
+                                            Entity entity = Bukkit.getEntity(id);
+                                            if (entity != null && entity.isValid())
+                                                entity.remove();
+                                        }
+                                    });
+                                    batch.clear();
+                                }
+                                totalScheduled++;
+                            }
+
+                            if (!batch.isEmpty()) {
                                 final List<UUID> currentBatch = new ArrayList<>(batch);
                                 distributor.addWorkload(() -> {
                                     for (UUID id : currentBatch) {
@@ -800,27 +880,11 @@ public class ActionExecutor {
                                             entity.remove();
                                     }
                                 });
-                                batch.clear();
                             }
-                            totalScheduled++;
-                        }
-
-                        if (!batch.isEmpty()) {
-                            final List<UUID> currentBatch = new ArrayList<>(batch);
-                            distributor.addWorkload(() -> {
-                                for (UUID id : currentBatch) {
-                                    Entity entity = Bukkit.getEntity(id);
-                                    if (entity != null && entity.isValid())
-                                        entity.remove();
-                                }
-                            });
                         }
                     }
 
-                    if (totalScheduled > 0) {
-                        plugin.getLogger().info("[EntityLimit] Scheduled " + totalScheduled
-                                + " entities for removal via WorkloadDistributor");
-                    }
+                    plugin.getLogger().info("[EntityLimit] Scheduled removal of " + totalScheduled + " entities.");
                 });
             }
         });

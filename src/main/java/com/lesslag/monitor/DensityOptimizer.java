@@ -1,11 +1,11 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.*;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 
@@ -18,7 +18,7 @@ public class DensityOptimizer {
     private boolean bypassTamed;
     private boolean bypassNamed;
     private boolean bypassLeashed;
-    private BukkitTask task;
+    private SchedulerAdapter.TaskHandle task;
 
     public DensityOptimizer(LessLag plugin) {
         this.plugin = plugin;
@@ -61,7 +61,7 @@ public class DensityOptimizer {
         if (!enabled)
             return;
 
-        task = Bukkit.getScheduler().runTaskTimer(plugin, this::scan, checkInterval, checkInterval);
+        task = SchedulerAdapter.runGlobalRepeating(plugin, this::scan, checkInterval, checkInterval);
     }
 
     public void stop() {
@@ -91,11 +91,7 @@ public class DensityOptimizer {
                 if (batch.size() >= batchSize) {
                     // Create stable copy for lambda capture
                     final List<Chunk> currentBatch = new ArrayList<>(batch);
-                    plugin.getWorkloadDistributor().addWorkload(() -> {
-                        for (Chunk c : currentBatch) {
-                            processChunk(c);
-                        }
-                    });
+                    plugin.getWorkloadDistributor().addChunkBatchWorkload(currentBatch, this::processChunk);
                     batch.clear();
                 }
             }
@@ -103,11 +99,7 @@ public class DensityOptimizer {
             // Process remaining
             if (!batch.isEmpty()) {
                 final List<Chunk> currentBatch = new ArrayList<>(batch);
-                plugin.getWorkloadDistributor().addWorkload(() -> {
-                    for (Chunk c : currentBatch) {
-                        processChunk(c);
-                    }
-                });
+                plugin.getWorkloadDistributor().addChunkBatchWorkload(currentBatch, this::processChunk);
             }
         }
     }
@@ -198,15 +190,26 @@ public class DensityOptimizer {
     private void restore() {
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
-                for (Entity entity : chunk.getEntities()) {
-                    if (entity instanceof Mob) {
-                        Mob mob = (Mob) entity;
-                        if (!plugin.isMobAwareSafe(mob)) {
-                            plugin.setMobAwareSafe(mob, true);
-                            mob.setCollidable(true);
-                            mob.removeMetadata("LessLag.DensitySuppressed", plugin);
-                        }
-                    }
+                if (SchedulerAdapter.isFolia()) {
+                    // On Folia, dispatch to each chunk's region thread
+                    final Chunk c = chunk;
+                    SchedulerAdapter.runAtChunk(plugin, c.getWorld(), c.getX(), c.getZ(), () -> restoreChunk(c));
+                } else {
+                    restoreChunk(chunk);
+                }
+            }
+        }
+    }
+
+    private void restoreChunk(Chunk chunk) {
+        if (!chunk.isLoaded()) return;
+        for (Entity entity : chunk.getEntities()) {
+            if (entity instanceof Mob) {
+                Mob mob = (Mob) entity;
+                if (!plugin.isMobAwareSafe(mob)) {
+                    plugin.setMobAwareSafe(mob, true);
+                    mob.setCollidable(true);
+                    mob.removeMetadata("LessLag.DensitySuppressed", plugin);
                 }
             }
         }

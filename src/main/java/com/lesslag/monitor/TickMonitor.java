@@ -2,9 +2,7 @@ package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
 import com.lesslag.util.NotificationHelper;
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
+import com.lesslag.util.SchedulerAdapter;
 
 /**
  * Monitors individual tick durations and reports spikes.
@@ -13,7 +11,7 @@ import org.bukkit.scheduler.BukkitTask;
 public class TickMonitor {
 
     private final LessLag plugin;
-    private BukkitTask task;
+    private SchedulerAdapter.TaskHandle task;
 
     // Config (cached)
     private double thresholdMs;
@@ -70,32 +68,29 @@ public class TickMonitor {
         lastTickNano = System.nanoTime();
 
         // Tick measurement MUST be sync (we're measuring actual tick duration)
-        task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                long now = System.nanoTime();
-                lastTickMs = (now - lastTickNano) / 1_000_000.0;
-                lastTickNano = now;
+        task = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
+            long now = System.nanoTime();
+            lastTickMs = (now - lastTickNano) / 1_000_000.0;
+            lastTickNano = now;
 
-                if (lastTickMs > worstTickMs) {
-                    worstTickMs = lastTickMs;
-                }
+            if (lastTickMs > worstTickMs) {
+                worstTickMs = lastTickMs;
+            }
 
-                if (lastTickMs > thresholdMs) {
-                    spikeCount++;
+            if (lastTickMs > thresholdMs) {
+                spikeCount++;
 
-                    if (notifyEnabled) {
-                        long currentTime = System.currentTimeMillis();
-                        if (currentTime - lastNotifyTime >= NOTIFY_COOLDOWN_MS) {
-                            lastNotifyTime = currentTime;
-                            final double duration = lastTickMs;
-                            // Send notification ASYNC to avoid blocking the main thread
-                            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> notifySpike(duration));
-                        }
+                if (notifyEnabled) {
+                    long currentTime = System.currentTimeMillis();
+                    if (currentTime - lastNotifyTime >= NOTIFY_COOLDOWN_MS) {
+                        lastNotifyTime = currentTime;
+                        final double duration = lastTickMs;
+                        // Send notification ASYNC to avoid blocking the main thread
+                        SchedulerAdapter.runAsync(plugin, () -> notifySpike(duration));
                     }
                 }
             }
-        }.runTaskTimer(plugin, 1L, 1L);
+        }, 1L, 1L);
 
         plugin.getLogger().info("Tick Monitor started (threshold: " + thresholdMs + "ms, async notifications)");
     }

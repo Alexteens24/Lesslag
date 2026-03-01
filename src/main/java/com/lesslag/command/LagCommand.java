@@ -13,6 +13,7 @@ import com.lesslag.monitor.RedstoneMonitor;
 import com.lesslag.monitor.TPSMonitor;
 import com.lesslag.monitor.TickMonitor;
 import com.lesslag.monitor.VillagerOptimizer;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -648,7 +649,7 @@ public class LagCommand implements CommandExecutor {
                 final int activeRadius = plugin.getConfig().getInt("modules.mob-ai.active-radius", 48);
                 final int protectedTypes = plugin.getConfig().getStringList("modules.mob-ai.protected").size();
 
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                SchedulerAdapter.runAsync(plugin, () -> {
                     int countTotal = 0, countNoAI = 0;
                     for (World world : worlds) {
                         for (org.bukkit.entity.Entity entity : world.getEntities()) {
@@ -660,7 +661,7 @@ public class LagCommand implements CommandExecutor {
                         }
                     }
                     final int ft = countTotal, fn = countNoAI;
-                    Bukkit.getScheduler().runTask(plugin, () -> {
+                    SchedulerAdapter.runGlobal(plugin, () -> {
                         send(sender, "");
                         send(sender, "&c&l  ≡ AI Status ≡");
                         send(sender, "  &7Total mobs: &f" + ft);
@@ -685,7 +686,7 @@ public class LagCommand implements CommandExecutor {
 
         plugin.getLagSourceAnalyzer().analyzeFullAsync().thenAccept(result -> {
             // Dispatch display back to main thread
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            SchedulerAdapter.runGlobal(plugin, () -> {
                 send(sender, "");
                 send(sender, "&c&l  ≡ Lag Source Analysis ≡");
                 send(sender, "");
@@ -719,7 +720,7 @@ public class LagCommand implements CommandExecutor {
                 send(sender, "");
             });
         }).exceptionally(e -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            SchedulerAdapter.runGlobal(plugin, () -> {
                 send(sender, plugin.getPrefix() + "&cFailed to analyze lag sources: " + e.getMessage());
             });
             return null;

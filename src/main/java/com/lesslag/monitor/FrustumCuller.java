@@ -1,14 +1,13 @@
 package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
+import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.Set;
@@ -27,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FrustumCuller {
 
     private final LessLag plugin;
-    private BukkitTask task;
+    private SchedulerAdapter.TaskHandle task;
 
     // Config (cached)
     private double maxRadius;
@@ -62,12 +61,9 @@ public class FrustumCuller {
             return;
 
         // ASYNC periodic trigger
-        task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                beginAsyncCull();
-            }
-        }.runTaskTimerAsynchronously(plugin, 100L, intervalTicks);
+        task = SchedulerAdapter.runAsyncRepeating(plugin, () -> {
+            beginAsyncCull();
+        }, 100L, intervalTicks);
 
         plugin.getLogger().info("Frustum Culler started ASYNC (interval: " + intervalTicks
                 + " ticks, FOV: " + fovDegrees + "°)");
@@ -89,22 +85,91 @@ public class FrustumCuller {
         double maxRadiusSq = maxRadius * maxRadius;
         double behindRadiusSq = behindRadius * behindRadius;
 
-        // Start incremental snapshot builder on main thread
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            new IncrementalCullSnapshotBuilder(snapshot -> {
-                if (snapshot.mobs.isEmpty())
-                    return;
+        java.util.function.Consumer<SnapshotResult> onComplete = snapshot -> {
+            if (snapshot.mobs.isEmpty())
+                return;
+            SchedulerAdapter.runAsync(plugin, () -> {
+                analyzeAndDispatch(snapshot, fovCosine, maxRadiusSq, behindRadiusSq);
+            });
+        };
 
-                // Back to ASYNC for heavy calculations
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                    analyzeAndDispatch(snapshot, fovCosine, maxRadiusSq, behindRadiusSq);
-                });
-            }).start();
-        });
+        if (SchedulerAdapter.isFolia()) {
+            // On Folia: dispatch per-player to entity's owning region thread
+            buildSnapshotFolia(onComplete);
+        } else {
+            // On Paper/Spigot: incremental snapshot on main thread
+            SchedulerAdapter.runGlobal(plugin, () -> {
+                new IncrementalCullSnapshotBuilder(onComplete).start();
+            });
+        }
+    }
+
+    /**
+     * Folia-safe snapshot: dispatches to each player's entity scheduler,
+     * collects results in thread-safe collections, triggers callback when done.
+     */
+    private void buildSnapshotFolia(java.util.function.Consumer<SnapshotResult> callback) {
+        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+        if (players.isEmpty()) {
+            callback.accept(new SnapshotResult(Collections.emptyMap(), Collections.emptyList()));
+            return;
+        }
+
+        // Thread-safe collections for concurrent per-player writes
+        java.util.concurrent.ConcurrentHashMap<UUID, List<PlayerView>> worldViewData = new java.util.concurrent.ConcurrentHashMap<>();
+        java.util.concurrent.ConcurrentLinkedQueue<MobSnapshot> mobs = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        java.util.concurrent.ConcurrentHashMap.KeySetView<UUID, Boolean> processedMobs = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        AtomicInteger remaining = new AtomicInteger(players.size());
+
+        for (Player player : players) {
+            SchedulerAdapter.runAtEntity(plugin, player, () -> {
+                try {
+                    if (!player.isOnline()) return;
+
+                    World world = player.getWorld();
+                    Location eye = player.getEyeLocation();
+
+                    worldViewData.computeIfAbsent(world.getUID(), k -> java.util.Collections.synchronizedList(new ArrayList<>()))
+                            .add(new PlayerView(
+                                    eye.getX(), eye.getY(), eye.getZ(),
+                                    eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
+                                    world.getUID()));
+
+                    for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
+                        if (!(entity instanceof Mob)) continue;
+                        Mob mob = (Mob) entity;
+
+                        if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                            continue;
+                        if (!processedMobs.add(mob.getUniqueId())) continue;
+                        if (protectedTypes.contains(mob.getType().name())) continue;
+                        if (LessLag.hasCustomName(mob)) continue;
+                        if (plugin.getCompatManager().isProtectedEntity(mob)) continue;
+                        if (mob.hasMetadata("LessLag.DensitySuppressed")) continue;
+                        if (mob.hasMetadata("LessLag.VillagerOptimized")) continue;
+                        if (mob instanceof org.bukkit.entity.Tameable
+                                && ((org.bukkit.entity.Tameable) mob).isTamed()) continue;
+
+                        Location loc = mob.getLocation();
+                        boolean currentlyAware = plugin.isMobAwareSafe(mob);
+
+                        mobs.add(new MobSnapshot(
+                                mob.getUniqueId(), world.getUID(),
+                                loc.getX(), loc.getY(), loc.getZ(),
+                                currentlyAware));
+                    }
+                } finally {
+                    if (remaining.decrementAndGet() == 0) {
+                        // All players processed — trigger analysis
+                        callback.accept(new SnapshotResult(worldViewData, new ArrayList<>(mobs)));
+                    }
+                }
+            });
+        }
     }
 
     // ══════════════════════════════════════════════════
-    // Phase 2: SYNC — Incremental snapshot
+    // Phase 2: SYNC — Incremental snapshot (Paper/Spigot only)
     // ══════════════════════════════════════════════════
 
     private class IncrementalCullSnapshotBuilder implements Runnable {
@@ -133,7 +198,7 @@ public class FrustumCuller {
 
             while (playerIndex < allPlayers.size()) {
                 if (System.nanoTime() > stopTime) {
-                    Bukkit.getScheduler().runTask(plugin, this);
+                    SchedulerAdapter.runGlobal(plugin, this);
                     return;
                 }
 
@@ -298,6 +363,26 @@ public class FrustumCuller {
 
     private boolean dispatchBatch(List<UUID> batch, boolean enableAI) {
         final List<UUID> currentBatch = new ArrayList<>(batch);
+
+        if (SchedulerAdapter.isFolia()) {
+            // On Folia: dispatch per-entity to owning region thread
+            for (UUID id : currentBatch) {
+                Entity entity = Bukkit.getEntity(id);
+                if (entity instanceof Mob && entity.isValid()) {
+                    plugin.getWorkloadDistributor().addEntityWorkload(entity, () -> {
+                        if (entity.isValid() && plugin.setMobAwareSafe((Mob) entity, enableAI)) {
+                            if (enableAI) {
+                                lastRestored.incrementAndGet();
+                            } else {
+                                lastCulled.incrementAndGet();
+                            }
+                        }
+                    });
+                }
+            }
+            return true;
+        }
+
         return plugin.getWorkloadDistributor().addWorkload(() -> {
             for (UUID id : currentBatch) {
                 Entity entity = Bukkit.getEntity(id);

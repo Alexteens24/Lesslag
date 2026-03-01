@@ -2,8 +2,7 @@ package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
 import com.lesslag.util.NotificationHelper;
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitTask;
+import com.lesslag.util.SchedulerAdapter;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -24,7 +23,7 @@ public class BottleneckAnalyzer {
     private final ThreadMXBean threadBean;
 
     private Thread watchdogThread;
-    private BukkitTask pingTask;
+    private SchedulerAdapter.TaskHandle pingTask;
     private volatile boolean running = false;
 
     // Config values
@@ -91,7 +90,7 @@ public class BottleneckAnalyzer {
                 "BottleneckAnalyzer started (Threshold: " + thresholdMs + "ms, Sampling: " + sampleIntervalMs + "ms)");
 
         // Register sync task to ping the watchdog every tick
-        pingTask = Bukkit.getScheduler().runTaskTimer(plugin, this::pingWatchdog, 1L, 1L);
+        pingTask = SchedulerAdapter.runGlobalRepeating(plugin, this::pingWatchdog, 1L, 1L);
     }
 
     public void stop() {
@@ -255,7 +254,7 @@ public class BottleneckAnalyzer {
             // massive lag
             long finalDuration = durationMs;
             String finalMethod = worstMethod.getKey();
-            Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+            SchedulerAdapter.runAsyncDelayed(plugin, () -> {
                 if (plugin.getPremiumManager() != null) {
                     plugin.getPremiumManager().sendAlert(
                             "**Lag Spike Detected**: `" + finalDuration + "ms`\n" +

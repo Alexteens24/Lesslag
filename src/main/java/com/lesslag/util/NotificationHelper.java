@@ -38,7 +38,7 @@ public final class NotificationHelper {
         if (Bukkit.isPrimaryThread()) {
             notifyAdmins(message);
         } else {
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            SchedulerAdapter.runGlobal(plugin, () -> {
                 // Re-check inside the lambda: plugin may have been disabled
                 // between the time the task was queued and when it runs.
                 LessLag p = LessLag.getInstance();

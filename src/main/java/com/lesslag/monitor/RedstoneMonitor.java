@@ -2,6 +2,7 @@ package com.lesslag.monitor;
 
 import com.lesslag.LessLag;
 import com.lesslag.util.NotificationHelper;
+import com.lesslag.util.SchedulerAdapter;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
@@ -17,8 +18,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,8 +41,8 @@ import java.util.UUID;
 public class RedstoneMonitor implements Listener {
 
     private final LessLag plugin;
-    private BukkitTask cleanupTask;
-    private BukkitTask pistonResetTask;
+    private SchedulerAdapter.TaskHandle cleanupTask;
+    private SchedulerAdapter.TaskHandle pistonResetTask;
 
     // Config (cached)
     private boolean enabled;
@@ -126,66 +125,59 @@ public class RedstoneMonitor implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
 
         // Periodic cleanup + counter reset
-        cleanupTask = new BukkitRunnable() {
-            // Optimization: dedicated counter field for trimming
-            private int runCounter = 0;
+        // State lifted from BukkitRunnable for lambda compatibility
+        final int[] cleanupRunCounter = { 0 };
+        cleanupTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
+            cleanupRunCounter[0]++;
+            // Reset activation counters every window
+            chunkActivations.clear();
 
-            @Override
-            public void run() {
-                runCounter++;
-                // Reset activation counters every window
-                chunkActivations.clear();
+            long now = System.nanoTime();
 
-                long now = System.nanoTime();
+            // Advanced: Prune stale block frequencies
+            cleanupMapGeneric(blockFrequencies, now, (freq, time) -> freq.isStale(time));
 
-                // Advanced: Prune stale block frequencies
-                cleanupMapGeneric(blockFrequencies, now, (freq, time) -> freq.isStale(time));
+            // Long-term: Prune expired clocks
+            long windowNanos = longTermWindow * 1_000_000_000L;
+            cleanupMapGeneric(longTermClocks, now, (clock, time) -> clock.isExpired(time, windowNanos));
 
-                // Long-term: Prune expired clocks
-                long windowNanos = longTermWindow * 1_000_000_000L;
-                cleanupMapGeneric(longTermClocks, now, (clock, time) -> clock.isExpired(time, windowNanos));
+            // Remove expired suppressions and update counts
+            int activeCount = 0;
+            Iterator<Map.Entry<UUID, Long2LongOpenHashMap>> suppressionIt = suppressedChunks.entrySet().iterator();
+            while (suppressionIt.hasNext()) {
+                Map.Entry<UUID, Long2LongOpenHashMap> entry = suppressionIt.next();
+                Long2LongOpenHashMap chunks = entry.getValue();
 
-                // Remove expired suppressions and update counts
-                int activeCount = 0;
-                Iterator<Map.Entry<UUID, Long2LongOpenHashMap>> suppressionIt = suppressedChunks.entrySet().iterator();
-                while (suppressionIt.hasNext()) {
-                    Map.Entry<UUID, Long2LongOpenHashMap> entry = suppressionIt.next();
-                    Long2LongOpenHashMap chunks = entry.getValue();
+                // Remove expired entries
+                chunks.values().removeIf(expiry -> expiry <= now);
 
-                    // Remove expired entries
-                    chunks.values().removeIf(expiry -> expiry <= now);
-
-                    if (chunks.isEmpty()) {
-                        suppressionIt.remove();
-                    } else {
-                        activeCount += chunks.size();
-                    }
-                }
-                activeSuppressedChunks = activeCount;
-
-                // Clean stale notification cooldowns
-                cleanupMapGeneric(notifyCooldowns, now, (lastNotify, time) -> time - lastNotify > NOTIFY_COOLDOWN_NANO);
-
-                // Memory Trim (Every ~5 minutes = 150 runs if window is 2s)
-                if (runCounter % 150 == 0) {
-                    chunkActivations.values().forEach(it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap::trim);
-                    suppressedChunks.values().forEach(it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap::trim);
-                    pistonCounts.values().forEach(it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap::trim);
-                    // blockFrequencies and longTermClocks are Obj maps, also have trim
-                    blockFrequencies.values().forEach(it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap::trim);
-                    longTermClocks.values().forEach(it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap::trim);
+                if (chunks.isEmpty()) {
+                    suppressionIt.remove();
+                } else {
+                    activeCount += chunks.size();
                 }
             }
-        }.runTaskTimer(plugin, windowSeconds * 20L, windowSeconds * 20L);
+            activeSuppressedChunks = activeCount;
+
+            // Clean stale notification cooldowns
+            cleanupMapGeneric(notifyCooldowns, now, (lastNotify, time) -> time - lastNotify > NOTIFY_COOLDOWN_NANO);
+
+            // Memory Trim (Every ~5 minutes = 150 runs if window is 2s)
+            if (cleanupRunCounter[0] % 150 == 0) {
+                chunkActivations.values().forEach(it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap::trim);
+                suppressedChunks.values().forEach(it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap::trim);
+                pistonCounts.values().forEach(it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap::trim);
+                // blockFrequencies and longTermClocks are Obj maps, also have trim
+                blockFrequencies.values().forEach(it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap::trim);
+                longTermClocks.values().forEach(it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap::trim);
+            }
+        }, windowSeconds * 20L, windowSeconds * 20L);
 
         // Piston counter reset (every tick)
         if (pistonLimitEnabled) {
-            pistonResetTask = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    pistonCounts.clear();
-                }
-            }.runTaskTimer(plugin, 1L, 1L);
+            pistonResetTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
+                pistonCounts.clear();
+            }, 1L, 1L);
         }
 
         plugin.getLogger().info("Redstone Suppressor & Limiter started (Main Thread Optimized + FastUtil).");
@@ -345,7 +337,7 @@ public class RedstoneMonitor implements Listener {
         }
 
         if (longTermBreak) {
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            SchedulerAdapter.runGlobal(plugin, () -> {
                 // Defensive: check if chunk is loaded before accessing block
                 if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4))
                     return;

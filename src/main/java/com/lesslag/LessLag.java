@@ -18,6 +18,7 @@ import com.lesslag.monitor.VillagerOptimizer;
 import com.lesslag.monitor.BreedingLimiter;
 import com.lesslag.monitor.DensityOptimizer;
 import com.lesslag.util.CompatibilityManager;
+import com.lesslag.util.SchedulerAdapter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -77,6 +78,10 @@ public class LessLag extends JavaPlugin implements Listener {
         instance = this;
         saveDefaultConfig();
         saveResource("messages.yml", false);
+
+        // Initialize Folia scheduler adapter (must be early)
+        SchedulerAdapter.init();
+        getLogger().info("Running on " + (SchedulerAdapter.isFolia() ? "Folia (regionised)" : "Paper/Spigot"));
 
         String minVersion = getConfig().getString("compatibility.min-version", "1.20.4");
         boolean allowUnsupported = getConfig().getBoolean("compatibility.allow-unsupported-versions", false);
@@ -230,9 +235,9 @@ public class LessLag extends JavaPlugin implements Listener {
             workloadDistributor.shutdown();
         }
 
-        // Restore original settings
+        // Restore original settings synchronously (no scheduler available during disable)
         if (actionExecutor != null) {
-            actionExecutor.restoreDefaults();
+            actionExecutor.restoreDefaultsSync();
         }
 
         // Shutdown async executor gracefully

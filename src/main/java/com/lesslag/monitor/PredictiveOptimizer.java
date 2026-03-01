@@ -3,7 +3,7 @@ package com.lesslag.monitor;
 import com.lesslag.LessLag;
 import com.lesslag.action.ActionExecutor;
 import com.lesslag.util.NotificationHelper;
-import org.bukkit.Bukkit;
+import com.lesslag.util.SchedulerAdapter;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -201,7 +201,7 @@ public class PredictiveOptimizer {
         }
 
         if (!actions.isEmpty()) {
-            Bukkit.getScheduler().runTask(plugin, () -> actionExecutor.executeActions(actions));
+            SchedulerAdapter.runGlobal(plugin, () -> actionExecutor.executeActions(actions));
         }
 
         if (notifyEnabled) {
