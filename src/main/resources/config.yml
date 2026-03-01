@@ -211,6 +211,11 @@ modules:
       max-retries: 5
       # World to evacuate to
       evacuate-world: "world"
+      # Exempt specific worlds from WorldChunkGuard
+      ignored-worlds:
+        - "lobby"
+      # Skip spawn chunks of a world if keepSpawnInMemory is enabled (helps with Multiverse-Core hooks)
+      keep-spawn-loaded: true
       # Actions if threshold exceeded
       # "unload-unused" is disabled by default for safety. Enable if you want aggressive unloading.
       actions:
@@ -343,6 +348,14 @@ compatibility:
     clearlag: true
     # Disable LessLag's stacker/spawner logic if MobFarmManager is present
     mobfarmmanager: true
+    # Detect and avoid sweeping CMI holograms & armor stands
+    cmi: true
+    # Detect and avoid sweeping HolographicDisplays / DecentHolograms
+    holograms: true
+    # Detect and avoid sweeping ItemsAdder / Oraxen furniture
+    custom-items: true
+    # Detect and avoid sweeping EvenMoreFish items
+    evenmorefish: true
 
 # =============================================================
 #  HEALTH REPORT (/lg health)

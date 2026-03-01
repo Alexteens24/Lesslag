@@ -501,12 +501,9 @@ public class LagCommand implements CommandExecutor {
     // ══════════════════════════════════════════════════
 
     private void doGC(CommandSender sender) {
-        plugin.getLogger().info(sender.getName() + " initiated manual Garbage Collection.");
-        send(sender, plugin.getPrefix() + "&7Running garbage collection...");
-        long freed = plugin.getActionExecutor().forceGC();
-        String message = formatMessage("messages.gc-complete",
-                "&7Freed &e{freed}MB &7of memory.", "freed", String.valueOf(freed));
-        send(sender, plugin.getPrefix() + message);
+        plugin.getLogger().info(sender.getName() + " requested manual GC (disabled — use /lg gcinfo for stats).");
+        send(sender, plugin.getPrefix() + "&7Manual GC is &cdisabled&7 to prevent stop-the-world pauses.");
+        send(sender, plugin.getPrefix() + "&7Use &f/lg gcinfo&7 for Garbage Collection statistics.");
         send(sender, plugin.getPrefix() + "&7RAM: &f" + plugin.getActionExecutor().getMemoryInfo());
     }
 
@@ -813,13 +810,13 @@ public class LagCommand implements CommandExecutor {
                                     + "/tick");
                 }
 
-                long now = System.currentTimeMillis();
+                long nowNs = System.nanoTime();
                 int shown = 0;
                 for (Map.Entry<String, Long> entry : rm.getSuppressedChunks().entrySet()) {
                     if (shown >= 5)
                         break;
                     String key = entry.getKey();
-                    long remainMs = entry.getValue() - now;
+                    long remainMs = (entry.getValue() - nowNs) / 1_000_000L;
                     if (remainMs <= 0)
                         continue;
                     // Key format: "worldUID:chunkX:chunkZ"
@@ -1102,11 +1099,6 @@ public class LagCommand implements CommandExecutor {
         else
             color = "&c";
         return color + String.format("%.1f", mspt) + "ms";
-    }
-
-    private String formatMessage(String path, String fallback, String key, String value) {
-        String message = plugin.getConfig().getString(path, fallback);
-        return message.replace("{" + key + "}", value);
     }
 
     private String getTpsColor(double tps) {

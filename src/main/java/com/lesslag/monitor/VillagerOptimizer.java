@@ -12,6 +12,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -36,6 +37,7 @@ public class VillagerOptimizer implements Listener {
 
     private final LessLag plugin;
     private BukkitTask scanTask;
+    private BukkitTask cleanupTask;
 
     // Config
     private boolean enabled;
@@ -75,7 +77,7 @@ public class VillagerOptimizer implements Listener {
         }.runTaskTimer(plugin, 100L, checkInterval);
 
         // Cleanup task for temporary AI (runs faster, e.g. every 5s)
-        new BukkitRunnable() {
+        cleanupTask = new BukkitRunnable() {
             @Override
             public void run() {
                 cleanupActiveVillagers();
@@ -90,7 +92,11 @@ public class VillagerOptimizer implements Listener {
             scanTask.cancel();
             scanTask = null;
         }
-        // HandlerList.unregisterAll(this); // Optional, but good practice if reloading
+        if (cleanupTask != null) {
+            cleanupTask.cancel();
+            cleanupTask = null;
+        }
+        HandlerList.unregisterAll(this);
     }
 
     // ══════════════════════════════════════════════════
@@ -134,6 +140,11 @@ public class VillagerOptimizer implements Listener {
                             if (now - lastCheck < 120_000_000_000L) { // 2 minutes
                                 continue;
                             }
+                        }
+
+                        // Compatibility check: don't optimize NPCs or merchants
+                        if (plugin.getCompatManager().isProtectedEntity(villager)) {
+                            continue;
                         }
 
                         boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(villager);

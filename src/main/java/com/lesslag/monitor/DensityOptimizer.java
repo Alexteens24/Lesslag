@@ -182,10 +182,8 @@ public class DensityOptimizer {
     }
 
     private boolean shouldBypass(Mob mob) {
-        // Compatibility checks
-        if (plugin.getCompatManager().isNPC(mob))
-            return true;
-        if (plugin.getCompatManager().isCustomMob(mob))
+        // Unified compatibility check
+        if (plugin.getCompatManager().isProtectedEntity(mob))
             return true;
 
         if (bypassNamed && LessLag.hasCustomName(mob))

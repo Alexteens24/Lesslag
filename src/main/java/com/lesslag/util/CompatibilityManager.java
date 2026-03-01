@@ -200,6 +200,10 @@ public class CompatibilityManager {
     private boolean mythicMobsDetected = false;
     private boolean modelEngineDetected = false;
     private boolean citizensDetected = false;
+    private boolean cmiDetected = false;
+    private boolean hologramsDetected = false;
+    private boolean customItemsDetected = false;
+    private boolean evenMoreFishDetected = false;
 
     public void detectCustomMobPlugins() {
         if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
@@ -215,6 +219,32 @@ public class CompatibilityManager {
         if (Bukkit.getPluginManager().getPlugin("Citizens") != null) {
             citizensDetected = true;
             plugin.getLogger().info("[Compat] Citizens detected!");
+        }
+
+        if (plugin.getConfig().getBoolean("compatibility.plugins.cmi", true)
+                && Bukkit.getPluginManager().getPlugin("CMI") != null) {
+            cmiDetected = true;
+            plugin.getLogger().info("[Compat] CMI detected!");
+        }
+
+        if (plugin.getConfig().getBoolean("compatibility.plugins.holograms", true)
+                && (Bukkit.getPluginManager().getPlugin("HolographicDisplays") != null
+                        || Bukkit.getPluginManager().getPlugin("DecentHolograms") != null)) {
+            hologramsDetected = true;
+            plugin.getLogger().info("[Compat] Hologram plugin detected!");
+        }
+
+        if (plugin.getConfig().getBoolean("compatibility.plugins.custom-items", true)
+                && (Bukkit.getPluginManager().getPlugin("ItemsAdder") != null
+                        || Bukkit.getPluginManager().getPlugin("Oraxen") != null)) {
+            customItemsDetected = true;
+            plugin.getLogger().info("[Compat] Custom Items plugin detected (ItemsAdder/Oraxen)!");
+        }
+
+        if (plugin.getConfig().getBoolean("compatibility.plugins.evenmorefish", true)
+                && Bukkit.getPluginManager().getPlugin("EvenMoreFish") != null) {
+            evenMoreFishDetected = true;
+            plugin.getLogger().info("[Compat] EvenMoreFish detected!");
         }
     }
 
@@ -256,6 +286,51 @@ public class CompatibilityManager {
         if (!citizensDetected || entity == null)
             return false;
         return net.citizensnpcs.api.CitizensAPI.getNPCRegistry().isNPC(entity);
+    }
+
+    /**
+     * Unified method to check if an entity belongs to ANY supported plugin and
+     * should NOT be
+     * touched by LessLag (e.g. not cleared, AI not disabled, not culled).
+     */
+    public boolean isProtectedEntity(org.bukkit.entity.Entity entity) {
+        if (entity == null)
+            return false;
+
+        // 1. Check legacy methods
+        if (isNPC(entity) || isCustomMob(entity)) {
+            return true;
+        }
+
+        // 2. Metadata / NBT checks for specific plugins
+        if (cmiDetected && entity.hasMetadata("CMI-ArmorStand")) {
+            return true;
+        }
+
+        // ItemsAdder & Oraxen often use armor stands, item frames, or display entities
+        // as furniture
+        // Checking custom name is a broad heuristic, often used by Holograms and Custom
+        // Items
+        if (hologramsDetected || customItemsDetected || cmiDetected) {
+            if (entity instanceof org.bukkit.entity.Display || entity instanceof org.bukkit.entity.ArmorStand) {
+                @SuppressWarnings("deprecation")
+                String customName = entity.getCustomName();
+                if (entity.isCustomNameVisible() || customName != null) {
+                    return true;
+                }
+            }
+        }
+
+        if (evenMoreFishDetected && entity.hasMetadata("emf-fish")) {
+            return true;
+        }
+
+        // General EliteMobs / other custom mob flag
+        if (entity.hasMetadata("EliteMob")) {
+            return true;
+        }
+
+        return false;
     }
 
     // ══════════════════════════════════════════════════

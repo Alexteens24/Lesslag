@@ -67,10 +67,8 @@ All commands require the `lesslag.admin` permission.
 | `/lg health` | Shows a comprehensive server health report including TPS, RAM usage, CPU load, and entity counts. |
 | `/lg tps` | Displays real-time TPS and MSPT metrics with 1m, 5m, and 15m averages. |
 | `/lg sources` | Runs the Lag Source Analyzer to detect specific entities, chunks, or plugins causing lag. |
-| `/lg gc` | Displays detailed Garbage Collection statistics and memory usage info. |
-| `/lg check <world>` | Checks a specific world for entity and chunk counts. |
-| `/lg kill <type> [radius]` | Removes entities of a specific type (e.g., `hostile`, `all`, `items`) within a radius. |
-| `/lg unload` | Manually triggers the unloading of unused chunks. |
+| `/lg gc` | Shows current RAM usage and notes that manual GC is disabled for safety. |
+| `/lg gcinfo` | Displays detailed Garbage Collection statistics (collector counts, times). |
 | `/lg reload` | Reloads the `config.yml` and `messages.yml` files. |
 | `/lg help` | Displays the list of available commands. |
 

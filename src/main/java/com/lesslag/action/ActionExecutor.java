@@ -587,9 +587,7 @@ public class ActionExecutor {
             return false;
 
         // Compatibility checks
-        if (plugin.getCompatManager().isNPC(entity))
-            return false;
-        if (plugin.getCompatManager().isCustomMob(entity))
+        if (plugin.getCompatManager().isProtectedEntity(entity))
             return false;
 
         return !isProtected(entity);
@@ -600,9 +598,7 @@ public class ActionExecutor {
             return true;
 
         // Compatibility checks
-        if (plugin.getCompatManager().isNPC(entity))
-            return true;
-        if (plugin.getCompatManager().isCustomMob(entity))
+        if (plugin.getCompatManager().isProtectedEntity(entity))
             return true;
 
         if (entity instanceof Tameable && ((Tameable) entity).isTamed())

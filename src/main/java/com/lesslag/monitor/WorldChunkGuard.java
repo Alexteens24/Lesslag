@@ -85,10 +85,12 @@ public class WorldChunkGuard {
         String evacuateWorldName = plugin.getConfig().getString("modules.chunks.world-guard.evacuate-world", "world");
         int maxChunksPerPlayer = plugin.getConfig().getInt("modules.chunks.world-guard.max-chunks-per-player", 200);
         List<String> actions = plugin.getConfig().getStringList("modules.chunks.world-guard.actions");
+        List<String> ignoredWorlds = plugin.getConfig().getStringList("modules.chunks.world-guard.ignored-worlds");
+        boolean keepSpawnLoaded = plugin.getConfig().getBoolean("modules.chunks.world-guard.keep-spawn-loaded", true);
 
         // Brief SYNC dispatch to collect world snapshots
         Bukkit.getScheduler().runTask(plugin, () -> {
-            List<WorldSnapshot> snapshots = collectSnapshots();
+            List<WorldSnapshot> snapshots = collectSnapshots(ignoredWorlds, keepSpawnLoaded);
 
             // Back to ASYNC for analysis
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -106,10 +108,13 @@ public class WorldChunkGuard {
      * Collect lightweight snapshots of all worlds.
      * Runs on MAIN THREAD — kept as fast as possible.
      */
-    private List<WorldSnapshot> collectSnapshots() {
+    private List<WorldSnapshot> collectSnapshots(List<String> ignoredWorlds, boolean checkSpawnRules) {
         List<WorldSnapshot> snapshots = new ArrayList<>();
 
         for (World world : Bukkit.getWorlds()) {
+            if (ignoredWorlds.contains(world.getName()))
+                continue;
+
             List<Player> players = world.getPlayers();
             int playerCount = players.size();
             int viewDistance = world.getViewDistance();
@@ -131,15 +136,31 @@ public class WorldChunkGuard {
                 }
             }
 
+            // Snapshot spawn chunk keys if protected
             // Snapshot chunk coordinates (lightweight — just ints)
             List<int[]> chunkCoords = new ArrayList<>(chunkCount);
             for (Chunk chunk : loadedChunks) {
                 chunkCoords.add(new int[] { chunk.getX(), chunk.getZ() });
             }
 
+            Set<Long> spawnChunkKeys = new HashSet<>();
+            if (checkSpawnRules && world.getKeepSpawnInMemory()) {
+                Location spawn = world.getSpawnLocation();
+                int scx = spawn.getBlockX() >> 4;
+                int scz = spawn.getBlockZ() >> 4;
+                // Bukkit usually keeps a 16x16 or 11x11 area loaded around spawn. We'll protect
+                // a generous 16 chunk radius to be safe with MV-Core
+                int spawnRadius = 12;
+                for (int dx = -spawnRadius; dx <= spawnRadius; dx++) {
+                    for (int dz = -spawnRadius; dz <= spawnRadius; dz++) {
+                        spawnChunkKeys.add(chunkKey(scx + dx, scz + dz));
+                    }
+                }
+            }
+
             snapshots.add(new WorldSnapshot(
                     world.getName(), playerCount, viewDistance, chunkCount,
-                    playerPositions, playerChunkKeys, chunkCoords));
+                    playerPositions, playerChunkKeys, chunkCoords, spawnChunkKeys));
         }
 
         return snapshots;
@@ -197,7 +218,7 @@ public class WorldChunkGuard {
 
             plugin.getLogger().warning("[WorldChunkGuard] " + snap.worldName
                     + " OVERLOADED: " + snap.chunkCount + " chunks loaded"
-                    + " (expected max: ~" + expectedMax + ", players: " + snap.playerCount
+                    + " (expected max: approx. " + expectedMax + ", players: " + snap.playerCount
                     + ", VD: " + snap.viewDistance + ") [attempt " + (retries + 1) + "/" + maxRetries + "]");
 
             // Check if unloading is enabled in actions (default true if list is empty or
@@ -205,9 +226,11 @@ public class WorldChunkGuard {
             boolean doUnload = actions == null || actions.isEmpty() || actions.contains("unload-unused");
 
             if (!doUnload) {
-                // If unloading is disabled, we just rely on other actions (like view distance reduction)
+                // If unloading is disabled, we just rely on other actions (like view distance
+                // reduction)
                 // But we still track retries to eventually evacuate if needed?
-                // Or maybe just skip? For now, we proceed to ensure logic flows, but candidates will be empty
+                // Or maybe just skip? For now, we proceed to ensure logic flows, but candidates
+                // will be empty
                 // if we don't build them.
                 // Let's just return here to avoid unloading if not requested.
                 // But we need to update status/retries?
@@ -223,6 +246,9 @@ public class WorldChunkGuard {
                     long key = chunkKey(coord[0], coord[1]);
                     if (snap.playerChunkKeys.contains(key))
                         continue;
+                    if (snap.spawnChunkKeys.contains(key))
+                        continue; // Protected spawn chunk
+
                     candidates.add(coord);
                 }
             }
@@ -523,9 +549,11 @@ public class WorldChunkGuard {
         final List<double[]> playerPositions;
         final Set<Long> playerChunkKeys;
         final List<int[]> chunkCoords;
+        final Set<Long> spawnChunkKeys;
 
         WorldSnapshot(String worldName, int playerCount, int viewDistance, int chunkCount,
-                List<double[]> playerPositions, Set<Long> playerChunkKeys, List<int[]> chunkCoords) {
+                List<double[]> playerPositions, Set<Long> playerChunkKeys, List<int[]> chunkCoords,
+                Set<Long> spawnChunkKeys) {
             this.worldName = worldName;
             this.playerCount = playerCount;
             this.viewDistance = viewDistance;
@@ -533,6 +561,7 @@ public class WorldChunkGuard {
             this.playerPositions = playerPositions;
             this.playerChunkKeys = playerChunkKeys;
             this.chunkCoords = chunkCoords;
+            this.spawnChunkKeys = spawnChunkKeys;
         }
     }
 

@@ -7,6 +7,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityBreedEvent;
 
@@ -38,9 +39,7 @@ public class BreedingLimiter implements Listener {
     }
 
     public void stop() {
-        // Listeners are automatically unregistered on plugin disable,
-        // but if we supported hot-swapping modules, we'd use
-        // HandlerList.unregisterAll(this);
+        HandlerList.unregisterAll(this);
     }
 
     @EventHandler(ignoreCancelled = true)

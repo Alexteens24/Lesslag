@@ -89,9 +89,23 @@ public class ThresholdConfig {
             ConfigurationSection notify = entry.getConfigurationSection("notify");
             boolean chat = notify != null ? notify.getBoolean("chat", globalChat) : globalChat;
             boolean actionbar = notify != null ? notify.getBoolean("actionbar", globalActionbar) : globalActionbar;
-            boolean sound = notify != null ? notify.getBoolean("sound", globalSound) : globalSound;
-            String soundType = notify != null ? notify.getString("sound-type", "BLOCK_NOTE_BLOCK_PLING")
-                    : "BLOCK_NOTE_BLOCK_PLING";
+            // sound key accepts either a boolean (true/false) or a sound-name string
+            // e.g. `sound: true` + `sound-type: BLOCK_NOTE_BLOCK_PLING`, or shorthand `sound: "ENTITY_ENDERMAN_DEATH"`
+            boolean sound;
+            String soundType;
+            if (notify != null) {
+                Object soundVal = notify.get("sound");
+                if (soundVal instanceof String) {
+                    sound = true;
+                    soundType = (String) soundVal;
+                } else {
+                    sound = notify.getBoolean("sound", globalSound);
+                    soundType = notify.getString("sound-type", "BLOCK_NOTE_BLOCK_PLING");
+                }
+            } else {
+                sound = globalSound;
+                soundType = "BLOCK_NOTE_BLOCK_PLING";
+            }
             float soundVolume = notify != null ? (float) notify.getDouble("sound-volume", 1.0) : 1.0f;
             float soundPitch = notify != null ? (float) notify.getDouble("sound-pitch", 1.0) : 1.0f;
 

@@ -138,31 +138,36 @@ public class FrustumCuller {
                 }
 
                 Player player = allPlayers.get(playerIndex++);
-                if (!player.isOnline()) continue;
+                if (!player.isOnline())
+                    continue;
 
                 World world = player.getWorld();
                 Location eye = player.getEyeLocation();
 
                 worldViewData.computeIfAbsent(world.getUID(), k -> new ArrayList<>())
                         .add(new PlayerView(
-                        eye.getX(), eye.getY(), eye.getZ(),
-                        eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
-                        world.getUID()));
+                                eye.getX(), eye.getY(), eye.getZ(),
+                                eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
+                                world.getUID()));
 
                 // Iterate nearby entities
                 for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
-                    if (!(entity instanceof Mob)) continue;
+                    if (!(entity instanceof Mob))
+                        continue;
                     Mob mob = (Mob) entity;
 
                     // Optimization: Use distanceSquared() for precise range check
                     if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
                         continue;
 
-                    if (!processedMobs.add(mob.getUniqueId())) continue;
+                    if (!processedMobs.add(mob.getUniqueId()))
+                        continue;
 
                     if (protectedTypes.contains(mob.getType().name()))
                         continue;
                     if (LessLag.hasCustomName(mob))
+                        continue;
+                    if (plugin.getCompatManager().isProtectedEntity(mob))
                         continue;
                     if (mob.hasMetadata("LessLag.DensitySuppressed"))
                         continue;
@@ -259,13 +264,15 @@ public class FrustumCuller {
             lastProcessed.incrementAndGet();
         }
 
-        // Dispatch AI changes to main thread via WorkloadDistributor (direct async submission)
+        // Dispatch AI changes to main thread via WorkloadDistributor (direct async
+        // submission)
         int droppedBatches = 0;
         droppedBatches += submitBatchedUpdates(toCull, false);
         droppedBatches += submitBatchedUpdates(toRestore, true);
 
         if (droppedBatches > 0) {
-            plugin.getLogger().warning("[FrustumCuller] WorkloadDistributor queue full! Dropped " + droppedBatches + " batches of AI updates.");
+            plugin.getLogger().warning("[FrustumCuller] WorkloadDistributor queue full! Dropped " + droppedBatches
+                    + " batches of AI updates.");
         }
     }
 
@@ -277,12 +284,14 @@ public class FrustumCuller {
         for (UUID uuid : targets) {
             batch.add(uuid);
             if (batch.size() >= batchSize) {
-                if (!dispatchBatch(batch, enableAI)) dropped++;
+                if (!dispatchBatch(batch, enableAI))
+                    dropped++;
                 batch.clear();
             }
         }
         if (!batch.isEmpty()) {
-            if (!dispatchBatch(batch, enableAI)) dropped++;
+            if (!dispatchBatch(batch, enableAI))
+                dropped++;
         }
         return dropped;
     }
@@ -295,7 +304,8 @@ public class FrustumCuller {
                 if (entity instanceof Mob && entity.isValid()) {
                     // Safety check: ensure chunk is loaded (use coordinates to avoid sync load)
                     Location loc = entity.getLocation();
-                    if (!entity.getWorld().isChunkLoaded(loc.getBlockX() >> 4, loc.getBlockZ() >> 4)) continue;
+                    if (!entity.getWorld().isChunkLoaded(loc.getBlockX() >> 4, loc.getBlockZ() >> 4))
+                        continue;
 
                     if (plugin.setMobAwareSafe((Mob) entity, enableAI)) {
                         if (enableAI) {

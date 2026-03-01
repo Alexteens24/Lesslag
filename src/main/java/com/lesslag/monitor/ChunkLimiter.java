@@ -223,6 +223,11 @@ public class ChunkLimiter {
     private boolean isProtected(Entity entity, Set<String> whitelist) {
         if (whitelist.contains(entity.getType().name()))
             return true;
+
+        // Unified compatibility check
+        if (plugin.getCompatManager().isProtectedEntity(entity))
+            return true;
+
         if (LessLag.hasCustomName(entity))
             return true;
         if (entity instanceof Tameable && ((Tameable) entity).isTamed())
