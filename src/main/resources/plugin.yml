@@ -12,13 +12,16 @@ libraries:
 commands:
   lg:
     description: LessLag admin commands
-    usage: /lg <status|health|tps|gc|gcinfo|tickmonitor|entities|thresholds|sources|trace|chunks|redstone|predictive|frustum|worldguard|memory|villager|clear|ai|restore|reload>
+    usage: /lg <status|health|tps|gc|gcinfo|tickmonitor|entities|thresholds|sources|trace|chunks|redstone|predictive|frustum|worldguard|memory|villager|clear|ai|restore|setup|reload>
     permission: lesslag.admin
     aliases: [lesslag, lesslagadmin]
 
 permissions:
   lesslag.admin:
     description: Full access to LessLag commands
+    default: op
+  lesslag.setup:
+    description: Access to the Setup Advisor wizard
     default: op
   lesslag.notify:
     description: Receive TPS alerts, tick spikes, and GC notifications

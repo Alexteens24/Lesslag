@@ -17,13 +17,25 @@ public class LagTabCompleter implements TabCompleter {
             "status", "health", "tps", "gc", "gcinfo",
             "tickmonitor", "entities", "thresholds", "sources", "trace",
             "chunks", "redstone", "predictive", "frustum",
-            "worldguard", "memory", "villager", "clear", "ai", "restore", "reload");
+            "worldguard", "memory", "villager", "clear", "ai", "restore", "setup", "reload");
 
     private static final List<String> CLEAR_TYPES = Arrays.asList(
             "items", "xp", "mobs", "hostile", "all");
 
     private static final List<String> AI_ACTIONS = Arrays.asList(
             "disable", "restore", "status");
+
+    private static final List<String> SETUP_ACTIONS = Arrays.asList(
+            "start", "profile", "tier", "level", "review", "select", "confirm", "abort", "rollback");
+
+    private static final List<String> SETUP_PROFILES = Arrays.asList(
+            "smp", "skyblock", "minigame", "creative");
+
+    private static final List<String> SETUP_TIERS = Arrays.asList(
+            "low", "mid", "high");
+
+    private static final List<String> SETUP_LEVELS = Arrays.asList(
+            "safe", "balanced", "aggressive");
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
@@ -47,6 +59,27 @@ public class LagTabCompleter implements TabCompleter {
                 case "ai":
                     return AI_ACTIONS.stream()
                             .filter(action -> action.startsWith(args[1].toLowerCase()))
+                            .collect(Collectors.toList());
+                case "setup":
+                    return SETUP_ACTIONS.stream()
+                            .filter(action -> action.startsWith(args[1].toLowerCase()))
+                            .collect(Collectors.toList());
+            }
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("setup")) {
+            switch (args[1].toLowerCase()) {
+                case "profile":
+                    return SETUP_PROFILES.stream()
+                            .filter(p -> p.startsWith(args[2].toLowerCase()))
+                            .collect(Collectors.toList());
+                case "tier":
+                    return SETUP_TIERS.stream()
+                            .filter(t -> t.startsWith(args[2].toLowerCase()))
+                            .collect(Collectors.toList());
+                case "level":
+                    return SETUP_LEVELS.stream()
+                            .filter(l -> l.startsWith(args[2].toLowerCase()))
                             .collect(Collectors.toList());
             }
         }

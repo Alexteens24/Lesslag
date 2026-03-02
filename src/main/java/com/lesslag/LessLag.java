@@ -3,6 +3,7 @@ package com.lesslag;
 import com.lesslag.action.ActionExecutor;
 import com.lesslag.command.LagCommand;
 import com.lesslag.command.LagTabCompleter; // Resync
+import com.lesslag.setup.SetupAdvisor;
 import com.lesslag.monitor.ChunkLimiter;
 import com.lesslag.monitor.FrustumCuller;
 import com.lesslag.monitor.WorldChunkGuard;
@@ -59,6 +60,7 @@ public class LessLag extends JavaPlugin implements Listener {
     private MemoryLeakDetector memoryLeakDetector;
     private CompatibilityManager compatManager;
     private PremiumService premiumService;
+    private SetupAdvisor setupAdvisor;
 
     // Shared async executor for all monitoring tasks
     private ExecutorService asyncExecutor;
@@ -123,6 +125,12 @@ public class LessLag extends JavaPlugin implements Listener {
 
         // Initialize components
         initializeMonitors();
+
+        // Initialize Setup Advisor
+        if (getConfig().getBoolean("setup-advisor.enabled", true)) {
+            setupAdvisor = new SetupAdvisor(this);
+            getLogger().info("Setup Advisor initialized.");
+        }
 
         // Register commands
         LagCommand lagCommand = new LagCommand(this);
@@ -235,6 +243,10 @@ public class LessLag extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         stopMonitors();
+
+        if (setupAdvisor != null) {
+            setupAdvisor.shutdown();
+        }
 
         if (workloadDistributor != null) {
             workloadDistributor.shutdown();
@@ -354,6 +366,10 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public PremiumService getPremiumManager() {
         return premiumService;
+    }
+
+    public SetupAdvisor getSetupAdvisor() {
+        return setupAdvisor;
     }
 
     public ExecutorService getAsyncExecutor() {

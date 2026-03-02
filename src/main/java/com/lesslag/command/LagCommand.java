@@ -3,6 +3,7 @@ package com.lesslag.command;
 import com.lesslag.LessLag;
 import com.lesslag.action.ActionExecutor;
 import com.lesslag.action.ThresholdConfig;
+import com.lesslag.setup.SetupCommandHandler;
 import com.lesslag.monitor.ChunkLimiter;
 import com.lesslag.monitor.FrustumCuller;
 import com.lesslag.monitor.WorldChunkGuard;
@@ -35,12 +36,16 @@ public class LagCommand implements CommandExecutor {
 
     private final LessLag plugin;
     private FileConfiguration messagesConfig;
+    private SetupCommandHandler setupCommandHandler;
 
     public LagCommand(LessLag plugin) {
         this.plugin = plugin;
         File msgFile = new File(plugin.getDataFolder(), "messages.yml");
         if (msgFile.exists()) {
             messagesConfig = YamlConfiguration.loadConfiguration(msgFile);
+        }
+        if (plugin.getSetupAdvisor() != null) {
+            setupCommandHandler = new SetupCommandHandler(plugin, plugin.getSetupAdvisor());
         }
     }
 
@@ -128,6 +133,13 @@ public class LagCommand implements CommandExecutor {
             case "restore":
                 doRestore(sender);
                 break;
+            case "setup":
+                if (setupCommandHandler != null) {
+                    setupCommandHandler.handle(sender, args);
+                } else {
+                    send(sender, "&cSetup Advisor is disabled in config.");
+                }
+                break;
             case "reload":
                 doReload(sender);
                 break;
@@ -168,6 +180,7 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg clear       &8- &7Clear entities &8[items|mobs|hostile|all]");
         send(sender, "  &e/lg ai          &8- &7AI control &8[disable|restore|status]");
         send(sender, "  &e/lg restore     &8- &7Restore all defaults");
+        send(sender, "  &e/lg setup       &8- &7Setup Advisor wizard");
         send(sender, "  &e/lg reload      &8- &7Reload configuration");
         send(sender, "");
         send(sender, "  &8Permissions: &7lesslag.admin &8(commands) &7lesslag.notify &8(alerts)");
