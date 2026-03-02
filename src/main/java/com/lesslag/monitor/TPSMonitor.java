@@ -9,7 +9,6 @@ import org.bukkit.Sound;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -35,11 +34,14 @@ public class TPSMonitor {
     private final ConcurrentLinkedDeque<Double> tps5m = new ConcurrentLinkedDeque<>();
     private final ConcurrentLinkedDeque<Double> tps15m = new ConcurrentLinkedDeque<>();
 
-    // MSPT tracking
+    // MSPT tracking — lock-free circular buffer (single-thread access from tick task)
     private volatile double currentMSPT = 50.0;
     private volatile double minMSPT = 50.0;
     private volatile double maxMSPT = 50.0;
-    private final LinkedList<Double> msptHistory = new LinkedList<>();
+    private static final int MSPT_BUFFER_SIZE = 100;
+    private final double[] msptBuffer = new double[MSPT_BUFFER_SIZE];
+    private int msptWriteIndex = 0;
+    private int msptCount = 0;
 
     // Dynamic thresholds
     private volatile List<ThresholdConfig> thresholds;
@@ -88,11 +90,10 @@ public class TPSMonitor {
                 double tickMs = (now - tpsLastTickNano[0]) / 1_000_000.0;
                 tpsLastTickNano[0] = now;
 
-                synchronized (msptHistory) {
-                    msptHistory.addLast(tickMs);
-                    if (msptHistory.size() > 100)
-                        msptHistory.removeFirst();
-                }
+                // Lock-free circular buffer write (single-thread, no sync needed)
+                msptBuffer[msptWriteIndex] = tickMs;
+                msptWriteIndex = (msptWriteIndex + 1) % MSPT_BUFFER_SIZE;
+                if (msptCount < MSPT_BUFFER_SIZE) msptCount++;
 
                 tpsTickCount[0]++;
                 long elapsedNano = now - tpsLastMeasureTime[0];
@@ -174,21 +175,20 @@ public class TPSMonitor {
     }
 
     private void calculateMSPT() {
-        synchronized (msptHistory) {
-            if (msptHistory.isEmpty())
-                return;
-            double min = Double.MAX_VALUE, max = 0, sum = 0;
-            for (double ms : msptHistory) {
-                if (ms < min)
-                    min = ms;
-                if (ms > max)
-                    max = ms;
-                sum += ms;
-            }
-            minMSPT = min;
-            maxMSPT = max;
-            currentMSPT = sum / msptHistory.size();
+        if (msptCount == 0)
+            return;
+        double min = Double.MAX_VALUE, max = 0, sum = 0;
+        for (int i = 0; i < msptCount; i++) {
+            double ms = msptBuffer[i];
+            if (ms < min)
+                min = ms;
+            if (ms > max)
+                max = ms;
+            sum += ms;
         }
+        minMSPT = min;
+        maxMSPT = max;
+        currentMSPT = sum / msptCount;
     }
 
     /**

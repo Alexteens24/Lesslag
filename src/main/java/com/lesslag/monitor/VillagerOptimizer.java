@@ -48,6 +48,13 @@ public class VillagerOptimizer implements Listener {
     // UUIDs of villagers who have AI temporarily enabled [UUID -> ActiveVillagerInfo]
     private final Map<UUID, ActiveVillagerInfo> activeVillagers = new ConcurrentHashMap<>();
 
+    // ── Incremental scan state ──
+    private Chunk[] scanChunks = null;
+    private int scanCursor = 0;
+    private int scanWorldIndex = 0;
+    private int scanIdleCountdown = 0;
+    private static final int VILLAGER_CHUNKS_PER_TICK = 20;
+
     private static class ActiveVillagerInfo {
         final long expiry;
         final UUID worldUID;
@@ -79,10 +86,9 @@ public class VillagerOptimizer implements Listener {
 
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
 
-        // Periodic scan task (ASYNC for finding candidates, SYNC for modifying)
-        scanTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
-            runOptimizationScan();
-        }, 100L, checkInterval);
+        // Incremental scan: run every tick, process a slice of chunks each tick.
+        // After a full pass, idle for checkInterval ticks before starting the next.
+        scanTask = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, 100L, 1L);
 
         // Cleanup task for temporary AI (runs faster, e.g. every 5s)
         cleanupTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
@@ -108,69 +114,91 @@ public class VillagerOptimizer implements Listener {
     // Optimization Logic
     // ══════════════════════════════════════════════════
 
-    private void runOptimizationScan() {
-        // Collect candidates (Sync because we need Bukkit API involved in isTrapped
-        // check heavily)
-        // Optimization: Iterate loaded chunks to avoid massive entity list copy.
-        // Batch workloads per chunk to reduce WorkloadDistributor queue pressure.
+    private void scanIncremental() {
+        // Idle between full passes
+        if (scanIdleCountdown > 0) {
+            scanIdleCountdown--;
+            return;
+        }
 
-        for (World world : Bukkit.getWorlds()) {
-            for (Chunk chunk : world.getLoadedChunks()) {
-                // Quick check if chunk has villagers before scheduling?
-                // getEntities() on chunk is array copy too, but much smaller.
-                // We'll schedule the chunk processing as a single unit.
+        // Start new pass if needed
+        if (scanChunks == null || scanCursor >= scanChunks.length) {
+            List<World> worlds = Bukkit.getWorlds();
+            if (scanChunks != null && scanWorldIndex + 1 < worlds.size()) {
+                scanWorldIndex++;
+            } else {
+                if (scanChunks != null) {
+                    scanChunks = null;
+                    scanIdleCountdown = checkInterval;
+                    return;
+                }
+                scanWorldIndex = 0;
+            }
+            if (worlds.isEmpty()) return;
+            if (scanWorldIndex >= worlds.size()) {
+                scanChunks = null;
+                scanIdleCountdown = checkInterval;
+                return;
+            }
+            scanChunks = worlds.get(scanWorldIndex).getLoadedChunks();
+            scanCursor = 0;
+        }
 
-                plugin.getWorkloadDistributor().addChunkWorkload(chunk, () -> {
-                    if (!chunk.isLoaded())
-                        return;
+        // Process a slice of chunks this tick
+        int end = Math.min(scanCursor + VILLAGER_CHUNKS_PER_TICK, scanChunks.length);
+        for (int i = scanCursor; i < end; i++) {
+            Chunk chunk = scanChunks[i];
+            if (!chunk.isLoaded()) continue;
+            processVillagerChunk(chunk);
+        }
+        scanCursor = end;
+    }
 
-                    for (Entity entity : chunk.getEntities()) {
-                        if (entity.getType() != EntityType.VILLAGER)
-                            continue;
+    private void processVillagerChunk(Chunk chunk) {
+        for (Entity entity : chunk.getEntities()) {
+            if (entity.getType() != EntityType.VILLAGER)
+                continue;
 
-                        Villager villager = (Villager) entity;
+            Villager villager = (Villager) entity;
 
-                        // Skip if currently active (recently traded)
-                        if (activeVillagers.containsKey(villager.getUniqueId()))
-                            continue;
+            // Skip if currently active (recently traded)
+            if (activeVillagers.containsKey(villager.getUniqueId()))
+                continue;
 
-                        if (!villager.isValid())
-                            continue;
+            if (!villager.isValid())
+                continue;
 
-                        // Check throttling: If already optimized, skip check if checked recently
-                        long now = System.nanoTime();
-                        if (villager.hasMetadata("LessLag.VillagerOptimized")
-                                && villager.hasMetadata("LessLag.LastTrappedCheck")) {
-                            long lastCheck = villager.getMetadata("LessLag.LastTrappedCheck").get(0).asLong();
-                            if (now - lastCheck < 120_000_000_000L) { // 2 minutes
-                                continue;
-                            }
-                        }
+            // Check throttling: If already optimized, skip check if checked recently
+            long now = System.nanoTime();
+            if (villager.hasMetadata("LessLag.VillagerOptimized")
+                    && villager.hasMetadata("LessLag.LastTrappedCheck")) {
+                long lastCheck = villager.getMetadata("LessLag.LastTrappedCheck").get(0).asLong();
+                if (now - lastCheck < 120_000_000_000L) { // 2 minutes
+                    continue;
+                }
+            }
 
-                        // Compatibility check: don't optimize NPCs or merchants
-                        if (plugin.getCompatManager().isProtectedEntity(villager)) {
-                            continue;
-                        }
+            // Compatibility check: don't optimize NPCs or merchants
+            if (plugin.getCompatManager().isProtectedEntity(villager)) {
+                continue;
+            }
 
-                        boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(villager);
+            boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(villager);
 
-                        if (shouldOptimize) {
-                            if (plugin.isMobAwareSafe(villager)) {
-                                plugin.setMobAwareSafe(villager, false);
-                                villager.setMetadata("LessLag.VillagerOptimized",
-                                        new org.bukkit.metadata.FixedMetadataValue(plugin, true));
-                            }
-                            // Update last check timestamp
-                            villager.setMetadata("LessLag.LastTrappedCheck",
-                                    new org.bukkit.metadata.FixedMetadataValue(plugin, now));
-                        } else if (!plugin.isMobAwareSafe(villager)) {
-                            // If no longer trapped (e.g. player broke the cell), re-enable
-                            plugin.setMobAwareSafe(villager, true);
-                            villager.removeMetadata("LessLag.VillagerOptimized", plugin);
-                            villager.removeMetadata("LessLag.LastTrappedCheck", plugin);
-                        }
-                    }
-                });
+            if (shouldOptimize) {
+                if (plugin.isMobAwareSafe(villager)) {
+                    plugin.setMobAwareSafe(villager, false);
+                    villager.setMetadata("LessLag.VillagerOptimized",
+                            new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                }
+                // Update last check timestamp
+                villager.setMetadata("LessLag.LastTrappedCheck",
+                        new org.bukkit.metadata.FixedMetadataValue(plugin, now));
+            } else if (!plugin.isMobAwareSafe(villager)) {
+                // If no longer trapped (e.g. player broke the cell), re-enable
+                plugin.setMobAwareSafe(villager, true);
+                villager.removeMetadata("LessLag.VillagerOptimized", plugin);
+                villager.removeMetadata("LessLag.LastTrappedCheck", plugin);
             }
         }
     }

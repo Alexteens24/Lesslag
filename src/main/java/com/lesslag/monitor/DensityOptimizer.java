@@ -20,6 +20,13 @@ public class DensityOptimizer {
     private boolean bypassLeashed;
     private SchedulerAdapter.TaskHandle task;
 
+    // ── Incremental scan state ──
+    // Instead of scanning all chunks in one tick, we spread the work across multiple ticks.
+    private int scanCursor = 0;            // Current position in the chunk list
+    private int chunksPerTick = 30;        // Max chunks to process per tick
+    private Chunk[] pendingChunks = null;   // Snapshot of loaded chunks for current scan pass
+    private int pendingWorldIndex = 0;     // Current world index for multi-world iteration
+
     public DensityOptimizer(LessLag plugin) {
         this.plugin = plugin;
         this.limits = new HashMap<>();
@@ -61,7 +68,11 @@ public class DensityOptimizer {
         if (!enabled)
             return;
 
-        task = SchedulerAdapter.runGlobalRepeating(plugin, this::scan, checkInterval, checkInterval);
+        // Incremental mode: run every tick but only process a slice of chunks.
+        // This spreads work evenly instead of spiking every checkInterval ticks.
+        // The full scan completes in roughly (totalLoadedChunks / chunksPerTick) ticks.
+        // After a full pass, idle for checkInterval ticks before starting the next.
+        task = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, checkInterval, 1L);
     }
 
     public void stop() {
@@ -72,43 +83,63 @@ public class DensityOptimizer {
         restore();
     }
 
-    private void scan() {
-        if (!enabled)
+    private int idleCountdown = 0;
+
+    private void scanIncremental() {
+        if (!enabled || limits.isEmpty())
             return;
 
-        // Use WorkloadDistributor to avoid lag spikes
-        // Optimization: Batch chunks to reduce object churn in WorkloadDistributor
-        // queue
-        int batchSize = 20;
+        // Idle between full passes
+        if (idleCountdown > 0) {
+            idleCountdown--;
+            return;
+        }
 
-        for (World world : Bukkit.getWorlds()) {
-            Chunk[] loaded = world.getLoadedChunks();
-            List<Chunk> batch = new ArrayList<>(batchSize);
-
-            for (Chunk chunk : loaded) {
-                batch.add(chunk);
-
-                if (batch.size() >= batchSize) {
-                    // Create stable copy for lambda capture
-                    final List<Chunk> currentBatch = new ArrayList<>(batch);
-                    plugin.getWorkloadDistributor().addChunkBatchWorkload(currentBatch, this::processChunk);
-                    batch.clear();
+        // Start new pass if needed
+        if (pendingChunks == null || scanCursor >= pendingChunks.length) {
+            // Move to next world or start fresh
+            List<World> worlds = Bukkit.getWorlds();
+            if (pendingChunks != null && pendingWorldIndex + 1 < worlds.size()) {
+                pendingWorldIndex++;
+            } else {
+                // Full cycle complete — idle for checkInterval ticks
+                if (pendingChunks != null) {
+                    pendingChunks = null;
+                    idleCountdown = checkInterval;
+                    return;
                 }
+                pendingWorldIndex = 0;
             }
 
-            // Process remaining
-            if (!batch.isEmpty()) {
-                final List<Chunk> currentBatch = new ArrayList<>(batch);
-                plugin.getWorkloadDistributor().addChunkBatchWorkload(currentBatch, this::processChunk);
+            if (worlds.isEmpty()) return;
+            if (pendingWorldIndex >= worlds.size()) {
+                pendingChunks = null;
+                idleCountdown = checkInterval;
+                return;
+            }
+            pendingChunks = worlds.get(pendingWorldIndex).getLoadedChunks();
+            scanCursor = 0;
+        }
+
+        // Process a slice of chunks this tick
+        int end = Math.min(scanCursor + chunksPerTick, pendingChunks.length);
+        for (int i = scanCursor; i < end; i++) {
+            Chunk chunk = pendingChunks[i];
+            if (chunk.isLoaded()) {
+                processChunk(chunk);
             }
         }
+        scanCursor = end;
     }
+
+    // Reusable map to avoid per-chunk HashMap allocation
+    private final Map<EntityType, List<Mob>> reusableMobsByType = new HashMap<>();
 
     private void processChunk(Chunk chunk) {
         if (!chunk.isLoaded())
             return;
 
-        Map<EntityType, List<Mob>> mobsByType = new HashMap<>();
+        reusableMobsByType.clear();
 
         // 1. Snapshot valid mobs
         for (Entity entity : chunk.getEntities()) {
@@ -119,12 +150,12 @@ public class DensityOptimizer {
             if (limits.containsKey(mob.getType())) {
                 if (shouldBypass(mob))
                     continue;
-                mobsByType.computeIfAbsent(mob.getType(), k -> new ArrayList<>()).add(mob);
+                reusableMobsByType.computeIfAbsent(mob.getType(), k -> new ArrayList<>()).add(mob);
             }
         }
 
         // 2. Process limits
-        for (Map.Entry<EntityType, List<Mob>> entry : mobsByType.entrySet()) {
+        for (Map.Entry<EntityType, List<Mob>> entry : reusableMobsByType.entrySet()) {
             EntityType type = entry.getKey();
             List<Mob> mobs = entry.getValue();
             int limit = limits.get(type);
