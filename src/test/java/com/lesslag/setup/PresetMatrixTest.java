@@ -7,8 +7,6 @@ import com.lesslag.setup.preset.PresetMatrix;
 import com.lesslag.setup.preset.PresetProfile;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

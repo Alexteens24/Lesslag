@@ -195,7 +195,7 @@ public class LessLagApiClient {
         hardware.put("cpuModel", System.getProperty("os.arch", "unknown"));
         hardware.put("maxHeapMB", rt.maxMemory() / (1024 * 1024));
         hardware.put("gcOverheadPercent", 0);
-        double mspt = plugin.getTpsMonitor() != null ? plugin.getTpsMonitor().getAverageMspt() : 50.0;
+        double mspt = plugin.getTpsMonitor() != null ? plugin.getTpsMonitor().getCurrentMSPT() : 50.0;
         hardware.put("averageMspt", mspt);
         payload.put("hardware", hardware);
 
@@ -235,7 +235,7 @@ public class LessLagApiClient {
         payload.put("profile", "SMP");
         payload.put("aggressiveness", "BALANCED");
         payload.put("playerCount", Bukkit.getOnlinePlayers().size());
-        payload.put("serverName", Bukkit.getServer().getMotd());
+        payload.put("serverName", net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(Bukkit.getServer().motd()));
 
         return payload;
     }
