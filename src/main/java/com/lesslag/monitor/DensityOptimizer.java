@@ -26,6 +26,14 @@ public class DensityOptimizer {
     private Chunk[] pendingChunks = null;   // Snapshot of loaded chunks for current scan pass
     private int pendingWorldIndex = 0;     // Current world index for multi-world iteration
 
+    // ── Runtime stats (volatile for cross-thread reads from commands) ──
+    private volatile int totalMobsOptimized = 0;
+    private volatile int totalChunksScanned = 0;
+    private volatile int lastPassOptimized = 0;
+    private volatile int lastPassChunks = 0;
+    private int currentPassOptimized = 0;
+    private int currentPassChunks = 0;
+
     public DensityOptimizer(LessLag plugin) {
         this.plugin = plugin;
         this.limits = new HashMap<>();
@@ -79,6 +87,8 @@ public class DensityOptimizer {
         pendingChunks = null;
         pendingWorldIndex = 0;
         scanCursor = 0;
+        currentPassOptimized = 0;
+        currentPassChunks = 0;
         task = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, 1L, 1L);
     }
 
@@ -104,6 +114,8 @@ public class DensityOptimizer {
                 // Full cycle complete — stop task and schedule restart after idle period
                 if (pendingChunks != null) {
                     pendingChunks = null;
+                    lastPassOptimized = currentPassOptimized;
+                    lastPassChunks = currentPassChunks;
                     if (task != null) { task.cancel(); task = null; }
                     SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
                     return;
@@ -131,6 +143,8 @@ public class DensityOptimizer {
         for (int i = scanCursor; i < end; i++) {
             Chunk chunk = pendingChunks[i];
             if (chunk.isLoaded()) {
+                currentPassChunks++;
+                totalChunksScanned++;
                 if (folia) {
                     // On Folia, entity access must happen on the chunk's owning region thread
                     final Chunk c = chunk;
@@ -191,6 +205,8 @@ public class DensityOptimizer {
                         mob.setCollidable(shouldBeActive); // Also disable collision for performance!
 
                         if (!shouldBeActive) {
+                            currentPassOptimized++;
+                            totalMobsOptimized++;
                             mob.setMetadata("LessLag.DensitySuppressed",
                                     new org.bukkit.metadata.FixedMetadataValue(plugin, true));
                         } else {
@@ -254,4 +270,13 @@ public class DensityOptimizer {
             }
         }
     }
+
+    // ── Getters (volatile-safe for command reads) ──
+
+    public int getTotalMobsOptimized() { return totalMobsOptimized; }
+    public int getTotalChunksScanned() { return totalChunksScanned; }
+    public int getLastPassOptimized()  { return lastPassOptimized; }
+    public int getLastPassChunks()     { return lastPassChunks; }
+    public boolean isEnabled()         { return enabled; }
+    public Map<EntityType, Integer> getLimits() { return Collections.unmodifiableMap(limits); }
 }

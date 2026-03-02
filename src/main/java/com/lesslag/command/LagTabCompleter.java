@@ -16,7 +16,7 @@ public class LagTabCompleter implements TabCompleter {
     private static final List<String> SUB_COMMANDS = Arrays.asList(
             "status", "health", "tps", "gc", "gcinfo",
             "tickmonitor", "entities", "thresholds", "sources", "trace",
-            "chunks", "redstone", "predictive", "frustum",
+            "chunks", "redstone", "predictive", "frustum", "density", "breeding",
             "worldguard", "memory", "villager", "clear", "ai", "restore", "setup", "web", "reload");
 
     private static final List<String> CLEAR_TYPES = Arrays.asList(

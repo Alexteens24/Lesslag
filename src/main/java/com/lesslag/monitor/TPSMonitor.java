@@ -499,4 +499,22 @@ public class TPSMonitor {
     public double getMaxMSPT() {
         return maxMSPT;
     }
+
+    /**
+     * Compute MSPT percentiles on-demand from the circular buffer.
+     * Only called when admin runs a command — zero cost during normal ticks.
+     * @return double[3] = { p50, p95, p99 }
+     */
+    public double[] getMSPTPercentiles() {
+        int n = msptCount;
+        if (n == 0) return new double[]{0, 0, 0};
+        double[] sorted = new double[n];
+        System.arraycopy(msptBuffer, 0, sorted, 0, n);
+        java.util.Arrays.sort(sorted);
+        return new double[]{
+            sorted[Math.min((int)(n * 0.50), n - 1)],
+            sorted[Math.min((int)(n * 0.95), n - 1)],
+            sorted[Math.min((int)(n * 0.99), n - 1)]
+        };
+    }
 }

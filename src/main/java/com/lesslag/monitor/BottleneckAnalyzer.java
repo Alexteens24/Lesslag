@@ -38,6 +38,13 @@ public class BottleneckAnalyzer {
     private final Map<String, Integer> currentSpikeSamples = new ConcurrentHashMap<>();
     private final AtomicInteger totalSamplesInCurrentSpike = new AtomicInteger(0);
 
+    // Runtime stats (volatile for cross-thread command reads)
+    private volatile int totalSpikes = 0;
+    private volatile long worstSpikeDurationMs = 0;
+    private volatile String worstSpikeCulprit = "";
+    private volatile String lastSpikeCulprit = "";
+    private volatile long lastSpikeTimeMs = 0;
+
     public BottleneckAnalyzer(LessLag plugin) {
         this.plugin = plugin;
         this.threadBean = ManagementFactory.getThreadMXBean();
@@ -224,6 +231,15 @@ public class BottleneckAnalyzer {
         // reached.
         long durationMs = thresholdMs + (totalSamples * sampleIntervalMs);
 
+        // Track stats
+        totalSpikes++;
+        lastSpikeCulprit = worstMethod.getKey();
+        lastSpikeTimeMs = System.currentTimeMillis();
+        if (durationMs > worstSpikeDurationMs) {
+            worstSpikeDurationMs = durationMs;
+            worstSpikeCulprit = worstMethod.getKey();
+        }
+
         // Format the name nicely
         String methodName = worstMethod.getKey();
         if (methodName.length() > 40) {
@@ -260,4 +276,13 @@ public class BottleneckAnalyzer {
             }, 20L);
         }
     }
+
+    // ── Getters (volatile-safe for command reads) ──
+
+    public int getTotalSpikes()            { return totalSpikes; }
+    public long getWorstSpikeDurationMs()  { return worstSpikeDurationMs; }
+    public String getWorstSpikeCulprit()   { return worstSpikeCulprit; }
+    public String getLastSpikeCulprit()    { return lastSpikeCulprit; }
+    public long getLastSpikeTimeMs()       { return lastSpikeTimeMs; }
+    public boolean isRunning()             { return running; }
 }

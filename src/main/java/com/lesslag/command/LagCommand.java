@@ -5,7 +5,10 @@ import com.lesslag.action.ActionExecutor;
 import com.lesslag.action.ThresholdConfig;
 import com.lesslag.setup.SetupCommandHandler;
 import com.lesslag.web.LessLagApiClient;
+import com.lesslag.monitor.BottleneckAnalyzer;
+import com.lesslag.monitor.BreedingLimiter;
 import com.lesslag.monitor.ChunkLimiter;
+import com.lesslag.monitor.DensityOptimizer;
 import com.lesslag.monitor.FrustumCuller;
 import com.lesslag.monitor.WorldChunkGuard;
 import com.lesslag.monitor.MemoryLeakDetector;
@@ -138,6 +141,12 @@ public class LagCommand implements CommandExecutor {
             case "villager":
                 showVillagerOptimizer(sender);
                 break;
+            case "density":
+                showDensityOptimizer(sender);
+                break;
+            case "breeding":
+                showBreedingLimiter(sender);
+                break;
             case "restore":
                 doRestore(sender);
                 break;
@@ -188,6 +197,8 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg worldguard  &8- &7World Chunk Guard status");
         send(sender, "  &e/lg memory      &8- &7Memory Leak Detector status");
         send(sender, "  &e/lg villager    &8- &7Villager Optimizer status");
+        send(sender, "  &e/lg density     &8- &7Density Optimizer status");
+        send(sender, "  &e/lg breeding    &8- &7Breeding Limiter status");
         send(sender, "  &e/lg clear       &8- &7Clear entities &8[items|mobs|hostile|all]");
         send(sender, "  &e/lg ai          &8- &7AI control &8[disable|restore|status]");
         send(sender, "  &e/lg restore     &8- &7Restore all defaults");
@@ -220,6 +231,11 @@ public class LagCommand implements CommandExecutor {
             statusText = "✔ NORMAL";
         }
 
+        // Health Score (0-100) computed from TPS, MSPT, memory
+        int healthScore = computeHealthScore(tps);
+        String healthColor = healthScore >= 80 ? "&a" : healthScore >= 50 ? "&e" : "&c";
+        String healthBar = buildBar(healthScore, 100, 20);
+
         // TPS bar with gradient
         StringBuilder tpsBar = new StringBuilder();
         int filled = (int) Math.round(tps.getCurrentTPS());
@@ -231,22 +247,117 @@ public class LagCommand implements CommandExecutor {
             }
         }
 
+        // Uptime
+        long uptimeMs = ManagementFactory.getRuntimeMXBean().getUptime();
+        String uptime = formatDuration(uptimeMs);
+
         send(sender, "");
         send(sender, "&c&l  ≡ LessLag Status ≡");
         send(sender, "");
+        send(sender, "  &7Health: " + healthColor + healthScore + "/100 " + healthBar);
         send(sender, "  &7TPS: " + tpsColor + String.format("%.1f", tps.getCurrentTPS()) + " &8/ &a20.0");
         send(sender, "  " + tpsBar);
         send(sender, "  &7MSPT: &f" + String.format("%.1f", tps.getCurrentMSPT()) + "ms &8("
                 + "&7min: " + String.format("%.1f", tps.getMinMSPT())
                 + " &8/ &7max: " + String.format("%.1f", tps.getMaxMSPT()) + "&8)");
+
+        // MSPT percentiles
+        double[] pct = tps.getMSPTPercentiles();
+        send(sender, "  &7MSPT &8P50: &f" + String.format("%.1f", pct[0])
+                + "ms &8P95: &f" + String.format("%.1f", pct[1])
+                + "ms &8P99: &f" + String.format("%.1f", pct[2]) + "ms");
         send(sender, "");
         send(sender, "  &7Status: " + statusColor + statusText);
         send(sender, "  &7Modified: " + (tps.isSettingsModified() ? "&eYes &8(settings changed)" : "&aNo"));
         send(sender, "  &7RAM: &f" + plugin.getActionExecutor().getMemoryInfo());
         send(sender, "  &7Players: &f" + Bukkit.getOnlinePlayers().size() + " &8/ &f" + Bukkit.getMaxPlayers());
         send(sender, "  &7Entities: &f" + plugin.getActionExecutor().getTotalEntityCount());
-        send(sender, "  &7Thresholds: &f" + allThresholds.size() + " loaded");
+        send(sender, "  &7Uptime: &f" + uptime);
+
+        // Active optimizers summary
         send(sender, "");
+        send(sender, "  &e&lActive Optimizers");
+        PredictiveOptimizer po = plugin.getPredictiveOptimizer();
+        String predState = po != null && po.isPredictiveTriggered() ? "&c⚠ TRIGGERED" : "&a✔ Idle";
+        send(sender, "    &7Predictive: " + predState
+                + (po != null && po.getTriggerCount() > 0 ? " &8(" + po.getTriggerCount() + " total)" : ""));
+
+        VillagerOptimizer vo = plugin.getVillagerOptimizer();
+        if (vo != null) {
+            send(sender, "    &7Villagers: &e" + vo.getOptimizedCount() + " &7optimized, &a"
+                    + vo.getActiveRestoredCount() + " &7active");
+        }
+
+        DensityOptimizer dens = plugin.getDensityOptimizer();
+        if (dens != null && dens.isEnabled()) {
+            send(sender, "    &7Density: &e" + dens.getTotalMobsOptimized() + " &7mobs suppressed");
+        }
+
+        FrustumCuller fc = plugin.getFrustumCuller();
+        if (fc != null) {
+            send(sender, "    &7Frustum: &e" + fc.getLastCulled() + " &7culled, &a"
+                    + fc.getLastRestored() + " &7restored");
+        }
+
+        // Workload queue
+        com.lesslag.WorkloadDistributor wd = plugin.getWorkloadDistributor();
+        if (wd != null) {
+            int queueSize = wd.getQueueSize();
+            String qColor = queueSize == 0 ? "&a" : queueSize < 50 ? "&e" : "&c";
+            send(sender, "    &7Workload Queue: " + qColor + queueSize
+                    + (wd.isProcessing() ? " &8(processing)" : " &8(idle)"));
+        }
+
+        // Tick spikes
+        TickMonitor tick = plugin.getTickMonitor();
+        if (tick != null && tick.getSpikeCount() > 0) {
+            send(sender, "    &7Tick Spikes: &e" + tick.getSpikeCount()
+                    + " &8(worst: &f" + String.format("%.0f", tick.getWorstTickMs()) + "ms&8)");
+        }
+
+        // Bottleneck spikes
+        BottleneckAnalyzer ba = plugin.getBottleneckAnalyzer();
+        if (ba != null && ba.getTotalSpikes() > 0) {
+            send(sender, "    &7Bottlenecks: &c" + ba.getTotalSpikes()
+                    + " &8(worst: &f" + ba.getWorstSpikeDurationMs() + "ms&8)");
+        }
+
+        send(sender, "");
+    }
+
+    /**
+     * Compute a 0-100 health score from TPS, MSPT, and memory usage.
+     * Fast — no allocations, no I/O.
+     */
+    private int computeHealthScore(TPSMonitor tps) {
+        // TPS component: 0-40 points (20 TPS = 40, 10 TPS = 0)
+        double tpsScore = Math.max(0, Math.min(40, (tps.getCurrentTPS() / 20.0) * 40));
+        // MSPT component: 0-30 points (under 30ms = 30, over 50ms = 0)
+        double msptScore = Math.max(0, Math.min(30, (1.0 - Math.max(0, tps.getCurrentMSPT() - 30) / 20.0) * 30));
+        // Memory component: 0-30 points
+        Runtime rt = Runtime.getRuntime();
+        double memUsed = (double)(rt.totalMemory() - rt.freeMemory()) / rt.maxMemory();
+        double memScore = Math.max(0, Math.min(30, (1.0 - memUsed) * 30));
+        return (int) Math.round(tpsScore + msptScore + memScore);
+    }
+
+    private String buildBar(int value, int max, int width) {
+        int filled = (int) Math.round((double) value / max * width);
+        StringBuilder bar = new StringBuilder();
+        String color = value * 100 / max >= 80 ? "&a" : value * 100 / max >= 50 ? "&e" : "&c";
+        for (int i = 0; i < width; i++) {
+            bar.append(i < filled ? color + "█" : "&8█");
+        }
+        return bar.toString();
+    }
+
+    private String formatDuration(long ms) {
+        long hours = TimeUnit.MILLISECONDS.toHours(ms);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60;
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(ms) % 60;
+        if (hours > 0) return hours + "h " + minutes + "m";
+        if (minutes > 0) return minutes + "m " + seconds + "s";
+        return seconds + "s";
     }
 
     // ══════════════════════════════════════════════════
@@ -556,6 +667,7 @@ public class LagCommand implements CommandExecutor {
 
     private void showTickInfo(CommandSender sender) {
         TickMonitor tick = plugin.getTickMonitor();
+        TPSMonitor tps = plugin.getTpsMonitor();
 
         send(sender, "");
         send(sender, "&c&l  ≡ Tick Monitor ≡");
@@ -564,6 +676,20 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &7Worst tick: &f" + String.format("%.1f", tick.getWorstTickMs()) + "ms");
         send(sender, "  &7Spike count: &e" + tick.getSpikeCount() +
                 " &8(threshold: " + plugin.getConfig().getDouble("system.tick-monitor.threshold-ms", 100) + "ms)");
+
+        // MSPT percentiles from TPSMonitor's buffer
+        if (tps != null) {
+            double[] pct = tps.getMSPTPercentiles();
+            send(sender, "");
+            send(sender, "  &e&lMSPT Distribution");
+            send(sender, "    &7P50: &f" + String.format("%.1f", pct[0]) + "ms &8(median)");
+            send(sender, "    &7P95: &f" + String.format("%.1f", pct[1]) + "ms &8(95th percentile)");
+            send(sender, "    &7P99: &f" + String.format("%.1f", pct[2]) + "ms &8(99th percentile)");
+            send(sender, "    &7Avg: &f" + String.format("%.1f", tps.getCurrentMSPT()) + "ms");
+            send(sender, "    &7Min: &f" + String.format("%.1f", tps.getMinMSPT()) + "ms");
+            send(sender, "    &7Max: &f" + String.format("%.1f", tps.getMaxMSPT()) + "ms");
+        }
+
         send(sender, "");
     }
 
@@ -758,6 +884,7 @@ public class LagCommand implements CommandExecutor {
 
     private void doTrace(CommandSender sender) {
         boolean enabled = plugin.getConfig().getBoolean("system.bottleneck-analyzer.enabled", true);
+        BottleneckAnalyzer ba = plugin.getBottleneckAnalyzer();
 
         send(sender, "");
         send(sender, "&c&l  ≡ Bottleneck Analyzer (Trace) ≡");
@@ -767,10 +894,33 @@ public class LagCommand implements CommandExecutor {
                 + plugin.getConfig().getLong("system.bottleneck-analyzer.threshold-ms", 100L) + "ms");
         send(sender, "  &7Sampling Interval: &f"
                 + plugin.getConfig().getLong("system.bottleneck-analyzer.sample-interval-ms", 5L) + "ms");
+
+        if (ba != null && ba.getTotalSpikes() > 0) {
+            send(sender, "");
+            send(sender, "  &e&lRuntime Statistics");
+            send(sender, "    &7Total spikes detected: &c" + ba.getTotalSpikes());
+            send(sender, "    &7Worst spike: &c" + ba.getWorstSpikeDurationMs() + "ms");
+            if (!ba.getWorstSpikeCulprit().isEmpty()) {
+                String culprit = ba.getWorstSpikeCulprit();
+                if (culprit.length() > 50) culprit = "..." + culprit.substring(culprit.length() - 47);
+                send(sender, "    &7Worst culprit: &e" + culprit);
+            }
+            if (!ba.getLastSpikeCulprit().isEmpty()) {
+                String last = ba.getLastSpikeCulprit();
+                if (last.length() > 50) last = "..." + last.substring(last.length() - 47);
+                send(sender, "    &7Last culprit: &e" + last);
+                long ago = (System.currentTimeMillis() - ba.getLastSpikeTimeMs()) / 1000;
+                send(sender, "    &7Last spike: &f" + ago + "s ago");
+            }
+        } else {
+            send(sender, "");
+            send(sender, "  &a✔ No lag spikes detected yet.");
+        }
+
         send(sender, "");
-        send(sender, "  &8Note: The Bottleneck Analyzer runs constantly in the background.");
-        send(sender, "  &8If a tick takes longer than the threshold, it immediately samples");
-        send(sender, "  &8the main thread and warns admins containing the exact cause.");
+        send(sender, "  &8The watchdog constantly monitors the main thread.");
+        send(sender, "  &8If a tick exceeds the threshold, it samples the stack trace");
+        send(sender, "  &8and identifies the exact method causing the hang.");
         send(sender, "");
     }
 
@@ -1288,6 +1438,70 @@ public class LagCommand implements CommandExecutor {
             send(sender, "  &7Optimized (AI Disabled): &e" + vo.getOptimizedCount());
             send(sender, "  &7Active (Restored): &a" + vo.getActiveRestoredCount());
             send(sender, "  &8(Villagers in trading halls are lobotomized until interaction)");
+        }
+        send(sender, "");
+    }
+
+    // ══════════════════════════════════════════════════
+    // Density Optimizer
+    // ══════════════════════════════════════════════════
+
+    private void showDensityOptimizer(CommandSender sender) {
+        DensityOptimizer dens = plugin.getDensityOptimizer();
+        boolean enabled = plugin.getConfig().getBoolean("modules.density-optimizer.enabled", true);
+
+        send(sender, "");
+        send(sender, "&c&l  ≡ Density Optimizer ≡");
+        send(sender, "");
+        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
+        send(sender, "  &7Check Interval: &f"
+                + plugin.getConfig().getInt("modules.density-optimizer.check-interval", 40) + " ticks");
+        send(sender, "  &7Bypass: "
+                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-tamed", true) ? "&aTamed " : "")
+                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-named", true) ? "&aNamed " : "")
+                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-leashed", true) ? "&aLeashed" : ""));
+
+        if (dens != null && enabled) {
+            // Show limits
+            send(sender, "");
+            send(sender, "  &e&lEntity Limits");
+            for (var entry : dens.getLimits().entrySet()) {
+                send(sender, "    &8▸ &f" + entry.getKey().name() + " &8- max &e" + entry.getValue() + " &7/chunk");
+            }
+
+            // Stats
+            send(sender, "");
+            send(sender, "  &e&lRuntime Statistics");
+            send(sender, "    &7Total mobs suppressed: &e" + dens.getTotalMobsOptimized());
+            send(sender, "    &7Total chunks scanned: &f" + dens.getTotalChunksScanned());
+            send(sender, "    &7Last pass: &e" + dens.getLastPassOptimized()
+                    + " mobs &7in &f" + dens.getLastPassChunks() + " chunks");
+        }
+        send(sender, "");
+    }
+
+    // ══════════════════════════════════════════════════
+    // Breeding Limiter
+    // ══════════════════════════════════════════════════
+
+    private void showBreedingLimiter(CommandSender sender) {
+        BreedingLimiter bl = plugin.getBreedingLimiter();
+        boolean enabled = plugin.getConfig().getBoolean("modules.breeding-limiter.enabled", true);
+
+        send(sender, "");
+        send(sender, "&c&l  ≡ Breeding Limiter ≡");
+        send(sender, "");
+        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
+        send(sender, "  &7Max animals/chunk: &f"
+                + plugin.getConfig().getInt("modules.breeding-limiter.max-animals-per-chunk", 20));
+
+        if (bl != null && enabled) {
+            send(sender, "");
+            send(sender, "  &7Total breeding blocked: &e" + bl.getTotalBlocked());
+            if (!bl.getLastBlockedType().isEmpty()) {
+                send(sender, "  &7Last blocked: &f" + bl.getLastBlockedType()
+                        + " &7in &f" + bl.getLastBlockedWorld());
+            }
         }
         send(sender, "");
     }

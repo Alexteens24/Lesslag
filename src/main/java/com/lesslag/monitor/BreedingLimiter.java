@@ -18,6 +18,11 @@ public class BreedingLimiter implements Listener {
     private int maxAnimalsPerChunk;
     private String message;
 
+    // Runtime stats
+    private volatile long totalBlocked = 0;
+    private volatile String lastBlockedType = "";
+    private volatile String lastBlockedWorld = "";
+
     public BreedingLimiter(LessLag plugin) {
         this.plugin = plugin;
         reloadConfig();
@@ -66,6 +71,9 @@ public class BreedingLimiter implements Listener {
 
         if (count >= maxAnimalsPerChunk) {
             event.setCancelled(true);
+            totalBlocked++;
+            lastBlockedType = type.name();
+            lastBlockedWorld = chunk.getWorld().getName();
 
             if (event.getBreeder() instanceof Player) {
                 Player player = (Player) event.getBreeder();
@@ -75,4 +83,11 @@ public class BreedingLimiter implements Listener {
             }
         }
     }
+
+    // ── Getters ──
+    public long getTotalBlocked()     { return totalBlocked; }
+    public String getLastBlockedType() { return lastBlockedType; }
+    public String getLastBlockedWorld(){ return lastBlockedWorld; }
+    public boolean isEnabled()         { return enabled; }
+    public int getMaxAnimalsPerChunk() { return maxAnimalsPerChunk; }
 }
