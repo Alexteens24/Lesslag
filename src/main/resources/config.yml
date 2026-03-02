@@ -27,12 +27,9 @@ modules:
   # -----------------------------------------------------------
   redstone:
     enabled: true
-    # Adaptive Monitoring: Skip checks if TPS is high (Saves performance)
-    adaptive-monitoring: true
-    min-tps: 19.5
     # Stabilization (Suppressor)
     # How many times a chunk can activate redstone before being suppressed?
-    max-activations-per-chunk: 200
+    max-activations-per-chunk: 250
     # How lengthy (in seconds) the suppression lasts?
     cooldown-seconds: 10
     # Time window (in seconds) to count activations
@@ -44,11 +41,7 @@ modules:
     advanced:
       enabled: true
       # Max Redstone events per block per second
-      max-frequency: 20
-      # Clock Detection: Detect rapid on/off cycles
-      clock-detection:
-        enabled: true
-        threshold: 100 # activations per 5s
+      max-frequency: 25
       # Piston Limiter: Max pushes per chunk per tick
       piston-limit:
         enabled: true
@@ -56,17 +49,18 @@ modules:
         track-moving-blocks: true
         max-pushes-per-chunk: 50
 
-      # Long-term Detection (Slow but persistent clocks)
-      long-term:
-        enabled: true
-        # Window duration (seconds) to track activations
-        window-seconds: 120
-        # Max activations allowed in this window
-        max-activations: 100
-        # Actions to take
-        actions:
-          - "notify-admin"
-          - "break-block" # Drops item naturally
+    # Long-term Detection (Slow but persistent clocks)
+    # NOTE: Runtime reads this section from modules.redstone.long-term.*
+    long-term:
+      enabled: true
+      # Window duration (seconds) to track activations
+      window-seconds: 120
+      # Max activations allowed in this window
+      max-activations: 300
+      # Actions to take
+      actions:
+        - "notify-admin"
+        - "break-block" # Drops item naturally
 
   # -----------------------------------------------------------
   # Entity Management
@@ -122,9 +116,9 @@ modules:
   mob-ai:
     enabled: true
     # Radius around player where mobs have active AI
-    active-radius: 48
-    # Update interval in ticks (20 = 1s)
-    update-interval: 20
+    active-radius: 40
+    # Update interval in ticks (30 = 1.5s)
+    update-interval: 30
     # Mobs that should ALWAYS have AI
     protected:
       - "ENDER_DRAGON"
@@ -132,9 +126,8 @@ modules:
       - "VILLAGER"
       - "Raider"
     # Advanced Frustum Culling Settings
-    fov-degrees: 70.0
-    behind-safe-radius: 5.0
-    vertical-fov-factor: 1.5
+    fov-degrees: 100.0
+    behind-safe-radius: 10.0
 
   # -----------------------------------------------------------
   # Villager Optimizer (Happy Villagers)
@@ -201,6 +194,8 @@ modules:
     # World Chunk Guard: Unloads chunks in overloaded worlds
     world-guard:
       enabled: false
+      # Notify admins when world overload handling is triggered
+      notify: true
       # Check interval in ticks
       check-interval: 1200
       # Threshold: Loaded chunks per player
@@ -245,7 +240,9 @@ system:
   gc-monitor:
     enabled: true
     # Notify if GC pause exceeds this (ms)
-    warn-threshold-ms: 500
+    warn-threshold-ms: 300
+    # Notify online admins about long GC pauses
+    notify: true
 
   # Memory Leak Detector
   memory-leak-detection:
@@ -256,14 +253,23 @@ system:
     notify: false
     # Warn if old gen memory grows by this slope (MB/min)
     warn-slope-threshold: 2.0
+    # Advanced tuning
+    window-size: 20
+    min-samples: 8
+    alert-cooldown: 300
 
   # Lag Source Analyzer
   lag-source-analyzer:
     enabled: true
     # Auto-analyze if TPS drops below X?
-    auto-analyze-tps: 15.0
-    # Max time (ms) to spend analyzing per tick
-    max-analysis-time-per-tick: 5
+    auto-analyze-tps: 16.5
+    thresholds:
+      entity-count: 500
+      chunk-count: 800
+      task-count: 20
+      top-entities: 3
+      density: 50
+      chunk-rate-warn: 10.0
 
   # Tick Spike Monitor
   tick-monitor:
@@ -286,17 +292,27 @@ system:
 # =============================================================
 
 automation:
+  # Number of consecutive bad samples before threshold actions run
+  trigger-count: 3
+
   # Predictive Optimizer (Trend Analysis)
   predictive-optimization:
     enabled: true
+    # Sample window size in seconds
+    window-seconds: 10
     # Trigger if MSPT slope exceeds this (ms/s)
     slope-threshold: 3.0
-    # Required samples to confirm trend
-    min-samples: 10
+    # Baseline MSPT required before taking predictive actions
+    mspt-baseline: 30.0
     # Cooldown between triggers (seconds)
     cooldown: 60
+    # Send admin notifications when predictive optimization triggers
+    notify: true
     # Action to take
     action: "notify-admin"
+    # Preferred multi-action format (if set, this list is used)
+    actions:
+      - "notify-admin"
 
   # TPS Thresholds (Triggers actions based on TPS)
   thresholds:
@@ -306,7 +322,6 @@ automation:
       notify:
         actionbar: true
       actions:
-        - "clear-ground-items"
         - "reduce-view-distance"
     # Level 2: Moderate Lag
     moderate:
@@ -316,6 +331,7 @@ automation:
         chat: true
       actions:
         - "disable-mob-ai"
+        - "clear-ground-items"
         - "clear-xp-orbs"
     # Level 3: Critical Lag
     critical:
@@ -325,17 +341,16 @@ automation:
         chat: true
         sound: "ENTITY_ENDERMAN_DEATH"
       actions:
-        - "kill-hostile-mobs"
+        - "disable-mob-ai"
+        - "clear-ground-items"
+        - "clear-xp-orbs"
         - "reduce-simulation-distance"
-        - "force-gc"
 
 # =============================================================
 #  COMPATIBILITY
 # =============================================================
 
 compatibility:
-  # Check for supported Minecraft version
-  check-version: true
   min-version: "1.20.4"
   allow-unsupported-versions: false
 
@@ -375,7 +390,7 @@ health-report:
 # =============================================================
 
 premium:
-  enabled: true
+  enabled: false
   discord:
     webhook-url: "" # Paste your Discord Webhook URL here
     alert-tps-threshold: 18.0
@@ -446,4 +461,12 @@ premium:
         breeding-limit: 5
         redstone-limit: 50
         activation-range: 8
+
+notifications:
+  # Global defaults for threshold notifications
+  chat: true
+  actionbar: true
+  sound: false
+  # Cooldown in seconds for repetitive admin warnings
+  cooldown: 10
 
