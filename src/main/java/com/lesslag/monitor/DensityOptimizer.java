@@ -122,24 +122,29 @@ public class DensityOptimizer {
         }
 
         // Process a slice of chunks this tick
+        boolean folia = SchedulerAdapter.isFolia();
         int end = Math.min(scanCursor + chunksPerTick, pendingChunks.length);
         for (int i = scanCursor; i < end; i++) {
             Chunk chunk = pendingChunks[i];
             if (chunk.isLoaded()) {
-                processChunk(chunk);
+                if (folia) {
+                    // On Folia, entity access must happen on the chunk's owning region thread
+                    final Chunk c = chunk;
+                    SchedulerAdapter.runAtChunk(plugin, c.getWorld(), c.getX(), c.getZ(), () -> processChunk(c));
+                } else {
+                    processChunk(chunk);
+                }
             }
         }
         scanCursor = end;
     }
 
-    // Reusable map to avoid per-chunk HashMap allocation
-    private final Map<EntityType, List<Mob>> reusableMobsByType = new HashMap<>();
-
     private void processChunk(Chunk chunk) {
         if (!chunk.isLoaded())
             return;
 
-        reusableMobsByType.clear();
+        // Local map — on Folia this runs on different region threads concurrently
+        Map<EntityType, List<Mob>> mobsByType = new HashMap<>();
 
         // 1. Snapshot valid mobs
         for (Entity entity : chunk.getEntities()) {
@@ -150,12 +155,12 @@ public class DensityOptimizer {
             if (limits.containsKey(mob.getType())) {
                 if (shouldBypass(mob))
                     continue;
-                reusableMobsByType.computeIfAbsent(mob.getType(), k -> new ArrayList<>()).add(mob);
+                mobsByType.computeIfAbsent(mob.getType(), k -> new ArrayList<>()).add(mob);
             }
         }
 
         // 2. Process limits
-        for (Map.Entry<EntityType, List<Mob>> entry : reusableMobsByType.entrySet()) {
+        for (Map.Entry<EntityType, List<Mob>> entry : mobsByType.entrySet()) {
             EntityType type = entry.getKey();
             List<Mob> mobs = entry.getValue();
             int limit = limits.get(type);

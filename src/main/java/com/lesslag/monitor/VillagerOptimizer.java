@@ -145,11 +145,18 @@ public class VillagerOptimizer implements Listener {
         }
 
         // Process a slice of chunks this tick
+        boolean folia = SchedulerAdapter.isFolia();
         int end = Math.min(scanCursor + VILLAGER_CHUNKS_PER_TICK, scanChunks.length);
         for (int i = scanCursor; i < end; i++) {
             Chunk chunk = scanChunks[i];
             if (!chunk.isLoaded()) continue;
-            processVillagerChunk(chunk);
+            if (folia) {
+                // On Folia, entity access must happen on the chunk's owning region thread
+                final Chunk c = chunk;
+                SchedulerAdapter.runAtChunk(plugin, c.getWorld(), c.getX(), c.getZ(), () -> processVillagerChunk(c));
+            } else {
+                processVillagerChunk(chunk);
+            }
         }
         scanCursor = end;
     }
