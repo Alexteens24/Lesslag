@@ -38,11 +38,11 @@ export function DiffViewer() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-[var(--text-secondary)]">
           {selectedProposals.size} of {diffs.length} changes selected
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={selectAllProposals}
             className="rounded px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors"
@@ -102,9 +102,9 @@ export function DiffViewer() {
                           {SCOPE_LABELS[d.scope]}
                         </span>
                       </div>
-                      <div className="font-mono text-sm">
+                      <div className="font-mono text-xs sm:text-sm break-all">
                         <span className="text-[var(--danger)]">- {d.before}</span>
-                        <span className="mx-2 text-[var(--text-muted)]">→</span>
+                        <span className="mx-1 text-[var(--text-muted)] sm:mx-2">→</span>
                         <span className="text-[var(--success)]">+ {d.after}</span>
                       </div>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">{d.rationale}</p>

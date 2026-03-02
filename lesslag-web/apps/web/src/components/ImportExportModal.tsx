@@ -53,8 +53,8 @@ export function ImportExportModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center">
+      <div className="w-full max-h-[90vh] overflow-y-auto rounded-t-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl sm:max-w-lg sm:rounded-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Import / Export</h2>

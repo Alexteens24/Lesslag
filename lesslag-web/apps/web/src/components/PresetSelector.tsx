@@ -23,7 +23,7 @@ function AxisSelector<T extends string>({ label, value, options, meta, onChange 
   return (
     <div>
       <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">{label}</label>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {options.map((opt) => (
           <button
             key={opt}
@@ -96,17 +96,17 @@ export function PresetSelector() {
         <div className="mt-1 text-sm text-[var(--text-muted)]">{playerCount} players</div>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <button
           onClick={handleGenerate}
-          className="rounded-lg bg-[var(--accent)] px-6 py-2.5 font-medium text-white transition-colors hover:bg-[var(--accent-hover)]"
+          className="rounded-lg bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:py-2.5"
         >
           Generate Recommendations
         </button>
         {preset && (
           <button
             onClick={applyPreset}
-            className="rounded-lg border border-[var(--accent)] px-6 py-2.5 font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10"
+            className="rounded-lg border border-[var(--accent)] px-6 py-3 text-sm font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10 sm:py-2.5"
           >
             Apply Preset to Config
           </button>

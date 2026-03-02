@@ -120,8 +120,8 @@ export function PluginConflictDetector() {
   const unknown = results.filter((r) => r.status === 'unknown');
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+    <div className="mx-auto max-w-2xl space-y-4 sm:space-y-6">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Plugin Compatibility Checker</h3>
         <p className="text-sm text-[var(--text-muted)] mb-4">
           Enter your installed plugins (one per line or comma-separated) to check for known conflicts with LessLag.
@@ -150,7 +150,7 @@ export function PluginConflictDetector() {
       {analyzed && results.length > 0 && (
         <>
           {/* Summary */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             <SummaryPill label="Conflicts" count={conflicts.length} color="text-[var(--danger)]" />
             <SummaryPill label="Warnings" count={warnings.length} color="text-[var(--warning)]" />
             <SummaryPill label="Safe" count={safe.length} color="text-[var(--success)]" />

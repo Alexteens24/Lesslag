@@ -49,12 +49,12 @@ export function HardwareWizard() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Step indicator */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-1 sm:gap-2">
         {STEPS.map((label, i) => (
-          <div key={label} className="flex items-center gap-2">
+          <div key={label} className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setStep(i)}
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all sm:h-8 sm:w-8 ${
                 i === step
                   ? 'bg-[var(--accent)] text-white'
                   : i < step
@@ -64,16 +64,16 @@ export function HardwareWizard() {
             >
               {i < step ? '✓' : i + 1}
             </button>
-            <span className={`text-xs ${i === step ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+            <span className={`hidden text-xs sm:inline ${i === step ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
               {label}
             </span>
-            {i < STEPS.length - 1 && <div className="mx-2 h-px w-8 bg-[var(--border)]" />}
+            {i < STEPS.length - 1 && <div className="mx-1 h-px w-4 bg-[var(--border)] sm:mx-2 sm:w-8" />}
           </div>
         ))}
       </div>
 
       {/* Step content */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
         {step === 0 && (
           <div className="space-y-5">
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">CPU & Memory</h3>
@@ -253,7 +253,7 @@ export function HardwareWizard() {
                     // Navigate to presets tab
                     useLessLagStore.getState().setActiveTab('presets');
                   }}
-                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
+                  className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] transition-colors sm:px-4 sm:text-sm"
                 >
                   Apply & Go to Presets →
                 </button>

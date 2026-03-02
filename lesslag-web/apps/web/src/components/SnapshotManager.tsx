@@ -62,29 +62,29 @@ export function SnapshotManager() {
               return (
                 <div
                   key={snap.id}
-                  className={`flex items-center gap-4 rounded-lg border p-4 transition-all ${
+                  className={`flex flex-col gap-3 rounded-lg border p-3 transition-all sm:flex-row sm:items-center sm:gap-4 sm:p-4 ${
                     isCurrent
                       ? 'border-[var(--accent)] bg-[var(--accent)]/5'
                       : 'border-[var(--border)] bg-[var(--bg-card)]'
                   }`}
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-[var(--text-primary)]">{snap.label}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)] truncate">{snap.label}</span>
                       {isCurrent && (
-                        <span className="rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">
+                        <span className="shrink-0 rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">
                           ACTIVE
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 flex gap-3 text-xs text-[var(--text-muted)]">
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--text-muted)] sm:gap-3">
                       <span>{new Date(snap.timestamp).toLocaleString()}</span>
                       <span>{fileCount} files</span>
                       <span>{keyCount} settings</span>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 self-end sm:self-auto">
                     <button
                       onClick={() => restoreSnapshot(snap.id)}
                       disabled={isCurrent}

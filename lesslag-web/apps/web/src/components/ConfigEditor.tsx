@@ -16,8 +16,8 @@ export function ConfigEditor() {
           </div>
           <div className="divide-y divide-[var(--border)]">
             {Object.entries(configs[file] ?? {}).map(([key, value]) => (
-              <div key={key} className="flex items-center gap-4 px-4 py-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-sm text-[var(--text-secondary)]">
+              <div key={key} className="flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-center sm:gap-4 sm:px-4">
+                <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--text-secondary)] sm:text-sm">
                   {key}
                 </span>
                 <ConfigValueInput

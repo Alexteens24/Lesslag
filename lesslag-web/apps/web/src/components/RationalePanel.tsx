@@ -25,7 +25,7 @@ export function RationalePanel() {
   return (
     <div className="space-y-6">
       {/* Summary bar */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-4">
         <SummaryCard label="Total Findings" value={summary.totalResults} />
         <SummaryCard label="Proposals" value={summary.totalProposals} />
         <SummaryCard label="Auto-applicable" value={summary.autoApplicable} accent />
@@ -47,13 +47,13 @@ export function RationalePanel() {
               key={`${r.ruleId}-${i}`}
               className="group rounded-lg border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden"
             >
-              <summary className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-[var(--bg-elevated)] transition-colors">
-                <span>{style.icon}</span>
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${style.color} ${style.bg}`}>
+              <summary className="flex cursor-pointer items-start gap-2 px-3 py-3 hover:bg-[var(--bg-elevated)] transition-colors sm:items-center sm:gap-3 sm:px-4">
+                <span className="mt-0.5 sm:mt-0">{style.icon}</span>
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${style.color} ${style.bg}`}>
                   {r.severity}
                 </span>
-                <span className="flex-1 text-sm text-[var(--text-primary)]">{r.why}</span>
-                <span className="text-xs text-[var(--text-muted)]">
+                <span className="flex-1 text-xs text-[var(--text-primary)] sm:text-sm">{r.why}</span>
+                <span className="hidden text-xs text-[var(--text-muted)] sm:inline">
                   {Math.round(r.confidence * 100)}% conf.
                 </span>
               </summary>
