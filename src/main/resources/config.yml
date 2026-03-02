@@ -13,6 +13,16 @@ core:
   # Print debug messages to console
   debug: false
 
+# =============================================================
+#  WEB OPTIMIZER
+#  Connect your server to the LessLag web dashboard.
+# =============================================================
+web:
+  # LessLag API endpoint (rate limited: 30 req / 60s)
+  api-url: "https://lesslag-api.daucatmoitu.workers.dev"
+  # Web dashboard URL
+  dashboard-url: "https://lesslag-web.vercel.app"
+
 # Max time (ms) per tick for heavy tasks (WorkloadDistributor)
 workload-limit-ms: 2
 

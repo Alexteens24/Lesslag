@@ -20,3 +20,6 @@ lesslag-web/apps/web/.next/
 lesslag-web/apps/web/out/
 lesslag-web/packages/shared-rules/dist/
 lesslag-web/apps/web/node_modules/
+
+# API source (private - deployed separately on Cloudflare Workers)
+lesslag-web/apps/api/

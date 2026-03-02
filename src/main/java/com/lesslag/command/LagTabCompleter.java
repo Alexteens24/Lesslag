@@ -17,13 +17,16 @@ public class LagTabCompleter implements TabCompleter {
             "status", "health", "tps", "gc", "gcinfo",
             "tickmonitor", "entities", "thresholds", "sources", "trace",
             "chunks", "redstone", "predictive", "frustum",
-            "worldguard", "memory", "villager", "clear", "ai", "restore", "setup", "reload");
+            "worldguard", "memory", "villager", "clear", "ai", "restore", "setup", "web", "reload");
 
     private static final List<String> CLEAR_TYPES = Arrays.asList(
             "items", "xp", "mobs", "hostile", "all");
 
     private static final List<String> AI_ACTIONS = Arrays.asList(
             "disable", "restore", "status");
+
+    private static final List<String> WEB_ACTIONS = Arrays.asList(
+            "status", "analyze");
 
     private static final List<String> SETUP_ACTIONS = Arrays.asList(
             "start", "profile", "tier", "level", "review", "select", "confirm", "abort", "rollback");
@@ -60,6 +63,10 @@ public class LagTabCompleter implements TabCompleter {
                     return AI_ACTIONS.stream()
                             .filter(action -> action.startsWith(args[1].toLowerCase()))
                             .collect(Collectors.toList());
+                case "web":
+                    return WEB_ACTIONS.stream()
+                            .filter(action -> action.startsWith(args[1].toLowerCase()))
+                            .collect(Collectors.toList());
                 case "setup":
                     return SETUP_ACTIONS.stream()
                             .filter(action -> action.startsWith(args[1].toLowerCase()))
@@ -82,6 +89,27 @@ public class LagTabCompleter implements TabCompleter {
                             .filter(l -> l.startsWith(args[2].toLowerCase()))
                             .collect(Collectors.toList());
             }
+        }
+
+        // /lg web analyze <profile>
+        if (args.length == 3 && args[0].equalsIgnoreCase("web") && args[1].equalsIgnoreCase("analyze")) {
+            return SETUP_PROFILES.stream()
+                    .filter(p -> p.startsWith(args[2].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+
+        // /lg web analyze <profile> <tier>
+        if (args.length == 4 && args[0].equalsIgnoreCase("web") && args[1].equalsIgnoreCase("analyze")) {
+            return SETUP_TIERS.stream()
+                    .filter(t -> t.startsWith(args[3].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+
+        // /lg web analyze <profile> <tier> <level>
+        if (args.length == 5 && args[0].equalsIgnoreCase("web") && args[1].equalsIgnoreCase("analyze")) {
+            return SETUP_LEVELS.stream()
+                    .filter(l -> l.startsWith(args[4].toLowerCase()))
+                    .collect(Collectors.toList());
         }
 
         return new ArrayList<>();

@@ -4,7 +4,7 @@ main: com.lesslag.LessLag
 api-version: '1.20'
 description: Server performance guardian - automatic TPS rescue, diagnostics, and lag mitigation
 author: SuperezMC
-website: ''
+website: 'https://lesslag-web.vercel.app'
 folia-supported: true
 libraries:
   - "it.unimi.dsi:fastutil:8.5.15"
@@ -12,7 +12,7 @@ libraries:
 commands:
   lg:
     description: LessLag admin commands
-    usage: /lg <status|health|tps|gc|gcinfo|tickmonitor|entities|thresholds|sources|trace|chunks|redstone|predictive|frustum|worldguard|memory|villager|clear|ai|restore|setup|reload>
+    usage: /lg <status|health|tps|gc|gcinfo|tickmonitor|entities|thresholds|sources|trace|chunks|redstone|predictive|frustum|worldguard|memory|villager|clear|ai|restore|setup|web|reload>
     permission: lesslag.admin
     aliases: [lesslag, lesslagadmin]
 

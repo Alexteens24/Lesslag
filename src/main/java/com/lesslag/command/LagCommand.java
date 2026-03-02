@@ -4,6 +4,7 @@ import com.lesslag.LessLag;
 import com.lesslag.action.ActionExecutor;
 import com.lesslag.action.ThresholdConfig;
 import com.lesslag.setup.SetupCommandHandler;
+import com.lesslag.web.LessLagApiClient;
 import com.lesslag.monitor.ChunkLimiter;
 import com.lesslag.monitor.FrustumCuller;
 import com.lesslag.monitor.WorldChunkGuard;
@@ -140,6 +141,9 @@ public class LagCommand implements CommandExecutor {
                     send(sender, "&cSetup Advisor is disabled in config.");
                 }
                 break;
+            case "web":
+                handleWeb(sender, args);
+                break;
             case "reload":
                 doReload(sender);
                 break;
@@ -181,6 +185,7 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg ai          &8- &7AI control &8[disable|restore|status]");
         send(sender, "  &e/lg restore     &8- &7Restore all defaults");
         send(sender, "  &e/lg setup       &8- &7Setup Advisor wizard");
+        send(sender, "  &e/lg web         &8- &7Web optimizer & remote analysis");
         send(sender, "  &e/lg reload      &8- &7Reload configuration");
         send(sender, "");
         send(sender, "  &8Permissions: &7lesslag.admin &8(commands) &7lesslag.notify &8(alerts)");
@@ -1072,6 +1077,71 @@ public class LagCommand implements CommandExecutor {
                 + plugin.getConfig().getInt("system.memory-leak-detection.window-size", 20) + " samples");
         send(sender, "    &7Notify: &f"
                 + plugin.getConfig().getBoolean("system.memory-leak-detection.notify", true));
+        send(sender, "");
+    }
+
+    // ══════════════════════════════════════════════════
+    // Web Optimizer
+    // ══════════════════════════════════════════════════
+
+    private void handleWeb(CommandSender sender, String[] args) {
+        String apiUrl = plugin.getConfig().getString("web.api-url", "https://lesslag-api.daucatmoitu.workers.dev");
+        String webUrl = plugin.getConfig().getString("web.dashboard-url", "https://lesslag-web.vercel.app");
+
+        if (args.length >= 2 && args[1].equalsIgnoreCase("status")) {
+            // Check API health
+            send(sender, plugin.getPrefix() + "&7Checking API status...");
+            LessLagApiClient client = new LessLagApiClient(apiUrl);
+            client.isReachable().thenAccept(reachable -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
+                    if (reachable) {
+                        send(sender, plugin.getPrefix() + "&aLessLag API is online!");
+                    } else {
+                        send(sender, plugin.getPrefix() + "&cAPI is unreachable at &f" + apiUrl);
+                    }
+                });
+            });
+            return;
+        }
+
+        if (args.length >= 2 && args[1].equalsIgnoreCase("analyze")) {
+            // Send server info to API for remote analysis
+            send(sender, plugin.getPrefix() + "&7Sending server data for analysis...");
+            String profile = args.length >= 3 ? args[2] : "SMP";
+            String tier = args.length >= 4 ? args[3] : "MID";
+            String level = args.length >= 5 ? args[4] : "BALANCED";
+
+            LessLagApiClient client = new LessLagApiClient(apiUrl);
+            var payload = LessLagApiClient.buildServerPayload(plugin, profile, tier, level);
+            client.evaluate(payload).thenAccept(response -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
+                    send(sender, plugin.getPrefix() + "&aAnalysis complete! Results:");
+                    // Show a summary (first 500 chars)
+                    String preview = response.length() > 500 ? response.substring(0, 500) + "..." : response;
+                    send(sender, "&7" + preview);
+                    send(sender, plugin.getPrefix() + "&7Full results at: &b" + webUrl);
+                });
+            }).exceptionally(ex -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
+                    send(sender, plugin.getPrefix() + "&cAnalysis failed: &f" + ex.getMessage());
+                });
+                return null;
+            });
+            return;
+        }
+
+        // Default: show web info
+        send(sender, "");
+        send(sender, "&b&l  ≡ LessLag Web Optimizer ≡");
+        send(sender, "");
+        send(sender, "  &7Dashboard: &b" + webUrl);
+        send(sender, "  &7API:       &b" + apiUrl);
+        send(sender, "");
+        send(sender, "  &fCommands:");
+        send(sender, "    &b/lg web          &8- &7Show this info");
+        send(sender, "    &b/lg web status   &8- &7Check API health");
+        send(sender, "    &b/lg web analyze  &8- &7Send server data for optimization");
+        send(sender, "    &b/lg web analyze <profile> <tier> <level>");
         send(sender, "");
     }
 
