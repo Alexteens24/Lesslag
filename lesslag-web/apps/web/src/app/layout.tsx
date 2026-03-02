@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
             </div>
             <nav className="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
-              <a href="https://github.com/alexisbinh/lesslag" target="_blank" rel="noopener"
+              <a href="https://github.com/Alexteens24/LessLag" target="_blank" rel="noopener"
                 className="hover:text-[var(--text-primary)] transition-colors">
                 GitHub
               </a>
