@@ -198,7 +198,7 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
 
   generatePresetAction: () => {
     const s = get();
-    const preset = generatePreset(s.profile, s.tier, s.aggressiveness, s.playerCount);
+    const preset = generatePreset(s.profile, s.tier, s.aggressiveness, s.playerCount, s.platform.fork);
     set({ preset });
   },
 
@@ -221,6 +221,18 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
         configKey = rest.join('.');
       } else if (fileHint === 'spigot') {
         file = 'spigot.yml';
+        configKey = rest.join('.');
+      } else if (fileHint === 'paper-world') {
+        file = 'config/paper-world-defaults.yml';
+        configKey = rest.join('.');
+      } else if (fileHint === 'paper-global') {
+        file = 'config/paper-global.yml';
+        configKey = rest.join('.');
+      } else if (fileHint === 'purpur') {
+        file = 'purpur.yml';
+        configKey = rest.join('.');
+      } else if (fileHint === 'pufferfish') {
+        file = 'pufferfish.yml';
         configKey = rest.join('.');
       } else if (fileHint === 'modules' || fileHint === 'automation' || fileHint === 'workload-limit-ms') {
         file = 'config.yml';

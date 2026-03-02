@@ -12,7 +12,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for PresetMatrix generation, load modifiers, and axis coverage.
+ * Tests for PresetMatrix generation — comprehensive coverage of all axes,
+ * constraints, and the upgraded fork-aware, player-scaled system.
  */
 public class PresetMatrixTest {
 
@@ -20,18 +21,75 @@ public class PresetMatrixTest {
 
     @Test
     public void testGenerateReturnsNonNullForAllCombinations() {
+        String[] essentialKeys = {
+            "server.view-distance", "server.simulation-distance",
+            "bukkit.spawn-limits.monsters", "bukkit.spawn-limits.animals",
+            "bukkit.spawn-limits.water-animals", "bukkit.spawn-limits.water-ambient",
+            "bukkit.spawn-limits.ambient",
+            "bukkit.ticks-per.monster-spawns", "bukkit.ticks-per.animal-spawns",
+            "spigot.mob-spawn-range", "spigot.nerf-spawner-mobs",
+            "spigot.entity-tracking-range.players", "spigot.merge-radius.item",
+            "workload-limit-ms",
+            "modules.redstone.max-activations-per-chunk",
+            "modules.entities.chunk-limiter.max-entities-per-chunk",
+            "modules.entities.limits.per-world-limit.monster",
+            "modules.mob-ai.active-radius",
+            "modules.density-optimizer.limits.COW",
+            "modules.density-optimizer.limits.CHICKEN",
+            "modules.density-optimizer.limits.VILLAGER",
+            "modules.breeding-limiter.max-animals-per-chunk",
+            "modules.villager-optimizer.ai-restore-duration",
+            "automation.thresholds.minor.tps",
+            "automation.thresholds.moderate.tps",
+            "automation.thresholds.critical.tps",
+            "modules.chunks.view-distance.min",
+        };
+
         for (GameProfile profile : GameProfile.values()) {
             for (HardwareTier tier : HardwareTier.values()) {
                 for (AggressivenessLevel level : AggressivenessLevel.values()) {
                     PresetProfile preset = PresetMatrix.generate(profile, tier, level);
-                    assertNotNull(preset, "Preset should never be null for "
-                            + profile + "/" + tier + "/" + level);
-                    assertFalse(preset.getSettings().isEmpty(),
-                            "Settings should not be empty for " + profile + "/" + tier + "/" + level);
+                    String tag = profile + "/" + tier + "/" + level;
+                    assertNotNull(preset, "Preset null for " + tag);
+                    assertFalse(preset.getSettings().isEmpty(), "Empty for " + tag);
                     assertNotNull(preset.getDescription());
                     assertNotNull(preset.getLabel());
+
+                    for (String key : essentialKeys) {
+                        assertTrue(preset.getSettings().containsKey(key),
+                                "Missing " + key + " for " + tag);
+                    }
                 }
             }
+        }
+    }
+
+    // ── Constraints ───────────────────────────────────────
+
+    @Test
+    public void testViewDistAlwaysGreaterOrEqualToSimDist() {
+        for (GameProfile profile : GameProfile.values()) {
+            for (HardwareTier tier : HardwareTier.values()) {
+                for (AggressivenessLevel level : AggressivenessLevel.values()) {
+                    PresetProfile p = PresetMatrix.generate(profile, tier, level);
+                    int view = intSetting(p, "server.view-distance");
+                    int sim = intSetting(p, "server.simulation-distance");
+                    assertTrue(view >= sim, "view-dist (" + view + ") < sim-dist (" + sim + ")");
+                    assertTrue(view >= 5, "view-dist below minimum");
+                    assertTrue(sim >= 5, "sim-dist below minimum");
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testMobSpawnRangeBoundedBySimDist() {
+        for (HardwareTier tier : HardwareTier.values()) {
+            PresetProfile p = PresetMatrix.generate(GameProfile.SMP, tier, AggressivenessLevel.BALANCED);
+            int sim = intSetting(p, "server.simulation-distance");
+            int range = intSetting(p, "spigot.mob-spawn-range");
+            assertTrue(range <= sim - 1, "mob-spawn-range must be <= sim-dist-1");
+            assertTrue(range >= 3, "mob-spawn-range must be >= 3");
         }
     }
 
@@ -45,7 +103,7 @@ public class PresetMatrixTest {
         int lowEntities = intSetting(low, "modules.entities.chunk-limiter.max-entities-per-chunk");
         int highEntities = intSetting(high, "modules.entities.chunk-limiter.max-entities-per-chunk");
         assertTrue(lowEntities < highEntities,
-                "LOW tier entity limit (" + lowEntities + ") should be < HIGH tier (" + highEntities + ")");
+                "LOW tier entity limit (" + lowEntities + ") should be < HIGH (" + highEntities + ")");
     }
 
     @Test
@@ -61,72 +119,81 @@ public class PresetMatrixTest {
 
     @Test
     public void testLowTierHasHigherTpsThresholds() {
-        // LOW tier should trigger protections earlier (higher TPS threshold)
         PresetProfile low = PresetMatrix.generate(GameProfile.SMP, HardwareTier.LOW, AggressivenessLevel.BALANCED);
         PresetProfile high = PresetMatrix.generate(GameProfile.SMP, HardwareTier.HIGH, AggressivenessLevel.BALANCED);
 
         double lowMinor = doubleSetting(low, "automation.thresholds.minor.tps");
         double highMinor = doubleSetting(high, "automation.thresholds.minor.tps");
         assertTrue(lowMinor > highMinor,
-                "LOW minor TPS threshold (" + lowMinor + ") should be > HIGH (" + highMinor + ")");
+                "LOW minor TPS (" + lowMinor + ") should be > HIGH (" + highMinor + ")");
     }
 
-    // ── Aggressiveness: AGGRESSIVE should be tighter ──────
+    // ── Aggressiveness: AGGRESSIVE < SAFE ─────────────────
 
     @Test
     public void testAggressiveHasTighterLimitsThanSafe() {
         PresetProfile safe = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.SAFE);
-        PresetProfile aggressive = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.AGGRESSIVE);
+        PresetProfile agg = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.AGGRESSIVE);
 
-        int safeEntities = intSetting(safe, "modules.entities.chunk-limiter.max-entities-per-chunk");
-        int aggrEntities = intSetting(aggressive, "modules.entities.chunk-limiter.max-entities-per-chunk");
-        assertTrue(aggrEntities < safeEntities,
-                "AGGRESSIVE entity limit (" + aggrEntities + ") should be < SAFE (" + safeEntities + ")");
-
-        int safeRedstone = intSetting(safe, "modules.redstone.max-activations-per-chunk");
-        int aggrRedstone = intSetting(aggressive, "modules.redstone.max-activations-per-chunk");
-        assertTrue(aggrRedstone < safeRedstone,
-                "AGGRESSIVE redstone (" + aggrRedstone + ") should be < SAFE (" + safeRedstone + ")");
+        assertTrue(intSetting(agg, "modules.entities.chunk-limiter.max-entities-per-chunk")
+                < intSetting(safe, "modules.entities.chunk-limiter.max-entities-per-chunk"));
+        assertTrue(intSetting(agg, "modules.redstone.max-activations-per-chunk")
+                < intSetting(safe, "modules.redstone.max-activations-per-chunk"));
+        assertTrue(intSetting(agg, "bukkit.spawn-limits.monsters")
+                < intSetting(safe, "bukkit.spawn-limits.monsters"));
     }
 
-    // ── Profile-specific adjustments ─────────────────────
+    // ── Profile-specific adjustments ──────────────────────
 
     @Test
     public void testSkyblockReducesEntityLimits() {
         PresetProfile smp = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED);
-        PresetProfile skyblock = PresetMatrix.generate(GameProfile.SKYBLOCK, HardwareTier.MID, AggressivenessLevel.BALANCED);
+        PresetProfile sky = PresetMatrix.generate(GameProfile.SKYBLOCK, HardwareTier.MID, AggressivenessLevel.BALANCED);
 
-        int smpChunk = intSetting(smp, "modules.entities.chunk-limiter.max-entities-per-chunk");
-        int skyChunk = intSetting(skyblock, "modules.entities.chunk-limiter.max-entities-per-chunk");
-        assertTrue(skyChunk <= smpChunk,
-                "SKYBLOCK chunk limit (" + skyChunk + ") should be <= SMP (" + smpChunk + ")");
+        assertTrue(intSetting(sky, "modules.entities.chunk-limiter.max-entities-per-chunk")
+                <= intSetting(smp, "modules.entities.chunk-limiter.max-entities-per-chunk"));
+        // SKYBLOCK enables nerf-spawner-mobs
+        assertEquals("true", sky.getSettings().get("spigot.nerf-spawner-mobs"));
+        assertEquals("false", smp.getSettings().get("spigot.nerf-spawner-mobs"));
     }
 
     @Test
     public void testCreativeBoostsRedstoneLimits() {
         PresetProfile smp = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED);
-        PresetProfile creative = PresetMatrix.generate(GameProfile.CREATIVE, HardwareTier.MID, AggressivenessLevel.BALANCED);
+        PresetProfile cre = PresetMatrix.generate(GameProfile.CREATIVE, HardwareTier.MID, AggressivenessLevel.BALANCED);
 
-        int smpRedstone = intSetting(smp, "modules.redstone.max-activations-per-chunk");
-        int creativeRedstone = intSetting(creative, "modules.redstone.max-activations-per-chunk");
-        assertTrue(creativeRedstone > smpRedstone,
-                "CREATIVE redstone (" + creativeRedstone + ") should be > SMP (" + smpRedstone + ")");
+        assertTrue(intSetting(cre, "modules.redstone.max-activations-per-chunk")
+                > intSetting(smp, "modules.redstone.max-activations-per-chunk"));
+    }
+
+    // ── Player count scaling ──────────────────────────────
+
+    @Test
+    public void testHighPlayerCountReducesSpawnLimits() {
+        PresetProfile low = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED, 20);
+        PresetProfile high = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED, 100);
+
+        assertTrue(intSetting(high, "bukkit.spawn-limits.monsters")
+                <= intSetting(low, "bukkit.spawn-limits.monsters"),
+                "Higher player count should reduce or keep spawn limits");
+    }
+
+    @Test
+    public void testPlayerCountInDescription() {
+        PresetProfile p = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED, 80);
+        assertTrue(p.getDescription().contains("80"), "Description should mention player count");
     }
 
     // ── Load modifier ─────────────────────────────────────
 
     @Test
     public void testLoadModifierDowngradesHighWith80Players() {
-        HardwareTier result = PresetMatrix.applyLoadModifier(HardwareTier.HIGH, 80);
-        assertEquals(HardwareTier.MID, result,
-                "80+ players on HIGH should downgrade to MID");
+        assertEquals(HardwareTier.MID, PresetMatrix.applyLoadModifier(HardwareTier.HIGH, 80));
     }
 
     @Test
     public void testLoadModifierDowngradesMidWith50Players() {
-        HardwareTier result = PresetMatrix.applyLoadModifier(HardwareTier.MID, 50);
-        assertEquals(HardwareTier.LOW, result,
-                "50+ players on MID should downgrade to LOW");
+        assertEquals(HardwareTier.LOW, PresetMatrix.applyLoadModifier(HardwareTier.MID, 50));
     }
 
     @Test
@@ -142,42 +209,52 @@ public class PresetMatrixTest {
     public void testPresetLabelContainsAllAxes() {
         PresetProfile preset = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED);
         String label = preset.getLabel();
-        assertTrue(label.contains("Survival Multiplayer"), "Label should contain profile name");
-        assertTrue(label.contains("Mid-Range"), "Label should contain tier name");
-        assertTrue(label.contains("Balanced"), "Label should contain aggressiveness name");
+        assertTrue(label.contains("Survival Multiplayer"), "Label should contain profile");
+        assertTrue(label.contains("Mid-Range"), "Label should contain tier");
+        assertTrue(label.contains("Balanced"), "Label should contain aggressiveness");
     }
 
-    // ── Required keys are always present ──────────────────
+    // ── Structured description ────────────────────────────
 
     @Test
-    public void testEssentialKeysAlwaysPresentForAllTiers() {
-        for (HardwareTier tier : HardwareTier.values()) {
-            PresetProfile preset = PresetMatrix.generate(GameProfile.SMP, tier, AggressivenessLevel.BALANCED);
-            Map<String, String> settings = preset.getSettings();
-
-            assertTrue(settings.containsKey("workload-limit-ms"),
-                    "Missing workload-limit-ms for " + tier);
-            assertTrue(settings.containsKey("modules.redstone.max-activations-per-chunk"),
-                    "Missing redstone limit for " + tier);
-            assertTrue(settings.containsKey("modules.entities.chunk-limiter.max-entities-per-chunk"),
-                    "Missing entity limit for " + tier);
-            assertTrue(settings.containsKey("automation.thresholds.minor.tps"),
-                    "Missing minor TPS for " + tier);
-            assertTrue(settings.containsKey("automation.thresholds.moderate.tps"),
-                    "Missing moderate TPS for " + tier);
-            assertTrue(settings.containsKey("automation.thresholds.critical.tps"),
-                    "Missing critical TPS for " + tier);
-        }
+    public void testDescriptionHasSectionHeaders() {
+        PresetProfile p = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED);
+        String desc = p.getDescription();
+        assertTrue(desc.contains("── Server"), "Description should have Server section");
+        assertTrue(desc.contains("── Bukkit"), "Description should have Bukkit section");
+        assertTrue(desc.contains("── Spigot"), "Description should have Spigot section");
+        assertTrue(desc.contains("── LessLag"), "Description should have LessLag section");
     }
 
-    // ── Settings are unmodifiable ─────────────────────────
+    // ── Settings count ────────────────────────────────────
+
+    @Test
+    public void testGeneratesAtLeast30Settings() {
+        PresetProfile p = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED);
+        assertTrue(p.getSettings().size() >= 30,
+                "Should generate at least 30 settings, got " + p.getSettings().size());
+    }
+
+    // ── Settings immutability ─────────────────────────────
 
     @Test
     public void testSettingsMapIsImmutable() {
         PresetProfile preset = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.SAFE);
         assertThrows(UnsupportedOperationException.class,
-                () -> preset.getSettings().put("new-key", "value"),
-                "Settings map should be unmodifiable");
+                () -> preset.getSettings().put("new-key", "value"));
+    }
+
+    // ── Density profile specialization ────────────────────
+
+    @Test
+    public void testDensityLimitsVaryByProfile() {
+        PresetProfile smp = PresetMatrix.generate(GameProfile.SMP, HardwareTier.MID, AggressivenessLevel.BALANCED);
+        PresetProfile sky = PresetMatrix.generate(GameProfile.SKYBLOCK, HardwareTier.MID, AggressivenessLevel.BALANCED);
+
+        int smpCow = intSetting(smp, "modules.density-optimizer.limits.COW");
+        int skyCow = intSetting(sky, "modules.density-optimizer.limits.COW");
+        assertTrue(skyCow < smpCow,
+                "SKYBLOCK COW density (" + skyCow + ") should be < SMP (" + smpCow + ")");
     }
 
     // ── Helpers ───────────────────────────────────────────
