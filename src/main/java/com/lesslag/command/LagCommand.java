@@ -23,7 +23,14 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -1104,6 +1111,56 @@ public class LagCommand implements CommandExecutor {
             return;
         }
 
+        if (args.length >= 2 && args[1].equalsIgnoreCase("link")) {
+            // Generate a session link for the web configurator
+            send(sender, plugin.getPrefix() + "&7Capturing server config and generating link...");
+
+            LessLagApiClient client = new LessLagApiClient(apiUrl);
+            var payload = LessLagApiClient.buildSessionPayload(plugin);
+            client.createSession(payload).thenAccept(response -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
+                    String url = LessLagApiClient.extractSessionUrl(response);
+                    if (url == null) {
+                        send(sender, plugin.getPrefix() + "&cFailed to create session. Response: &f" + response);
+                        return;
+                    }
+
+                    send(sender, "");
+                    send(sender, "&a&l  ✓ Session created!");
+                    send(sender, "");
+
+                    if (sender instanceof Player player) {
+                        // Send clickable link using Adventure API
+                        Component clickable = Component.text("  ▸ ")
+                                .color(NamedTextColor.GRAY)
+                                .append(
+                                        Component.text("Click here to open the Web Configurator")
+                                                .color(NamedTextColor.AQUA)
+                                                .decorate(TextDecoration.UNDERLINED)
+                                                .clickEvent(ClickEvent.openUrl(url))
+                                                .hoverEvent(HoverEvent.showText(
+                                                        Component.text("Open: " + url)
+                                                                .color(NamedTextColor.YELLOW)))
+                                );
+                        player.sendMessage(clickable);
+                    } else {
+                        send(sender, "  &bURL: &f" + url);
+                    }
+
+                    send(sender, "");
+                    send(sender, "  &7Your server config has been uploaded.");
+                    send(sender, "  &7The link expires in &f7 days&7.");
+                    send(sender, "");
+                });
+            }).exceptionally(ex -> {
+                SchedulerAdapter.runGlobal(plugin, () -> {
+                    send(sender, plugin.getPrefix() + "&cFailed to generate link: &f" + ex.getMessage());
+                });
+                return null;
+            });
+            return;
+        }
+
         if (args.length >= 2 && args[1].equalsIgnoreCase("analyze")) {
             // Send server info to API for remote analysis
             send(sender, plugin.getPrefix() + "&7Sending server data for analysis...");
@@ -1140,6 +1197,7 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &fCommands:");
         send(sender, "    &b/lg web          &8- &7Show this info");
         send(sender, "    &b/lg web status   &8- &7Check API health");
+        send(sender, "    &b/lg web link     &8- &7Generate a shareable config link");
         send(sender, "    &b/lg web analyze  &8- &7Send server data for optimization");
         send(sender, "    &b/lg web analyze <profile> <tier> <level>");
         send(sender, "");
