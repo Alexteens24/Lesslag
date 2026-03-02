@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm --filter @lesslag/shared-rules build && pnpm --filter @lesslag/web build",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs"
+}
