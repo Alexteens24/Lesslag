@@ -9,6 +9,7 @@
     "lint": "turbo lint",
     "clean": "turbo clean"
   },
+  "packageManager": "pnpm@10.30.3",
   "devDependencies": {
     "tsx": "^4.21.0",
     "turbo": "^2.4.0",

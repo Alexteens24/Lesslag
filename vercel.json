@@ -1,6 +1,7 @@
 {
-  "installCommand": "npm i -g pnpm && cd lesslag-web && pnpm install",
-  "buildCommand": "cd lesslag-web && pnpm --filter @lesslag/shared-rules build && pnpm --filter @lesslag/web build",
-  "outputDirectory": "lesslag-web/apps/web/.next",
+  "rootDirectory": "lesslag-web",
+  "installCommand": "corepack enable && pnpm install",
+  "buildCommand": "pnpm --filter @lesslag/shared-rules build && pnpm --filter @lesslag/web build",
+  "outputDirectory": "apps/web/.next",
   "framework": "nextjs"
 }
