@@ -1,0 +1,17 @@
+{
+  "name": "lesslag-web",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  }
+}

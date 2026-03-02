@@ -13,3 +13,10 @@ Thumbs.db
 # Premium Source Code
 src/main/java/com/lesslag/premium/
 .proguard.secret.conf
+# Web monorepo
+node_modules/
+lesslag-web/.turbo/
+lesslag-web/apps/web/.next/
+lesslag-web/apps/web/out/
+lesslag-web/packages/shared-rules/dist/
+lesslag-web/apps/web/node_modules/
