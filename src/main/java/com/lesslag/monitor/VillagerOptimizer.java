@@ -45,9 +45,21 @@ public class VillagerOptimizer implements Listener {
     private boolean optimizeTrappedOnly;
 
     // State
-    // UUIDs of villagers who have AI temporarily enabled [UUID -> Expiration Time
-    // (ms)]
-    private final Map<UUID, Long> activeVillagers = new ConcurrentHashMap<>();
+    // UUIDs of villagers who have AI temporarily enabled [UUID -> ActiveVillagerInfo]
+    private final Map<UUID, ActiveVillagerInfo> activeVillagers = new ConcurrentHashMap<>();
+
+    private static class ActiveVillagerInfo {
+        final long expiry;
+        final UUID worldUID;
+        final int chunkX, chunkZ;
+
+        ActiveVillagerInfo(long expiry, UUID worldUID, int chunkX, int chunkZ) {
+            this.expiry = expiry;
+            this.worldUID = worldUID;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+        }
+    }
 
     public VillagerOptimizer(LessLag plugin) {
         this.plugin = plugin;
@@ -232,38 +244,43 @@ public class VillagerOptimizer implements Listener {
             villager.removeMetadata("LessLag.VillagerOptimized", plugin);
         }
 
-        // 2. Mark as active
+        // 2. Mark as active with location data for region-safe dispatch
         long expiry = System.nanoTime() + (restoreDuration * 1_000_000_000L);
-        activeVillagers.put(villager.getUniqueId(), expiry);
+        Location loc = villager.getLocation();
+        activeVillagers.put(villager.getUniqueId(), new ActiveVillagerInfo(
+                expiry, loc.getWorld().getUID(),
+                loc.getBlockX() >> 4, loc.getBlockZ() >> 4));
     }
 
     private void cleanupActiveVillagers() {
         long now = System.nanoTime();
-        Iterator<Map.Entry<UUID, Long>> it = activeVillagers.entrySet().iterator();
+        Iterator<Map.Entry<UUID, ActiveVillagerInfo>> it = activeVillagers.entrySet().iterator();
 
         while (it.hasNext()) {
-            Map.Entry<UUID, Long> entry = it.next();
-            if (now > entry.getValue()) {
+            Map.Entry<UUID, ActiveVillagerInfo> entry = it.next();
+            if (now > entry.getValue().expiry) {
                 // Expired
                 UUID uuid = entry.getKey();
+                ActiveVillagerInfo info = entry.getValue();
                 it.remove();
 
                 // Queuing the re-check/disable
                 if (SchedulerAdapter.isFolia()) {
-                    Entity entity = Bukkit.getEntity(uuid);
-                    if (entity instanceof Villager && entity.isValid()) {
-                        plugin.getWorkloadDistributor().addEntityWorkload(entity, () -> {
-                            if (entity.isValid()) {
-                                Villager v = (Villager) entity;
-                                boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(v);
-                                if (shouldOptimize) {
-                                    plugin.setMobAwareSafe(v, false);
-                                    v.setMetadata("LessLag.VillagerOptimized",
-                                            new org.bukkit.metadata.FixedMetadataValue(plugin, true));
-                                }
+                    // On Folia: dispatch to the entity's owning region thread
+                    World world = Bukkit.getWorld(info.worldUID);
+                    if (world == null) continue;
+                    SchedulerAdapter.runAtChunk(plugin, world, info.chunkX, info.chunkZ, () -> {
+                        Entity entity = Bukkit.getEntity(uuid);
+                        if (entity instanceof Villager && entity.isValid()) {
+                            Villager v = (Villager) entity;
+                            boolean shouldOptimize = !optimizeTrappedOnly || isTrapped(v);
+                            if (shouldOptimize) {
+                                plugin.setMobAwareSafe(v, false);
+                                v.setMetadata("LessLag.VillagerOptimized",
+                                        new org.bukkit.metadata.FixedMetadataValue(plugin, true));
                             }
-                        });
-                    }
+                        }
+                    });
                 } else {
                     plugin.getWorkloadDistributor().addWorkload(() -> {
                         Entity entity = Bukkit.getEntity(uuid);

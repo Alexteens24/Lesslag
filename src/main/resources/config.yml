@@ -200,7 +200,7 @@ modules:
 
     # World Chunk Guard: Unloads chunks in overloaded worlds
     world-guard:
-      enabled: true
+      enabled: false
       # Check interval in ticks
       check-interval: 1200
       # Threshold: Loaded chunks per player

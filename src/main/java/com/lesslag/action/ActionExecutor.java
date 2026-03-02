@@ -766,7 +766,7 @@ public class ActionExecutor {
         }
 
         plugin.getAsyncExecutor().execute(() -> {
-            Map<UUID, List<UUID>> toRemove = new HashMap<>();
+            Map<UUID, List<EntitySnapshot>> toRemove = new HashMap<>();
 
             for (Map.Entry<UUID, WorldSnapshot> entry : snapshots.entrySet()) {
                 UUID worldId = entry.getKey();
@@ -779,7 +779,7 @@ public class ActionExecutor {
                     byType.computeIfAbsent(es.type, k -> new ArrayList<>()).add(es);
                 }
 
-                List<UUID> worldRemovalList = new ArrayList<>();
+                List<EntitySnapshot> worldRemovalList = new ArrayList<>();
 
                 for (Map.Entry<String, List<EntitySnapshot>> typeEntry : byType.entrySet()) {
                     String type = typeEntry.getKey();
@@ -819,7 +819,7 @@ public class ActionExecutor {
 
                     // Mark for removal
                     for (int i = 0; i < excess; i++) {
-                        worldRemovalList.add(entities.get(i).uuid);
+                        worldRemovalList.add(entities.get(i));
                     }
 
                     if (excess > 0) {
@@ -841,22 +841,29 @@ public class ActionExecutor {
                     int totalScheduled = 0;
                     int batchSize = 50;
 
-                    for (List<UUID> list : toRemove.values()) {
+                    for (Map.Entry<UUID, List<EntitySnapshot>> removeEntry : toRemove.entrySet()) {
+                        UUID worldId = removeEntry.getKey();
+                        List<EntitySnapshot> list = removeEntry.getValue();
                         if (SchedulerAdapter.isFolia()) {
-                            // On Folia: dispatch per-entity to owning region thread
-                            for (UUID uuid : list) {
-                                Entity entity = Bukkit.getEntity(uuid);
-                                if (entity != null && entity.isValid()) {
-                                    distributor.addEntityWorkload(entity, () -> {
-                                        if (entity.isValid()) entity.remove();
-                                    });
-                                }
+                            // On Folia: dispatch per-entity to owning region thread via chunk location
+                            World world = Bukkit.getWorld(worldId);
+                            if (world == null) continue;
+                            for (EntitySnapshot es : list) {
+                                int chunkX = es.loc.getBlockX() >> 4;
+                                int chunkZ = es.loc.getBlockZ() >> 4;
+                                final UUID entityUuid = es.uuid;
+                                SchedulerAdapter.runAtChunk(plugin, world, chunkX, chunkZ, () -> {
+                                    Entity entity = Bukkit.getEntity(entityUuid);
+                                    if (entity != null && entity.isValid()) {
+                                        entity.remove();
+                                    }
+                                });
                             }
                             totalScheduled += list.size();
                         } else {
                             List<UUID> batch = new ArrayList<>(batchSize);
-                            for (UUID uuid : list) {
-                                batch.add(uuid);
+                            for (EntitySnapshot es : list) {
+                                batch.add(es.uuid);
                                 if (batch.size() >= batchSize) {
                                     final List<UUID> currentBatch = new ArrayList<>(batch);
                                     distributor.addWorkload(() -> {

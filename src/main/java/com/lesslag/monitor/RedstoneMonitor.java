@@ -125,7 +125,7 @@ public class RedstoneMonitor implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
 
         // Periodic cleanup + counter reset
-        // State lifted from BukkitRunnable for lambda compatibility
+        // State lifted from prior task object usage for lambda compatibility
         final int[] cleanupRunCounter = { 0 };
         cleanupTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
             cleanupRunCounter[0]++;

@@ -75,7 +75,7 @@ public class BottleneckAnalyzer {
             plugin.getLogger().warning(
                     "BottleneckAnalyzer: Could not identify main 'Server thread'. Using fallback heuristic...");
             // Fallback: the thread that started the plugin is usually the main thread
-            mainThreadId = Thread.currentThread().threadId();
+            mainThreadId = Thread.currentThread().getId();
         }
 
         lastTickTimeNano = System.nanoTime();

@@ -75,6 +75,11 @@ public class LessLag extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        if (Bukkit.getServer() == null) {
+            getFallbackLogger().warning("Skipping enable because server runtime is unavailable.");
+            return;
+        }
+
         instance = this;
         saveDefaultConfig();
         saveResource("messages.yml", false);
@@ -252,8 +257,22 @@ public class LessLag extends JavaPlugin implements Listener {
             }
         }
 
-        getLogger().info("LessLag disabled. Server settings restored.");
+        getSafeLogger().info("LessLag disabled. Server settings restored.");
         instance = null;
+    }
+
+    private java.util.logging.Logger getSafeLogger() {
+        java.util.logging.Logger logger = null;
+        try {
+            logger = getLogger();
+        } catch (Exception ex) {
+            // Fall through to fallback logger.
+        }
+        return logger != null ? logger : getFallbackLogger();
+    }
+
+    private java.util.logging.Logger getFallbackLogger() {
+        return java.util.logging.Logger.getLogger("LessLag");
     }
 
     public void reloadPlugin() {

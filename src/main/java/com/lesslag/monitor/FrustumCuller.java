@@ -267,9 +267,9 @@ public class FrustumCuller {
         lastRestored.set(0);
         lastProcessed.set(0);
 
-        // Results: mob UUID → should AI be enabled?
-        List<UUID> toCull = new ArrayList<>();
-        List<UUID> toRestore = new ArrayList<>();
+        // Results: mob snapshot → should AI be enabled?
+        List<MobSnapshot> toCull = new ArrayList<>();
+        List<MobSnapshot> toRestore = new ArrayList<>();
 
         for (MobSnapshot mob : snapshot.mobs) {
             List<PlayerView> views = snapshot.worldViews.get(mob.worldUID);
@@ -321,9 +321,9 @@ public class FrustumCuller {
             boolean shouldEnable = visibleToAny || tooClose;
 
             if (shouldEnable && !mob.currentlyAware) {
-                toRestore.add(mob.uuid);
+                toRestore.add(mob);
             } else if (!shouldEnable && mob.currentlyAware && withinRange) {
-                toCull.add(mob.uuid);
+                toCull.add(mob);
             }
 
             lastProcessed.incrementAndGet();
@@ -341,13 +341,13 @@ public class FrustumCuller {
         }
     }
 
-    private int submitBatchedUpdates(List<UUID> targets, boolean enableAI) {
+    private int submitBatchedUpdates(List<MobSnapshot> targets, boolean enableAI) {
         int batchSize = 50;
         int dropped = 0;
-        List<UUID> batch = new ArrayList<>(batchSize);
+        List<MobSnapshot> batch = new ArrayList<>(batchSize);
 
-        for (UUID uuid : targets) {
-            batch.add(uuid);
+        for (MobSnapshot mob : targets) {
+            batch.add(mob);
             if (batch.size() >= batchSize) {
                 if (!dispatchBatch(batch, enableAI))
                     dropped++;
@@ -361,31 +361,36 @@ public class FrustumCuller {
         return dropped;
     }
 
-    private boolean dispatchBatch(List<UUID> batch, boolean enableAI) {
-        final List<UUID> currentBatch = new ArrayList<>(batch);
+    private boolean dispatchBatch(List<MobSnapshot> batch, boolean enableAI) {
+        final List<MobSnapshot> currentBatch = new ArrayList<>(batch);
 
         if (SchedulerAdapter.isFolia()) {
-            // On Folia: dispatch per-entity to owning region thread
-            for (UUID id : currentBatch) {
-                Entity entity = Bukkit.getEntity(id);
-                if (entity instanceof Mob && entity.isValid()) {
-                    plugin.getWorkloadDistributor().addEntityWorkload(entity, () -> {
-                        if (entity.isValid() && plugin.setMobAwareSafe((Mob) entity, enableAI)) {
+            // On Folia: dispatch per-entity to owning region thread via chunk location
+            for (MobSnapshot mob : currentBatch) {
+                World world = Bukkit.getWorld(mob.worldUID);
+                if (world == null) continue;
+                int chunkX = (int) mob.x >> 4;
+                int chunkZ = (int) mob.z >> 4;
+                final UUID mobId = mob.uuid;
+                SchedulerAdapter.runAtChunk(plugin, world, chunkX, chunkZ, () -> {
+                    Entity entity = Bukkit.getEntity(mobId);
+                    if (entity instanceof Mob && entity.isValid()) {
+                        if (plugin.setMobAwareSafe((Mob) entity, enableAI)) {
                             if (enableAI) {
                                 lastRestored.incrementAndGet();
                             } else {
                                 lastCulled.incrementAndGet();
                             }
                         }
-                    });
-                }
+                    }
+                });
             }
             return true;
         }
 
         return plugin.getWorkloadDistributor().addWorkload(() -> {
-            for (UUID id : currentBatch) {
-                Entity entity = Bukkit.getEntity(id);
+            for (MobSnapshot mob : currentBatch) {
+                Entity entity = Bukkit.getEntity(mob.uuid);
                 if (entity instanceof Mob && entity.isValid()) {
                     // Safety check: ensure chunk is loaded (use coordinates to avoid sync load)
                     Location loc = entity.getLocation();
