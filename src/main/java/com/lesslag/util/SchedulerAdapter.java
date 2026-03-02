@@ -24,6 +24,7 @@ public class SchedulerAdapter {
             Collections.synchronizedMap(new WeakHashMap<>());
 
     private static volatile Boolean foliaDetectionOverrideForTests;
+    private static volatile Boolean foliaDetectionCache;
 
     private final Plugin plugin;
     private final boolean foliaDetected;
@@ -176,11 +177,13 @@ public class SchedulerAdapter {
     /** Sets Folia detection override for tests; null clears the override. */
     public static void setFoliaDetectionOverrideForTests(Boolean value) {
         foliaDetectionOverrideForTests = value;
+        foliaDetectionCache = null; // reset cache so next real detection is fresh
     }
 
     /** Clears static adapter cache for deterministic tests. */
     public static void clearAdapterCacheForTests() {
         ADAPTERS.clear();
+        foliaDetectionCache = null;
     }
 
     /** Runs a task on global/main execution context using static bridge. */
@@ -309,6 +312,18 @@ public class SchedulerAdapter {
             return override;
         }
 
+        // Return cached result — Folia status cannot change at runtime
+        Boolean cached = foliaDetectionCache;
+        if (cached != null) {
+            return cached;
+        }
+
+        boolean result = detectFoliaRuntimeUncached();
+        foliaDetectionCache = result;
+        return result;
+    }
+
+    private static boolean detectFoliaRuntimeUncached() {
         try {
             Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
             return true;
