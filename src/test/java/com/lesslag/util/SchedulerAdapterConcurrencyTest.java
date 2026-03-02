@@ -198,10 +198,6 @@ public class SchedulerAdapterConcurrencyTest {
         }
     }
 
-    private static Object createBukkitSchedulerProxy() throws Exception {
-        return createBukkitSchedulerProxy(new AtomicInteger());
-    }
-
     private static Object createBukkitSchedulerProxy(AtomicInteger invocationCount) throws Exception {
         Class<?> schedulerClass = Class.forName("org.bukkit.scheduler." + "BukkitScheduler");
         return java.lang.reflect.Proxy.newProxyInstance(

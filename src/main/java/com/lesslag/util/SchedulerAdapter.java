@@ -240,6 +240,7 @@ public class SchedulerAdapter {
         }
         try {
             Method cancelMethod = taskHandle.getClass().getMethod("cancel");
+            cancelMethod.setAccessible(true);
             cancelMethod.invoke(taskHandle);
         } catch (Exception ex) {
             Bukkit.getLogger().log(Level.WARNING, "Task cancellation failed", ex);
@@ -269,6 +270,7 @@ public class SchedulerAdapter {
             }
             try {
                 Method cancelMethod = rawHandle.getClass().getMethod("cancel");
+                cancelMethod.setAccessible(true);
                 cancelMethod.invoke(rawHandle);
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Task handle cancel failed", ex);
@@ -282,6 +284,7 @@ public class SchedulerAdapter {
             }
             try {
                 Method cancelledMethod = rawHandle.getClass().getMethod("isCancelled");
+                cancelledMethod.setAccessible(true);
                 Object value = cancelledMethod.invoke(rawHandle);
                 return value instanceof Boolean && (Boolean) value;
             } catch (NoSuchMethodException ex) {

@@ -309,7 +309,7 @@ public class ConsistencyRules implements Rule {
     private void checkTicksPer(ConfigAdapter configs,
                                 List<RuleResult> results, List<PatchProposal> proposals) {
         int animalTicks = configs.getInt("bukkit.yml", "ticks-per.animal-spawns", 400);
-        int autoSave = configs.getInt("bukkit.yml", "ticks-per.autosave", 6000);
+        // autoSave read intentionally omitted — not yet used in rules
 
         if (animalTicks < 400) {
             results.add(RuleResult.builder("consistency-ticks-per-animals")

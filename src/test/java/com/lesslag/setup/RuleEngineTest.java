@@ -30,15 +30,13 @@ public class RuleEngineTest {
     @Test
     public void testDefaultRulesAreLoaded() {
         // Should include at least safety, consistency, conflict, fork-specific, performance
-        RuleEngine engine = new RuleEngine();
-        RuleEngine.EvaluationResult result = evaluate(engine);
+        RuleEngine.EvaluationResult result = evaluate(new RuleEngine());
         // With mock dependencies, some rules may not fire, but engine should not throw
         assertNotNull(result);
     }
 
     @Test
     public void testEvaluationCatchesRuleExceptions() {
-        RuleEngine engine = new RuleEngine();
         // Add a crashing rule via reflection or by testing the engine's behavior
         // The engine wraps exceptions in error RuleResults
         RuleEngine.EvaluationResult result = evaluateWithCrashingRule();
@@ -91,7 +89,6 @@ public class RuleEngineTest {
     }
 
     private RuleEngine.EvaluationResult evaluateWithCrashingRule() {
-        RuleEngine engine = new RuleEngine();
         // We can't easily add a rule to the internal list, but we can create a
         // standalone engine-like test by manually constructing one
         java.util.List<RuleResult> results = new java.util.ArrayList<>();

@@ -45,8 +45,10 @@ public class PluginScanner {
             Plugin[] plugins = Bukkit.getPluginManager().getPlugins();
             for (Plugin p : plugins) {
                 String name = p.getName();
+                @SuppressWarnings("deprecation")
                 String version = p.getDescription().getVersion();
                 boolean enabled = p.isEnabled();
+                @SuppressWarnings("deprecation")
                 List<String> authors = p.getDescription().getAuthors();
 
                 discoveredPlugins.add(new PluginInfo(name, version, enabled, authors));

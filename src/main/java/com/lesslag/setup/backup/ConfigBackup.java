@@ -4,7 +4,6 @@ import com.lesslag.setup.model.PatchProposal;
 import com.lesslag.setup.model.RollbackBundle;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;

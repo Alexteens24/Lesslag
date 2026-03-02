@@ -5,7 +5,6 @@ import com.lesslag.setup.backup.ConfigBackup;
 import com.lesslag.setup.detect.*;
 import com.lesslag.setup.model.*;
 import com.lesslag.setup.preset.PresetMatrix;
-import com.lesslag.setup.preset.PresetProfile;
 import com.lesslag.setup.report.ReportGenerator;
 import com.lesslag.setup.rules.RuleEngine;
 import com.lesslag.util.SchedulerAdapter;
@@ -87,10 +86,44 @@ public class SetupAdvisor {
             playerSessions.put(creatorUuid, sessionId);
         }
 
-        // Run discovery async
+        // Capture Bukkit API metrics on the calling (main/global) thread
+        // These calls are NOT safe from async threads on Folia
+        int snapshotPlayers = 0;
+        int snapshotChunks = 0;
+        int snapshotEntities = 0;
+        int snapshotWorldCount = 0;
+        double snapshotTps = 20.0;
+        double snapshotMspt = 0.0;
+        try {
+            snapshotPlayers = Bukkit.getOnlinePlayers().size();
+            snapshotWorldCount = Bukkit.getWorlds().size();
+            for (World w : Bukkit.getWorlds()) {
+                snapshotChunks += w.getLoadedChunks().length;
+                snapshotEntities += w.getEntities().size();
+            }
+            if (plugin.getTpsMonitor() != null) {
+                snapshotTps = plugin.getTpsMonitor().getCurrentTPS();
+                snapshotMspt = plugin.getTpsMonitor().getCurrentMSPT();
+            }
+        } catch (Exception e) {
+            LOG.warning("Failed to capture runtime metrics on main thread: " + e.getMessage());
+        }
+
+        // Also scan plugins on main thread (Bukkit API)
+        pluginScanner.scan();
+
+        // Freeze captured values for the async lambda
+        final int capPlayers = snapshotPlayers;
+        final int capChunks = snapshotChunks;
+        final int capEntities = snapshotEntities;
+        final int capWorldCount = snapshotWorldCount;
+        final double capTps = snapshotTps;
+        final double capMspt = snapshotMspt;
+
+        // Run discovery async (only thread-safe operations)
         plugin.getAsyncExecutor().submit(() -> {
             try {
-                runDiscovery(session);
+                runDiscovery(session, capPlayers, capChunks, capEntities, capWorldCount, capTps, capMspt);
                 // Callback on global scheduler for safe command output
                 SchedulerAdapter adapter = new SchedulerAdapter(plugin);
                 adapter.runGlobal(() -> callback.accept(session));
@@ -105,25 +138,26 @@ public class SetupAdvisor {
 
     /**
      * Run the full discovery phase (async-safe).
+     * Bukkit API metrics (players, chunks, entities) are captured on the main
+     * thread before this method is called and passed in as parameters.
      */
-    private void runDiscovery(SetupSession session) {
+    private void runDiscovery(SetupSession session, int players, int chunks,
+                               int entities, int worldCount, double tps, double mspt) {
         LOG.info("Starting discovery for session " + session.getSessionId() + "...");
 
-        // Platform detection
+        // Platform detection (class probing — thread-safe)
         platformDetector.detect();
 
-        // Config scan
+        // Config scan (file I/O — thread-safe)
         configAdapter.scan();
 
-        // Plugin scan (needs to be on main thread for Bukkit API)
-        // We'll capture the snapshot data that's safe to read async
-        pluginScanner.scan();
+        // Plugin scan was already done on the main thread before async submission
 
         // Hardware assessment (entirely MXBean-based, thread-safe)
         HardwareAssessment hw = hardwareDetector.assess();
         session.setHardwareAssessment(hw);
 
-        // Build environment snapshot
+        // Build environment snapshot using pre-captured main-thread metrics
         EnvironmentSnapshot env = new EnvironmentSnapshot();
         env.setPlatformName(platformDetector.getDetectedPlatform());
         env.setPlatformVersion(platformDetector.getPlatformVersion());
@@ -132,26 +166,13 @@ public class SetupAdvisor {
         env.getConfigFilesPresent().putAll(configAdapter.getFilePresence());
         env.getPlugins().addAll(pluginScanner.getDiscoveredPlugins());
 
-        // Runtime metrics (safe to read)
-        try {
-            env.setOnlinePlayers(Bukkit.getOnlinePlayers().size());
-            int chunks = 0, entities = 0;
-            for (World w : Bukkit.getWorlds()) {
-                chunks += w.getLoadedChunks().length;
-                entities += w.getEntities().size();
-            }
-            env.setLoadedChunks(chunks);
-            env.setTotalEntities(entities);
-            env.setLoadedWorldCount(Bukkit.getWorlds().size());
-
-            // TPS/MSPT from our monitor
-            if (plugin.getTpsMonitor() != null) {
-                env.setCurrentTps(plugin.getTpsMonitor().getCurrentTPS());
-                env.setCurrentMspt(plugin.getTpsMonitor().getCurrentMSPT());
-            }
-        } catch (Exception e) {
-            LOG.warning("Failed to capture runtime metrics: " + e.getMessage());
-        }
+        // Use pre-captured runtime metrics (captured on main thread)
+        env.setOnlinePlayers(players);
+        env.setLoadedChunks(chunks);
+        env.setTotalEntities(entities);
+        env.setLoadedWorldCount(worldCount);
+        env.setCurrentTps(tps);
+        env.setCurrentMspt(mspt);
 
         session.setEnvironment(env);
         session.setStatus(SessionStatus.PROFILING);

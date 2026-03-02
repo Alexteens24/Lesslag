@@ -25,11 +25,9 @@ import java.util.stream.Collectors;
  */
 public class SetupCommandHandler {
 
-    private final LessLag plugin;
     private final SetupAdvisor advisor;
 
     public SetupCommandHandler(LessLag plugin, SetupAdvisor advisor) {
-        this.plugin = plugin;
         this.advisor = advisor;
     }
 
