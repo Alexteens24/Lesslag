@@ -50,9 +50,7 @@ public class VillagerOptimizer implements Listener {
 
     // ── Incremental scan state ──
     private Chunk[] scanChunks = null;
-    private int scanCursor = 0;
-    private int scanWorldIndex = 0;
-    private int scanIdleCountdown = 0;
+    private int scanCursor = 0;\n    private int scanWorldIndex = 0;
     private static final int VILLAGER_CHUNKS_PER_TICK = 20;
 
     private static class ActiveVillagerInfo {
@@ -86,9 +84,9 @@ public class VillagerOptimizer implements Listener {
 
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
 
-        // Incremental scan: run every tick, process a slice of chunks each tick.
-        // After a full pass, idle for checkInterval ticks before starting the next.
-        scanTask = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, 100L, 1L);
+        // Incremental scan: only runs during active scanning, stops when idle.
+        // Restarts after checkInterval ticks via delayed one-shot.
+        startScanPass();
 
         // Cleanup task for temporary AI (runs faster, e.g. every 5s)
         cleanupTask = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
@@ -96,6 +94,15 @@ public class VillagerOptimizer implements Listener {
         }, 100L, 100L);
 
         plugin.getLogger().info("Villager Optimizer started (Interval: " + checkInterval + " ticks)");
+    }
+
+    /** Begin a new incremental scan pass. Called from start() and after idle delay. */
+    private void startScanPass() {
+        if (scanTask != null) scanTask.cancel();
+        scanChunks = null;
+        scanWorldIndex = 0;
+        scanCursor = 0;
+        scanTask = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, 1L, 1L);
     }
 
     public void stop() {
@@ -115,21 +122,17 @@ public class VillagerOptimizer implements Listener {
     // ══════════════════════════════════════════════════
 
     private void scanIncremental() {
-        // Idle between full passes
-        if (scanIdleCountdown > 0) {
-            scanIdleCountdown--;
-            return;
-        }
-
         // Start new pass if needed
         if (scanChunks == null || scanCursor >= scanChunks.length) {
             List<World> worlds = Bukkit.getWorlds();
             if (scanChunks != null && scanWorldIndex + 1 < worlds.size()) {
                 scanWorldIndex++;
             } else {
+                // Full cycle complete — stop task and schedule restart after idle period
                 if (scanChunks != null) {
                     scanChunks = null;
-                    scanIdleCountdown = checkInterval;
+                    if (scanTask != null) { scanTask.cancel(); scanTask = null; }
+                    SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
                     return;
                 }
                 scanWorldIndex = 0;
@@ -137,7 +140,8 @@ public class VillagerOptimizer implements Listener {
             if (worlds.isEmpty()) return;
             if (scanWorldIndex >= worlds.size()) {
                 scanChunks = null;
-                scanIdleCountdown = checkInterval;
+                if (scanTask != null) { scanTask.cancel(); scanTask = null; }
+                SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
                 return;
             }
             scanChunks = worlds.get(scanWorldIndex).getLoadedChunks();

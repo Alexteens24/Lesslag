@@ -68,10 +68,18 @@ public class DensityOptimizer {
             return;
 
         // Incremental mode: run every tick but only process a slice of chunks.
-        // This spreads work evenly instead of spiking every checkInterval ticks.
-        // The full scan completes in roughly (totalLoadedChunks / chunksPerTick) ticks.
-        // After a full pass, idle for checkInterval ticks before starting the next.
-        task = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, checkInterval, 1L);
+        // After a full pass, the task stops and reschedules after checkInterval ticks.
+        // This avoids burning CPU on idle tick callbacks.
+        startScanPass();
+    }
+
+    /** Begin a new incremental scan pass. Called from start() and after idle delay. */
+    private void startScanPass() {
+        if (task != null) task.cancel();
+        pendingChunks = null;
+        pendingWorldIndex = 0;
+        scanCursor = 0;
+        task = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, 1L, 1L);
     }
 
     public void stop() {
@@ -82,17 +90,9 @@ public class DensityOptimizer {
         restore();
     }
 
-    private int idleCountdown = 0;
-
     private void scanIncremental() {
         if (!enabled || limits.isEmpty())
             return;
-
-        // Idle between full passes
-        if (idleCountdown > 0) {
-            idleCountdown--;
-            return;
-        }
 
         // Start new pass if needed
         if (pendingChunks == null || scanCursor >= pendingChunks.length) {
@@ -101,10 +101,11 @@ public class DensityOptimizer {
             if (pendingChunks != null && pendingWorldIndex + 1 < worlds.size()) {
                 pendingWorldIndex++;
             } else {
-                // Full cycle complete — idle for checkInterval ticks
+                // Full cycle complete — stop task and schedule restart after idle period
                 if (pendingChunks != null) {
                     pendingChunks = null;
-                    idleCountdown = checkInterval;
+                    if (task != null) { task.cancel(); task = null; }
+                    SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
                     return;
                 }
                 pendingWorldIndex = 0;
@@ -113,7 +114,8 @@ public class DensityOptimizer {
             if (worlds.isEmpty()) return;
             if (pendingWorldIndex >= worlds.size()) {
                 pendingChunks = null;
-                idleCountdown = checkInterval;
+                if (task != null) { task.cancel(); task = null; }
+                SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
                 return;
             }
             pendingChunks = worlds.get(pendingWorldIndex).getLoadedChunks();
