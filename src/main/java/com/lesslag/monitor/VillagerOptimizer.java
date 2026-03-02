@@ -145,8 +145,10 @@ public class VillagerOptimizer implements Listener {
         }
 
         // Process a slice of chunks this tick
+        // On Folia, reduce dispatch count — each runAtChunk has reflection overhead.
         boolean folia = SchedulerAdapter.isFolia();
-        int end = Math.min(scanCursor + VILLAGER_CHUNKS_PER_TICK, scanChunks.length);
+        int perTick = folia ? 6 : VILLAGER_CHUNKS_PER_TICK;
+        int end = Math.min(scanCursor + perTick, scanChunks.length);
         for (int i = scanCursor; i < end; i++) {
             Chunk chunk = scanChunks[i];
             if (!chunk.isLoaded()) continue;

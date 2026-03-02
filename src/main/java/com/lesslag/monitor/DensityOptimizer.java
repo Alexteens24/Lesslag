@@ -23,7 +23,6 @@ public class DensityOptimizer {
     // ── Incremental scan state ──
     // Instead of scanning all chunks in one tick, we spread the work across multiple ticks.
     private int scanCursor = 0;            // Current position in the chunk list
-    private int chunksPerTick = 30;        // Max chunks to process per tick
     private Chunk[] pendingChunks = null;   // Snapshot of loaded chunks for current scan pass
     private int pendingWorldIndex = 0;     // Current world index for multi-world iteration
 
@@ -122,8 +121,11 @@ public class DensityOptimizer {
         }
 
         // Process a slice of chunks this tick
+        // On Folia each dispatch goes through reflection + region task queuing,
+        // so we process fewer chunks per tick to reduce dispatch overhead.
         boolean folia = SchedulerAdapter.isFolia();
-        int end = Math.min(scanCursor + chunksPerTick, pendingChunks.length);
+        int perTick = folia ? 8 : 30;
+        int end = Math.min(scanCursor + perTick, pendingChunks.length);
         for (int i = scanCursor; i < end; i++) {
             Chunk chunk = pendingChunks[i];
             if (chunk.isLoaded()) {

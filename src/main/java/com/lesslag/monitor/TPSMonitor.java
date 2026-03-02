@@ -10,9 +10,36 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class TPSMonitor {
+
+    // ── O(1) circular buffer for TPS windows ──
+    // Replaces ConcurrentLinkedDeque whose size() is O(n) and allocates per-add.
+    private static final class RingBuffer {
+        private final double[] data;
+        private int writeIndex = 0;
+        private int count = 0;
+        private volatile double cachedAverage = 20.0;
+
+        RingBuffer(int capacity) {
+            this.data = new double[capacity];
+            java.util.Arrays.fill(data, 20.0);
+        }
+
+        void add(double value) {
+            data[writeIndex] = value;
+            writeIndex = (writeIndex + 1) % data.length;
+            if (count < data.length) count++;
+            // Pre-compute average on write (once/sec) so reads are O(1)
+            double sum = 0;
+            for (int i = 0; i < count; i++) sum += data[i];
+            cachedAverage = sum / count;
+        }
+
+        double average() {
+            return cachedAverage;
+        }
+    }
 
     private final LessLag plugin;
     private final ActionExecutor actionExecutor;
@@ -27,12 +54,12 @@ public class TPSMonitor {
     private final double[] tpsHistory = new double[20];
     private int historyIndex = 0;
 
-    // Multi-window TPS averages
-    private final ConcurrentLinkedDeque<Double> tps5s = new ConcurrentLinkedDeque<>();
-    private final ConcurrentLinkedDeque<Double> tps10s = new ConcurrentLinkedDeque<>();
-    private final ConcurrentLinkedDeque<Double> tps1m = new ConcurrentLinkedDeque<>();
-    private final ConcurrentLinkedDeque<Double> tps5m = new ConcurrentLinkedDeque<>();
-    private final ConcurrentLinkedDeque<Double> tps15m = new ConcurrentLinkedDeque<>();
+    // Multi-window TPS averages — O(1) ring buffers, no allocation, no traversal
+    private final RingBuffer tps5s = new RingBuffer(5);
+    private final RingBuffer tps10s = new RingBuffer(10);
+    private final RingBuffer tps1m = new RingBuffer(60);
+    private final RingBuffer tps5m = new RingBuffer(300);
+    private final RingBuffer tps15m = new RingBuffer(900);
 
     // MSPT tracking — lock-free circular buffer (single-thread access from tick task)
     private volatile double currentMSPT = 50.0;
@@ -110,11 +137,11 @@ public class TPSMonitor {
                         sum += tps;
                     currentTPS = sum / tpsHistory.length;
 
-                    addToWindow(tps5s, measuredTPS, 5);
-                    addToWindow(tps10s, measuredTPS, 10);
-                    addToWindow(tps1m, measuredTPS, 60);
-                    addToWindow(tps5m, measuredTPS, 300);
-                    addToWindow(tps15m, measuredTPS, 900);
+                    tps5s.add(measuredTPS);
+                    tps10s.add(measuredTPS);
+                    tps1m.add(measuredTPS);
+                    tps5m.add(measuredTPS);
+                    tps15m.add(measuredTPS);
 
                     calculateMSPT();
 
@@ -159,20 +186,7 @@ public class TPSMonitor {
         }
     }
 
-    private void addToWindow(ConcurrentLinkedDeque<Double> window, double value, int maxSize) {
-        window.addLast(value);
-        while (window.size() > maxSize)
-            window.removeFirst();
-    }
-
-    private double averageOf(ConcurrentLinkedDeque<Double> list) {
-        if (list.isEmpty())
-            return 20.0;
-        double sum = 0;
-        for (double v : list)
-            sum += v;
-        return sum / list.size();
-    }
+    // addToWindow/averageOf removed — replaced by RingBuffer
 
     private void calculateMSPT() {
         if (msptCount == 0)
@@ -450,23 +464,23 @@ public class TPSMonitor {
     }
 
     public double getTPS5s() {
-        return averageOf(tps5s);
+        return tps5s.average();
     }
 
     public double getTPS10s() {
-        return averageOf(tps10s);
+        return tps10s.average();
     }
 
     public double getTPS1m() {
-        return averageOf(tps1m);
+        return tps1m.average();
     }
 
     public double getTPS5m() {
-        return averageOf(tps5m);
+        return tps5m.average();
     }
 
     public double getTPS15m() {
-        return averageOf(tps15m);
+        return tps15m.average();
     }
 
     public double getCurrentMSPT() {
