@@ -50,7 +50,8 @@ public class VillagerOptimizer implements Listener {
 
     // ── Incremental scan state ──
     private Chunk[] scanChunks = null;
-    private int scanCursor = 0;\n    private int scanWorldIndex = 0;
+    private int scanCursor = 0;
+    private int scanWorldIndex = 0;
     private static final int VILLAGER_CHUNKS_PER_TICK = 20;
 
     private static class ActiveVillagerInfo {
