@@ -122,6 +122,11 @@ public class TPSMonitor {
                 msptWriteIndex = (msptWriteIndex + 1) % MSPT_BUFFER_SIZE;
                 if (msptCount < MSPT_BUFFER_SIZE) msptCount++;
 
+                // Piggyback TickMonitor & BottleneckAnalyzer on this single per-tick task
+                // (eliminates 2 separate runGlobalRepeating(1L,1L) scheduler dispatches)
+                if (plugin.getTickMonitor() != null) plugin.getTickMonitor().tick(tickMs);
+                if (plugin.getBottleneckAnalyzer() != null) plugin.getBottleneckAnalyzer().tickPing();
+
                 tpsTickCount[0]++;
                 long elapsedNano = now - tpsLastMeasureTime[0];
 

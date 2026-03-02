@@ -23,7 +23,6 @@ public class BottleneckAnalyzer {
     private final ThreadMXBean threadBean;
 
     private Thread watchdogThread;
-    private SchedulerAdapter.TaskHandle pingTask;
     private volatile boolean running = false;
 
     // Config values
@@ -89,8 +88,7 @@ public class BottleneckAnalyzer {
         plugin.getLogger().info(
                 "BottleneckAnalyzer started (Threshold: " + thresholdMs + "ms, Sampling: " + sampleIntervalMs + "ms)");
 
-        // Register sync task to ping the watchdog every tick
-        pingTask = SchedulerAdapter.runGlobalRepeating(plugin, this::pingWatchdog, 1L, 1L);
+        // No own per-tick task — TPSMonitor calls tickPing() from its single tick lambda
     }
 
     public void stop() {
@@ -99,17 +97,15 @@ public class BottleneckAnalyzer {
             watchdogThread.interrupt();
             watchdogThread = null;
         }
-        if (pingTask != null) {
-            pingTask.cancel();
-            pingTask = null;
-        }
     }
 
     /**
-     * Called on the MAIN THREAD every tick to reset the watchdog timer.
+     * Called from TPSMonitor's per-tick lambda to reset the watchdog timer.
      * Also processes any spikes that just finished.
+     * Eliminates a separate runGlobalRepeating(1L, 1L) task.
      */
-    private void pingWatchdog() {
+    public void tickPing() {
+        if (!running) return;
         lastTickTimeNano = System.nanoTime();
 
         // If we were spiking but now the tick completed, process the samples

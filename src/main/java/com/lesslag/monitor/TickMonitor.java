@@ -11,13 +11,12 @@ import com.lesslag.util.SchedulerAdapter;
 public class TickMonitor {
 
     private final LessLag plugin;
-    private SchedulerAdapter.TaskHandle task;
 
     // Config (cached)
     private double thresholdMs;
     private boolean notifyEnabled;
+    private volatile boolean enabled = false;
 
-    private long lastTickNano;
     private volatile double lastTickMs;
 
     // Stats (volatile for cross-thread reads)
@@ -64,41 +63,39 @@ public class TickMonitor {
     public void start() {
         if (!plugin.getConfig().getBoolean("system.tick-monitor.enabled", true))
             return;
-
-        lastTickNano = System.nanoTime();
-
-        // Tick measurement MUST be sync (we're measuring actual tick duration)
-        task = SchedulerAdapter.runGlobalRepeating(plugin, () -> {
-            long now = System.nanoTime();
-            lastTickMs = (now - lastTickNano) / 1_000_000.0;
-            lastTickNano = now;
-
-            if (lastTickMs > worstTickMs) {
-                worstTickMs = lastTickMs;
-            }
-
-            if (lastTickMs > thresholdMs) {
-                spikeCount++;
-
-                if (notifyEnabled) {
-                    long currentTime = System.currentTimeMillis();
-                    if (currentTime - lastNotifyTime >= NOTIFY_COOLDOWN_MS) {
-                        lastNotifyTime = currentTime;
-                        final double duration = lastTickMs;
-                        // Send notification ASYNC to avoid blocking the main thread
-                        SchedulerAdapter.runAsync(plugin, () -> notifySpike(duration));
-                    }
-                }
-            }
-        }, 1L, 1L);
-
-        plugin.getLogger().info("Tick Monitor started (threshold: " + thresholdMs + "ms, async notifications)");
+        enabled = true;
+        // No own per-tick task — TPSMonitor calls tick(double) from its single tick lambda
+        plugin.getLogger().info("Tick Monitor started (threshold: " + thresholdMs + "ms, piggybacked on TPSMonitor)");
     }
 
     public void stop() {
-        if (task != null) {
-            task.cancel();
-            task = null;
+        enabled = false;
+    }
+
+    /**
+     * Called from TPSMonitor's per-tick lambda with the already-computed tick duration.
+     * Eliminates a separate runGlobalRepeating(1L, 1L) task.
+     */
+    public void tick(double tickMs) {
+        if (!enabled) return;
+        lastTickMs = tickMs;
+
+        if (tickMs > worstTickMs) {
+            worstTickMs = tickMs;
+        }
+
+        if (tickMs > thresholdMs) {
+            spikeCount++;
+
+            if (notifyEnabled) {
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastNotifyTime >= NOTIFY_COOLDOWN_MS) {
+                    lastNotifyTime = currentTime;
+                    final double duration = tickMs;
+                    // Send notification ASYNC to avoid blocking the main thread
+                    SchedulerAdapter.runAsync(plugin, () -> notifySpike(duration));
+                }
+            }
         }
     }
 
