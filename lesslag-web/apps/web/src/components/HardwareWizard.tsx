@@ -2,10 +2,15 @@
 
 import { useState } from 'react';
 import { useLessLagStore } from '@/store/lesslag-store';
+import { HardwareTierMeta } from '@lesslag/shared-rules';
+import type { HardwareTier } from '@lesslag/shared-rules';
 
 const STEPS = ['CPU & RAM', 'Server Software', 'World Info'] as const;
 
 const CPU_MODELS = [
+  'AMD EPYC VPS (shared vCPU)',
+  'Intel Xeon VPS (shared vCPU)',
+  'AMD Ryzen VPS (dedicated vCPU)',
   'Intel Core i5',
   'Intel Core i7',
   'Intel Core i9',
@@ -16,6 +21,45 @@ const CPU_MODELS = [
   'EPYC 7003',
   'Apple M1/M2/M3',
   'Other',
+] as const;
+
+const VPS_PRESETS = [
+  {
+    id: 'vps-2c4g',
+    label: 'Starter VPS',
+    details: '2 vCPU • 4 GB RAM • up to ~20 concurrent players',
+    cpuModel: 'AMD EPYC VPS (shared vCPU)',
+    availableProcessors: 2,
+    maxHeapMB: 4096,
+    tier: 'LOW' as HardwareTier,
+  },
+  {
+    id: 'vps-4c8g',
+    label: 'Standard VPS',
+    details: '4 vCPU • 8 GB RAM • up to ~50 concurrent players',
+    cpuModel: 'AMD Ryzen VPS (dedicated vCPU)',
+    availableProcessors: 4,
+    maxHeapMB: 8192,
+    tier: 'MID' as HardwareTier,
+  },
+  {
+    id: 'vps-6c12g',
+    label: 'Performance VPS',
+    details: '6 vCPU • 12 GB RAM • up to ~100 concurrent players',
+    cpuModel: 'AMD Ryzen VPS (dedicated vCPU)',
+    availableProcessors: 6,
+    maxHeapMB: 12288,
+    tier: 'HIGH' as HardwareTier,
+  },
+  {
+    id: 'dedicated-8c16g',
+    label: 'Dedicated Node',
+    details: '8 threads • 16 GB RAM • high-capacity workloads',
+    cpuModel: 'Xeon E-2300',
+    availableProcessors: 8,
+    maxHeapMB: 16384,
+    tier: 'HIGH' as HardwareTier,
+  },
 ] as const;
 
 const FORK_OPTIONS = [
@@ -37,14 +81,22 @@ export function HardwareWizard() {
   const autoDetectTier = () => {
     const cores = hardware.availableProcessors;
     const ram = hardware.maxHeapMB;
-    if (cores >= 8 && ram >= 8192) {
+
+    if (cores >= 6 && ram >= 10240) {
       setTier('HIGH');
-    } else if (cores >= 4 && ram >= 4096) {
+    } else if (cores >= 4 && ram >= 6144) {
       setTier('MID');
     } else {
       setTier('LOW');
     }
   };
+
+  const detectedTier: HardwareTier =
+    hardware.availableProcessors >= 6 && hardware.maxHeapMB >= 10240
+      ? 'HIGH'
+      : hardware.availableProcessors >= 4 && hardware.maxHeapMB >= 6144
+        ? 'MID'
+        : 'LOW';
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -79,6 +131,29 @@ export function HardwareWizard() {
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">CPU & Memory</h3>
 
             <div>
+              <label className="mb-2 block text-sm text-[var(--text-muted)]">Common Hosting Plans</label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {VPS_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => {
+                      setHardware({
+                        cpuModel: preset.cpuModel,
+                        availableProcessors: preset.availableProcessors,
+                        maxHeapMB: preset.maxHeapMB,
+                      });
+                      setTier(preset.tier);
+                    }}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-3 text-left transition-all hover:border-[var(--accent)]"
+                  >
+                    <div className="text-sm font-medium text-[var(--text-primary)]">{preset.label}</div>
+                    <div className="text-xs text-[var(--text-muted)]">{preset.details}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <label className="mb-1 block text-sm text-[var(--text-muted)]">CPU Model</label>
               <select
                 value={hardware.cpuModel}
@@ -98,13 +173,13 @@ export function HardwareWizard() {
               <input
                 type="range"
                 min={1}
-                max={32}
+                max={16}
                 value={hardware.availableProcessors}
                 onChange={(e) => setHardware({ availableProcessors: Number(e.target.value) })}
                 className="w-full accent-[var(--accent)]"
               />
               <div className="flex justify-between text-xs text-[var(--text-muted)]">
-                <span>1</span><span>8</span><span>16</span><span>32</span>
+                <span>1</span><span>4</span><span>8</span><span>16</span>
               </div>
             </div>
 
@@ -115,14 +190,14 @@ export function HardwareWizard() {
               <input
                 type="range"
                 min={1024}
-                max={32768}
+                max={24576}
                 step={512}
                 value={hardware.maxHeapMB}
                 onChange={(e) => setHardware({ maxHeapMB: Number(e.target.value) })}
                 className="w-full accent-[var(--accent)]"
               />
               <div className="flex justify-between text-xs text-[var(--text-muted)]">
-                <span>1 GB</span><span>8 GB</span><span>16 GB</span><span>32 GB</span>
+                <span>1 GB</span><span>4 GB</span><span>8 GB</span><span>16+ GB</span>
               </div>
             </div>
 
@@ -130,7 +205,7 @@ export function HardwareWizard() {
               <label className="mb-1 block text-sm text-[var(--text-muted)]">
                 Avg MSPT: <span className="text-[var(--text-primary)] font-medium">{hardware.averageMspt}ms</span>
                 {hardware.averageMspt > 50 && (
-                  <span className="ml-2 text-[var(--danger)]">(lagging!)</span>
+                  <span className="ml-2 text-[var(--danger)]">(high latency)</span>
                 )}
               </label>
               <input
@@ -237,14 +312,10 @@ export function HardwareWizard() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-lg font-bold text-[var(--text-primary)]">
-                    {hardware.availableProcessors >= 8 && hardware.maxHeapMB >= 8192
-                      ? '🟢 High'
-                      : hardware.availableProcessors >= 4 && hardware.maxHeapMB >= 4096
-                        ? '🟡 Mid'
-                        : '🔴 Low'}
+                    {HardwareTierMeta[detectedTier].displayName}
                   </span>
                   <p className="text-xs text-[var(--text-muted)] mt-1">
-                    {hardware.availableProcessors} cores, {(hardware.maxHeapMB / 1024).toFixed(1)} GB RAM, {platform.fork}
+                    {hardware.availableProcessors} vCPU/thread(s), {(hardware.maxHeapMB / 1024).toFixed(1)} GB RAM, {platform.fork}
                   </p>
                 </div>
                 <button
@@ -255,7 +326,7 @@ export function HardwareWizard() {
                   }}
                   className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] transition-colors sm:px-4 sm:text-sm"
                 >
-                  Apply & Go to Presets →
+                  Apply Configuration
                 </button>
               </div>
             </div>
@@ -270,14 +341,14 @@ export function HardwareWizard() {
           disabled={step === 0}
           className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] disabled:opacity-30 transition-colors"
         >
-          ← Previous
+          Previous
         </button>
         <button
           onClick={next}
           disabled={step === STEPS.length - 1}
           className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 transition-colors"
         >
-          Next →
+          Next
         </button>
       </div>
     </div>

@@ -13,12 +13,12 @@ import { SnapshotManager } from '@/components/SnapshotManager';
 import { useShareableState, generateShareUrl } from '@/hooks/useShareableState';
 
 const TABS = [
-  { id: 'presets' as const, label: '🎯 Presets' },
-  { id: 'editor' as const, label: '📝 Editor' },
-  { id: 'diff' as const, label: '🔄 Changes' },
-  { id: 'rationale' as const, label: '📊 Analysis' },
-  { id: 'hardware' as const, label: '🖥️ Hardware' },
-  { id: 'conflicts' as const, label: '🔌 Plugins' },
+  { id: 'presets' as const, label: 'Presets' },
+  { id: 'editor' as const, label: 'Editor' },
+  { id: 'diff' as const, label: 'Changes' },
+  { id: 'rationale' as const, label: 'Analysis' },
+  { id: 'hardware' as const, label: 'Hardware' },
+  { id: 'conflicts' as const, label: 'Plugins' },
 ] as const;
 
 const API_URL =
@@ -150,7 +150,8 @@ export default function HomePage() {
             className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors sm:px-3 sm:py-2 sm:text-sm"
             title="Copy local share link"
           >
-            🔗 <span className="hidden sm:inline">Share Local</span>
+            <span className="hidden sm:inline">Share Local</span>
+            <span className="sm:hidden">Share</span>
           </button>
           <button
             onClick={handleCreateCloudLink}
@@ -158,14 +159,16 @@ export default function HomePage() {
             className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
             title="Create cloud session link"
           >
-            ☁️ <span className="hidden sm:inline">Share Cloud</span>
+            <span className="hidden sm:inline">Share Cloud</span>
+            <span className="sm:hidden">Cloud</span>
           </button>
           <button
             onClick={() => setActiveTab('editor')}
             className="relative rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors sm:px-3 sm:py-2 sm:text-sm"
             title="Snapshots"
           >
-            💾 <span className="hidden sm:inline">Snapshots</span>
+            <span className="hidden sm:inline">Snapshots</span>
+            <span className="sm:hidden">Save</span>
             {snapshots.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] text-white">
                 {snapshots.length}
@@ -176,7 +179,8 @@ export default function HomePage() {
             onClick={() => setShowImportModal(true)}
             className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors sm:px-3 sm:py-2 sm:text-sm"
           >
-            📦 <span className="hidden sm:inline">Import / Export</span>
+            <span className="hidden sm:inline">Import / Export</span>
+            <span className="sm:hidden">I/O</span>
           </button>
         </div>
       </div>

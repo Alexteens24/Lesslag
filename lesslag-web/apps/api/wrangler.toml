@@ -5,6 +5,7 @@ compatibility_date = "2025-01-01"
 [vars]
 RATE_LIMIT_MAX = "30"
 RATE_LIMIT_WINDOW_SEC = "60"
+WEB_DASHBOARD_URL = "https://lesslag-web.vercel.app"
 
 # KV namespace for rate limiting (create with: wrangler kv namespace create RATE_LIMIT)
 # Uncomment and fill in after creating:
