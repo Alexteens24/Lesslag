@@ -3,10 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLessLagStore } from '@/store/lesslag-store';
+import type { GameProfile, HardwareTier, AggressivenessLevel } from '@lesslag/shared-rules';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   'https://lesslag-api.daucatmoitu.workers.dev';
+
+const VALID_PROFILES = new Set<GameProfile>(['SMP', 'SKYBLOCK', 'MINIGAME', 'CREATIVE']);
+const VALID_TIERS = new Set<HardwareTier>(['LOW', 'MID', 'HIGH']);
+const VALID_AGGRESSIVENESS = new Set<AggressivenessLevel>(['SAFE', 'BALANCED', 'AGGRESSIVE']);
+
+function normalizeEnum<T extends string>(value: unknown, validValues: Set<T>, fallback: T): T {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim().toUpperCase() as T;
+  return validValues.has(normalized) ? normalized : fallback;
+}
 
 export default function SessionPage() {
   const router = useRouter();
@@ -40,10 +51,18 @@ export default function SessionPage() {
         return res.json();
       })
       .then((data) => {
+        const profile = normalizeEnum(data.profile, VALID_PROFILES, 'SMP');
+        const tier = normalizeEnum(data.tier, VALID_TIERS, 'MID');
+        const aggressiveness = normalizeEnum(
+          data.aggressiveness,
+          VALID_AGGRESSIVENESS,
+          'BALANCED',
+        );
+
         // ── hydrate Zustand store ──
-        if (data.profile) setProfile(data.profile);
-        if (data.tier) setTier(data.tier);
-        if (data.aggressiveness) setAggressiveness(data.aggressiveness);
+        setProfile(profile);
+        setTier(tier);
+        setAggressiveness(aggressiveness);
         if (data.playerCount != null) setPlayerCount(data.playerCount);
         if (data.plugins) setPlugins(data.plugins);
         if (data.platform) setPlatform(data.platform);

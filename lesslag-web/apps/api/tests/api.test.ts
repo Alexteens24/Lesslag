@@ -196,6 +196,63 @@ describe('POST /api/diff', () => {
   });
 });
 
+// ─── Sessions ──────────────────────────────────────────────
+describe('Session flow', () => {
+  it('creates a session link with token', async () => {
+    const res = await app.request('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile: 'SMP',
+        tier: 'MID',
+        aggressiveness: 'BALANCED',
+        configs: { 'server.properties': { 'view-distance': '8' } },
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(typeof body.token).toBe('string');
+    expect(typeof body.url).toBe('string');
+    expect(body.url).toContain(`/session/${body.token}`);
+    expect(typeof body.expiresAt).toBe('string');
+  });
+
+  it('rejects sessions without configs object', async () => {
+    const res = await app.request('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: 'SMP' }),
+    });
+
+    expect(res.status).toBe(422);
+  });
+
+  it('loads a previously created session by token', async () => {
+    const createRes = await app.request('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile: 'MINIGAME',
+        tier: 'HIGH',
+        aggressiveness: 'SAFE',
+        configs: { 'spigot.yml': { 'mob-spawn-range': '6' } },
+      }),
+    });
+
+    const createBody = await createRes.json();
+    const token = createBody.token as string;
+    expect(typeof token).toBe('string');
+
+    const getRes = await app.request(`/api/sessions/${token}`);
+    expect(getRes.status).toBe(200);
+    const session = await getRes.json();
+    expect(session.profile).toBe('MINIGAME');
+    expect(session.tier).toBe('HIGH');
+    expect(session.configs['spigot.yml']['mob-spawn-range']).toBe('6');
+  });
+});
+
 // ─── 404 ───────────────────────────────────────────────────
 describe('Unknown routes', () => {
   it('returns 404 for unknown paths', async () => {

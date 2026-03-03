@@ -1270,8 +1270,15 @@ public class LagCommand implements CommandExecutor {
             client.createSession(payload).thenAccept(response -> {
                 SchedulerAdapter.runGlobal(plugin, () -> {
                     String url = LessLagApiClient.extractSessionUrl(response);
+                    if (url == null || url.isBlank()) {
+                        String token = LessLagApiClient.extractSessionToken(response);
+                        if (token != null && !token.isBlank()) {
+                            url = webUrl + "/session/" + token;
+                        }
+                    }
+
                     if (url == null) {
-                        send(sender, plugin.getPrefix() + "&cFailed to create session. Response: &f" + response);
+                        send(sender, plugin.getPrefix() + "&cFailed to create session. API did not return a link.");
                         return;
                     }
 
@@ -1304,7 +1311,11 @@ public class LagCommand implements CommandExecutor {
                 });
             }).exceptionally(ex -> {
                 SchedulerAdapter.runGlobal(plugin, () -> {
-                    send(sender, plugin.getPrefix() + "&cFailed to generate link: &f" + ex.getMessage());
+                    String msg = ex.getMessage();
+                    if (msg == null || msg.isBlank()) {
+                        msg = ex.toString();
+                    }
+                    send(sender, plugin.getPrefix() + "&cFailed to generate link: &f" + msg);
                 });
                 return null;
             });

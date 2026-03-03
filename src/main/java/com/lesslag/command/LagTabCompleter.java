@@ -26,7 +26,7 @@ public class LagTabCompleter implements TabCompleter {
             "disable", "restore", "status");
 
     private static final List<String> WEB_ACTIONS = Arrays.asList(
-            "status", "analyze");
+            "status", "link", "analyze");
 
     private static final List<String> SETUP_ACTIONS = Arrays.asList(
             "start", "profile", "tier", "level", "review", "select", "confirm", "abort", "rollback");

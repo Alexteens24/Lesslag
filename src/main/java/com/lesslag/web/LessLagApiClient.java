@@ -171,6 +171,18 @@ public class LessLagApiClient {
     }
 
     /**
+     * Parse the session response to extract session token.
+     */
+    public static String extractSessionToken(String responseJson) {
+        try {
+            JsonObject json = JsonParser.parseString(responseJson).getAsJsonObject();
+            return json.has("token") ? json.get("token").getAsString() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Build comprehensive server payload for session creation.
      * Reads actual config files from disk and captures live server info.
      */
@@ -307,11 +319,52 @@ public class LessLagApiClient {
 
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(resp -> {
-                    if (resp.statusCode() == 429) {
-                        throw new RuntimeException("Rate limited by API. Try again later.");
+                    int status = resp.statusCode();
+                    String body = resp.body();
+
+                    if (status >= 200 && status < 300) {
+                        return body;
                     }
-                    return resp.body();
+
+                    String message = extractErrorMessage(body);
+                    if (status == 429) {
+                        throw new RuntimeException("Rate limited by API. " + message);
+                    }
+                    throw new RuntimeException("API request failed (" + status + "): " + message);
                 });
+    }
+
+    private static String extractErrorMessage(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return "No response body";
+        }
+
+        try {
+            JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+
+            if (json.has("message")) {
+                return json.get("message").getAsString();
+            }
+            if (json.has("error")) {
+                return json.get("error").getAsString();
+            }
+            if (json.has("messages") && json.get("messages").isJsonArray()) {
+                StringBuilder combined = new StringBuilder();
+                for (var element : json.getAsJsonArray("messages")) {
+                    if (combined.length() > 0) {
+                        combined.append("; ");
+                    }
+                    combined.append(element.getAsString());
+                }
+                if (combined.length() > 0) {
+                    return combined.toString();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        String compact = responseBody.replace('\n', ' ').replace('\r', ' ').trim();
+        return compact.length() > 200 ? compact.substring(0, 200) + "..." : compact;
     }
 
     private static String detectFork() {
