@@ -2,6 +2,20 @@
 
 This guide is for server operators who need a reliable process for diagnosing and mitigating lag with LessLag.
 
+## 0) Web-Assisted Baseline (Recommended First-Time Setup)
+
+The fastest way to get a sensible `config.yml` for your hardware:
+
+1. Run `/lg web link` in-game.
+2. Open the generated link in a browser — the Setup Advisor auto-detects your hardware tier (CPU, cores, heap) and pre-fills all steps.
+3. Choose a game profile (SMP / Skyblock / Minigame / Creative) and aggressiveness level.
+4. Download the exported `lesslag-config.json` and place it in `plugins/LessLag/`.
+5. Run `/lg apply` to atomically apply the config changes.
+6. Run `/lg verify` to confirm the live server state matches expectations.
+7. After your first peak session, run `/lg drift` to catch any manual edits that diverged from the snapshot.
+
+Skip to §1 if you prefer manual tuning or are an experienced operator.
+
 ## 1) Daily Operating Workflow
 
 1. Run `/lg status` for quick health/percentile view.
@@ -42,6 +56,7 @@ Apply only what is necessary:
 - Re-run `/lg status` and `/lg tickmonitor` after 10-15 minutes.
 - Confirm percentile and spike trends improve.
 - Use `/lg restore` to revert temporary emergency toggles.
+- If the fix involved config changes, run `/lg drift` to confirm no unintended divergence from the last apply snapshot.
 
 ## 3) Command Matrix
 
@@ -74,10 +89,49 @@ Apply only what is necessary:
 - `/lg breeding`
 - `/lg frustum`
 
+### Web / Config Sync
+
+- `/lg web link` — generate hardware-encoded URL for the web Setup Advisor
+- `/lg apply` — atomically apply `lesslag-config.json` from the web export
+- `/lg verify` — verify live config matches the last apply snapshot
+- `/lg drift` — detect keys that have changed since the last apply snapshot
+- `/lg confirm` — confirm a pending staged patch from `/lg apply`
+
 ## 4) Tuning Strategy
 
 - Tune **redstone/entities** before aggressive global actions.
 - Tune **density/breeding/villager/frustum** for farm-centric lag.
+- Tune **chunks/world-guard** for exploration or multi-world pressure.
+- Tune **automation thresholds** last.
+
+Always change one module group at a time.
+
+## 5) Metrics Interpretation
+
+- **TPS** near 20 with stable MSPT percentiles indicates healthy load.
+- **Rising P95/P99 MSPT** with stable TPS can indicate pending instability.
+- **Frequent long spikes** usually indicate burst tasks, plugin contention, or chunk pressure.
+- **Increasing GC pause time/frequency** can indicate memory pressure or leaks.
+
+## 6) Anti-Patterns to Avoid
+
+- Applying many aggressive actions at once without measuring impact.
+- Tightening every limit globally before identifying hotspots.
+- Running emergency AI disable permanently.
+- Ignoring compatibility toggles when using other optimization plugins.
+- Manually editing `config.yml` after `/lg apply` without running `/lg drift` to reconcile.
+
+## 7) Change Management
+
+Before major events or resets:
+
+1. Snapshot current `config.yml`.
+2. Apply one tuning batch.
+3. Observe at peak load.
+4. Keep notes of command outputs and changes.
+5. Roll back quickly if player-facing behavior regresses.
+6. After stabilising, re-export from the web Setup Advisor and `/lg apply` to keep the snapshot fresh.
+
 - Tune **chunks/world-guard** for exploration or multi-world pressure.
 - Tune **automation thresholds** last.
 

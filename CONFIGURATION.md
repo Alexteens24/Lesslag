@@ -353,3 +353,27 @@ These are baseline ideas, not strict presets.
 - Use `/lg reload` after each change batch
 - Keep a rollback copy of `config.yml`
 - Revisit threshold actions if they trigger too aggressively
+
+---
+
+## Web Integration
+
+LessLag can synchronise its configuration with the web Setup Advisor at **https://lesslag-web.vercel.app**.
+
+### Workflow
+
+1. `/lg web link` — encodes the current hardware profile (CPU model, core count, heap size, server fork, MC version, live TPS, installed plugins) into a compact base64url+gzip URL and prints it to the console.
+2. Open the URL in a browser — the advisor auto-detects your hardware benchmark tier (from a 191-entry database) and pre-fills all wizard steps.
+3. Work through the 5-step wizard (Hardware → Profile → Aggressiveness → Review → Export).
+4. Download the exported `lesslag-config.json` and place it in `plugins/LessLag/`.
+5. `/lg apply` — diffs the JSON patch against the live config, stages the changes, and prints a summary before committing anything.
+6. `/lg confirm <id>` — atomically writes the staged changes to `config.yml` and reloads the plugin.
+7. `/lg verify` — checks that every key in the last apply snapshot matches the live config; reports any mismatches.
+8. `/lg drift` — identifies keys that have diverged from the baseline since the last apply; useful after manual edits.
+
+### Notes
+
+- The exported JSON is a **patch format**: it only contains keys that differ from LessLag defaults.
+- `/lg apply` never silently overwrites keys; all proposed changes are shown before `/lg confirm` is required.
+- Running `/lg drift` after manual edits to `config.yml` is recommended before re-running the web advisor to keep the snapshot current.
+- The URL token contains no sensitive data — only hardware specs and plugin names.

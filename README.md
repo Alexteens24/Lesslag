@@ -2,7 +2,7 @@
 
 LessLag is an advanced server performance intelligence system for Minecraft, designed to automatically monitor, diagnose, and mitigate sources of lag. Unlike basic entity-clearing plugins, LessLag employs adaptive monitoring and granular control to maintain optimal Tick Per Second (TPS) rates without disrupting legitimate player activity.
 
-The plugin features a modular architecture, allowing administrators to enable or disable specific optimizations for Redstone, Entities, Mob AI, and Chunk Loading.
+The plugin features a modular architecture, allowing administrators to enable or disable specific optimizations for Redstone, Entities, Mob AI, and Chunk Loading. It also ships a **web-based Setup Advisor** — reachable via `/lg web link` — that auto-detects server hardware and generates a tailored config baseline you can apply back with a single command.
 
 ## Documentation Index
 
@@ -57,6 +57,17 @@ LessLag provides real-time insights into server health, helping administrators i
 *   **Predictive Optimization**: Analyzes MSPT (Milliseconds Per Tick) trends to detect performance degradation *before* it affects TPS, triggering proactive cleanup measures.
 *   **Garbage Collection Monitor**: Alerts administrators to frequent or prolonged Java Garbage Collection pauses, which often indicate memory leaks or insufficient RAM.
 
+### Web Setup Advisor
+LessLag ships a companion web app at **https://lesslag-web.vercel.app** that transforms a hardware-encoded plugin link into a complete, opinionated config baseline.
+
+1. Run `/lg web link` in-game — the plugin encodes your CPU model, core count, heap, fork, MC version, TPS, and installed plugins into a compact URL.
+2. Open the link in a browser — the Setup Advisor auto-detects hardware tier, suggests a game profile and aggressiveness level, and produces three ready-to-use artifacts:
+   - **YAML diff** (the changes to apply to `config.yml`)
+   - **Startup command** (optimised JVM flags for your heap size)
+   - **Share link** (team-shareable snapshot)
+3. Drop the exported `lesslag-config.json` into your plugin folder, then run `/lg apply` to atomically apply the changes.
+4. Validate live with `/lg verify` and check for post-apply drift with `/lg drift`.
+
 ## Installation
 
 1.  Download the latest `LessLag.jar` file.
@@ -106,7 +117,11 @@ All commands require the `lesslag.admin` permission.
 | `/lg ai` | Mob AI emergency controls (`disable`, `restore`, `status`). |
 | `/lg restore` | Restores temporary emergency changes made by protection actions. |
 | `/lg setup` | Starts Setup Advisor for guided baseline tuning. |
-| `/lg web` | Web integration status and analyzer endpoints. |
+| `/lg web link` | Generates a hardware-encoded URL that opens the web Setup Advisor pre-filled with your server's specs. |
+| `/lg apply` | Atomically applies `lesslag-config.json` exported from the web Setup Advisor. |
+| `/lg verify` | Verifies that the live server config matches the expectations stored in the last apply snapshot. |
+| `/lg drift` | Detects config drift — keys that have changed since the last web snapshot was applied. |
+| `/lg confirm` | Confirms a pending config patch that was staged by `/lg apply`. |
 | `/lg reload` | Reloads `config.yml` and `messages.yml` without restart. |
 
 ### Command Usage Patterns (Recommended)
@@ -116,11 +131,13 @@ All commands require the `lesslag.admin` permission.
 - **Farm pressure triage**: `/lg density`, `/lg breeding`, `/lg entities`
 - **Emergency response**: `/lg ai disable`, `/lg clear hostile`, `/lg restore`
 - **After config edits**: `/lg reload` then re-check `/lg status`
+- **Web-assisted baseline**: `/lg web link` → open URL → export → `/lg apply` → `/lg verify`
 
 ## Permissions
 
 *   `lesslag.admin`: Grants full access to all LessLag commands and notifications.
 *   `lesslag.notify`: Allows receiving automatic lag alerts and performance warnings.
+*   `lesslag.setup`: Grants access to the Setup Advisor (`/lg setup` and `/lg web link` flow).
 
 ## Configuration
 
@@ -164,3 +181,11 @@ LessLag command responses are designed to stay cheap during runtime:
 - Most telemetry counters are incremented inside existing event/tick paths (no extra scheduler tasks).
 - Percentiles (`P50`, `P95`, `P99`) are computed on-demand only when diagnostic commands are executed.
 - Heavy analysis operations are spread over ticks via workload budgeting.
+
+## Compatibility
+
+- **Paper / Purpur / Pufferfish / Leaf**: Full support.
+- **Folia**: Supported — the scheduler bridge auto-detects Folia's threaded region scheduler.
+- **Luminol**: Detected and labelled correctly (Folia-based fork with additional Paper features).
+- **Spigot / CraftBukkit**: Core monitoring and cleanup features work; Paper-specific config optimisations are skipped.
+- **Common optimization plugins**: Compatibility toggles available for Pufferfish DAB, ClearLag, and MobFarmManager to avoid double-processing.
