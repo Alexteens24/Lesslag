@@ -138,17 +138,64 @@ const defaultPlatform: PlatformInfo = {
   hasFolia: false,
 };
 
-// Default values sourced from Paper docs: https://docs.papermc.io/paper/reference/configuration/
+// Full default values sourced from Paper docs: https://docs.papermc.io/paper/reference/configuration/
 const defaultConfigs: ConfigMap = {
+  // ── server.properties ──────────────────────────────────────────────
   'server.properties': {
-    'online-mode': 'true',
-    'view-distance': 10,
+    'allow-flight': false,
+    'broadcast-console-to-ops': true,
+    'broadcast-rcon-to-ops': true,
+    'difficulty': 'easy',
+    'enable-command-block': false,
+    'enable-query': false,
+    'enable-rcon': false,
+    'enable-status': true,
+    'enforce-secure-profile': true,
+    'enforce-whitelist': false,
+    'entity-broadcast-range-percentage': 100,
+    'force-gamemode': false,
+    'function-permission-level': 2,
+    'gamemode': 'survival',
+    'generate-structures': true,
+    'hardcore': false,
+    'hide-online-players': false,
+    'level-name': 'world',
+    'level-type': 'minecraft:normal',
+    'log-ips': true,
+    'max-chained-neighbor-updates': 1000000,
+    'max-players': 20,
+    'max-tick-time': 60000,
+    'max-world-size': 29999984,
+    'motd': 'A Minecraft Server',
+    'network-compression-threshold': 256,
+    'online-mode': true,
+    'op-permission-level': 4,
+    'pause-when-empty-seconds': 60,
+    'pvp': true,
+    'rate-limiting': 0,
+    'require-resource-pack': false,
+    'server-port': 25565,
     'simulation-distance': 10,
-    'allow-flight': 'false',
-    'pause-when-empty-seconds': '60',
+    'spawn-animals': true,
+    'spawn-monsters': true,
+    'spawn-npcs': true,
+    'spawn-protection': 16,
+    'sync-chunk-writes': true,
+    'use-native-transport': true,
+    'view-distance': 10,
+    'white-list': false,
   },
+
+  // ── bukkit.yml ─────────────────────────────────────────────────────
+  // Source: https://docs.papermc.io/paper/reference/bukkit-configuration/
   'bukkit.yml': {
-    // spawn-limits (paper docs: monsters=70,animals=10,water-animals=5,water-ambient=20,water-underground-creature=5,axolotls=5,ambient=15)
+    'settings.allow-end': true,
+    'settings.warn-on-overload': true,
+    'settings.query-plugins': true,
+    'settings.connection-throttle': 4000,
+    'settings.minimum-api': 'none',
+    'settings.use-map-color-cache': true,
+    // spawn-limits
     'spawn-limits.monsters': 70,
     'spawn-limits.animals': 10,
     'spawn-limits.water-animals': 5,
@@ -156,84 +203,279 @@ const defaultConfigs: ConfigMap = {
     'spawn-limits.water-underground-creature': 5,
     'spawn-limits.axolotls': 5,
     'spawn-limits.ambient': 15,
-    // ticks-per (paper docs: animal-spawns=400, monster-spawns=1, autosave=6000)
-    'ticks-per.monster-spawns': 1,
+    // ticks-per
     'ticks-per.animal-spawns': 400,
+    'ticks-per.monster-spawns': 1,
     'ticks-per.water-spawns': 1,
     'ticks-per.water-ambient-spawns': 1,
+    'ticks-per.water-underground-creature-spawns': 1,
+    'ticks-per.axolotl-spawns': 1,
     'ticks-per.ambient-spawns': 1,
     'ticks-per.autosave': 6000,
+    'chunk-gc.period-in-ticks': 600,
   },
+
+  // ── spigot.yml ─────────────────────────────────────────────────────
+  // Source: https://docs.papermc.io/paper/reference/spigot-configuration/
   'spigot.yml': {
-    'world-settings.default.simulation-distance': 10,
+    'settings.debug': false,
+    'settings.save-user-cache-on-stop-only': false,
+    'settings.sample-count': 12,
+    'settings.timeout-time': 60,
+    'settings.restart-on-crash': true,
+    'settings.log-villager-deaths': true,
+    'settings.log-named-deaths': true,
+    'settings.bungeecord': false,
+    'settings.netty-threads': 4,
+    'settings.player-shuffle': 0,
+    'settings.user-cache-size': 1000,
+    'settings.moved-too-quickly-multiplier': 10.0,
+    'settings.moved-wrongly-threshold': 0.0625,
+    // world-settings defaults
+    'world-settings.default.below-zero-generation-in-existing-chunks': true,
     'world-settings.default.mob-spawn-range': 8,
-    // paper docs: merge-radius.exp=-1, merge-radius.item=0.5
+    // merge-radius
     'world-settings.default.merge-radius.item': 0.5,
     'world-settings.default.merge-radius.exp': -1,
-    // paper docs: hopper-transfer=8, hopper-check=1, hopper-amount=1
-    'world-settings.default.ticks-per.hopper-transfer': 8,
+    // ticks-per
     'world-settings.default.ticks-per.hopper-check': 1,
+    'world-settings.default.ticks-per.hopper-transfer': 8,
     'world-settings.default.ticks-per.hopper-amount': 1,
-    // entity-tracking-range (spigot defaults)
+    'world-settings.default.ticks-per.hopper-can-load-chunks': false,
+    // hunger
+    'world-settings.default.hunger.combat-exhaustion': 0.1,
+    'world-settings.default.hunger.jump-sprint-exhaustion': 0.2,
+    'world-settings.default.hunger.jump-walk-exhaustion': 0.05,
+    'world-settings.default.hunger.other-multiplier': 0.0,
+    'world-settings.default.hunger.regen-exhaustion': 6.0,
+    'world-settings.default.hunger.sprint-multiplier': 0.1,
+    'world-settings.default.hunger.swim-multiplier': 0.01,
+    // entity-activation-range
+    'world-settings.default.entity-activation-range.animals': 32,
+    'world-settings.default.entity-activation-range.monsters': 32,
+    'world-settings.default.entity-activation-range.raiders': 48,
+    'world-settings.default.entity-activation-range.misc': 16,
+    'world-settings.default.entity-activation-range.water': 16,
+    'world-settings.default.entity-activation-range.villagers': 32,
+    'world-settings.default.entity-activation-range.flying-monsters': 32,
+    // entity-tracking-range
     'world-settings.default.entity-tracking-range.players': 128,
     'world-settings.default.entity-tracking-range.animals': 96,
     'world-settings.default.entity-tracking-range.monsters': 96,
     'world-settings.default.entity-tracking-range.misc': 96,
     'world-settings.default.entity-tracking-range.other': 64,
     'world-settings.default.entity-tracking-range.display': 128,
+    // misc world-settings
+    'world-settings.default.item-despawn-rate': 6000,
+    'world-settings.default.arrow-despawn-rate': 1200,
+    'world-settings.default.trident-despawn-rate': 1200,
+    'world-settings.default.zombie-aggressive-towards-villager': true,
+    'world-settings.default.nerf-spawner-mobs': false,
+    'world-settings.default.enable-zombie-pigmen-portal-spawns': true,
+    'world-settings.default.simulation-distance': 10,
+    'world-settings.default.max-tnt-per-tick': 100,
+    'world-settings.default.growth.cactus-modifier': 100,
+    'world-settings.default.growth.cane-modifier': 100,
+    'world-settings.default.growth.melon-modifier': 100,
+    'world-settings.default.growth.mushroom-modifier': 100,
+    'world-settings.default.growth.pumpkin-modifier': 100,
+    'world-settings.default.growth.sapling-modifier': 100,
+    'world-settings.default.growth.beetroot-modifier': 100,
+    'world-settings.default.growth.carrot-modifier': 100,
+    'world-settings.default.growth.potato-modifier': 100,
+    'world-settings.default.growth.wheat-modifier': 100,
+    'world-settings.default.growth.netherwart-modifier': 100,
+    'world-settings.default.growth.vine-modifier': 100,
+    'world-settings.default.growth.cocoa-modifier': 100,
+    'world-settings.default.growth.bamboo-modifier': 100,
+    'world-settings.default.growth.sweetberry-modifier': 100,
+    'world-settings.default.growth.kelp-modifier': 100,
+    'world-settings.default.growth.twistingvines-modifier': 100,
+    'world-settings.default.growth.weepingvines-modifier': 100,
+    'world-settings.default.growth.cavevines-modifier': 100,
+    'world-settings.default.growth.glowberry-modifier': 100,
+    'world-settings.default.growth.pitcherplant-modifier': 100,
+    'world-settings.default.growth.torchflower-modifier': 100,
   },
+
+  // ── config/paper-world-defaults.yml ────────────────────────────────
+  // Source: https://docs.papermc.io/paper/reference/world-configuration/
   'config/paper-world-defaults.yml': {
-    // paper docs: redstone-implementation default is VANILLA
-    'misc.redstone-implementation': 'VANILLA',
-    // paper docs: per-player-mob-spawns=true
-    'entities.spawning.per-player-mob-spawns': true,
-    // paper docs: prevent-moving-into-unloaded-chunks=false
-    'chunks.prevent-moving-into-unloaded-chunks': false,
-    // paper docs: max-entity-collisions=8
-    'collisions.max-entity-collisions': 8,
-    // paper docs: fix-climbing-bypassing-cramming-rule=false
-    'collisions.fix-climbing-bypassing-cramming-rule': false,
-    'environment.optimize-explosions': false,
-    'environment.treasure-maps.find-already-discovered.villager-trade': false,
-    'feature-seeds.generate-random-seeds-for-all': false,
-    // paper docs: delay-chunk-unloads-by=10s, max-auto-save-chunks-per-tick=24
+    // anticheat.anti-xray
+    'anticheat.anti-xray.enabled': false,
+    'anticheat.anti-xray.engine-mode': 1,
+    'anticheat.anti-xray.lava-obscures': false,
+    'anticheat.anti-xray.max-block-height': 64,
+    'anticheat.anti-xray.update-radius': 2,
+    'anticheat.anti-xray.use-permission': false,
+    // chunks
     'chunks.delay-chunk-unloads-by': '10s',
-    'chunks.max-auto-save-chunks-per-tick': 24,
-    'entities.spawning.alt-item-despawn-rate.enabled': false,
-    // paper docs: entity-per-chunk-save-limit defaults are all -1
     'chunks.entity-per-chunk-save-limit.arrow': -1,
     'chunks.entity-per-chunk-save-limit.ender_pearl': -1,
     'chunks.entity-per-chunk-save-limit.experience_orb': -1,
     'chunks.entity-per-chunk-save-limit.fireball': -1,
+    'chunks.entity-per-chunk-save-limit.small_fireball': -1,
     'chunks.entity-per-chunk-save-limit.snowball': -1,
-    // paper docs: armor-stands tick=true, do-collision-entity-lookups=true
-    'entities.armor-stands.tick': true,
+    'chunks.flush-regions-on-save': false,
+    'chunks.max-auto-save-chunks-per-tick': 24,
+    'chunks.prevent-moving-into-unloaded-chunks': false,
+    // collisions
+    'collisions.allow-player-cramming-damage': false,
+    'collisions.allow-vehicle-collisions': true,
+    'collisions.fix-climbing-bypassing-cramming-rule': false,
+    'collisions.max-entity-collisions': 8,
+    'collisions.only-players-collide': false,
+    // command-blocks
+    'command-blocks.force-follow-perm-level': true,
+    'command-blocks.permissions-level': 2,
+    // entities.armor-stands
     'entities.armor-stands.do-collision-entity-lookups': true,
-    'entities.tracking-range-y.enabled': false,
-    // paper docs: spawn-limits in paper-world-defaults are all -1 (inherits bukkit.yml)
-    'entities.spawning.spawn-limits.monster': -1,
-    'entities.spawning.spawn-limits.creature': -1,
+    'entities.armor-stands.tick': true,
+    // entities.behavior
+    'entities.behavior.allow-spider-world-border-climbing': true,
+    'entities.behavior.baby-zombie-movement-modifier': 0.5,
+    'entities.behavior.nerf-pigmen-from-nether-portals': false,
+    'entities.behavior.parrots-are-unaffected-by-player-movement': false,
+    'entities.behavior.phantoms-do-not-spawn-on-creative-players': true,
+    'entities.behavior.phantoms-only-attack-insomniacs': true,
+    'entities.behavior.piglins-guard-chests': true,
+    'entities.behavior.should-remove-dragon': false,
+    // entities.spawning
+    'entities.spawning.alt-item-despawn-rate.enabled': false,
+    'entities.spawning.despawn-ranges.ambient.hard': 128,
+    'entities.spawning.despawn-ranges.ambient.soft': 32,
+    'entities.spawning.despawn-ranges.axolotl.hard': 128,
+    'entities.spawning.despawn-ranges.axolotl.soft': 32,
+    'entities.spawning.despawn-ranges.creature.hard': 128,
+    'entities.spawning.despawn-ranges.creature.soft': 32,
+    'entities.spawning.despawn-ranges.misc.hard': 128,
+    'entities.spawning.despawn-ranges.misc.soft': 32,
+    'entities.spawning.despawn-ranges.monster.hard': 128,
+    'entities.spawning.despawn-ranges.monster.soft': 32,
+    'entities.spawning.despawn-ranges.underground_water_creature.hard': 128,
+    'entities.spawning.despawn-ranges.underground_water_creature.soft': 32,
+    'entities.spawning.despawn-ranges.water_ambient.hard': 128,
+    'entities.spawning.despawn-ranges.water_ambient.soft': 32,
+    'entities.spawning.despawn-ranges.water_creature.hard': 128,
+    'entities.spawning.despawn-ranges.water_creature.soft': 32,
+    'entities.spawning.ender-dragons-death-always-places-dragon-egg': false,
+    'entities.spawning.experience-merge-max-value': -1,
+    'entities.spawning.iron-golems-can-spawn-in-air': false,
+    'entities.spawning.monster-spawn-max-light-level': -1,
+    'entities.spawning.non-player-arrow-despawn-rate': -1,
+    'entities.spawning.per-player-mob-spawns': true,
+    'entities.spawning.scan-for-legacy-ender-dragon': true,
+    'entities.spawning.skeleton-horse-thunder-spawn-chance': -1,
+    // entities.spawning.spawn-limits (all -1 = inherit from bukkit.yml)
     'entities.spawning.spawn-limits.ambient': -1,
     'entities.spawning.spawn-limits.axolotls': -1,
-    'entities.spawning.spawn-limits.water_creature': -1,
-    'entities.spawning.spawn-limits.water_ambient': -1,
+    'entities.spawning.spawn-limits.creature': -1,
+    'entities.spawning.spawn-limits.monster': -1,
     'entities.spawning.spawn-limits.underground_water_creature': -1,
+    'entities.spawning.spawn-limits.water_ambient': -1,
+    'entities.spawning.spawn-limits.water_creature': -1,
+    // entities.spawning.ticks-per-spawn (all -1 = inherit from bukkit.yml)
+    'entities.spawning.ticks-per-spawn.ambient': -1,
+    'entities.spawning.ticks-per-spawn.axolotls': -1,
+    'entities.spawning.ticks-per-spawn.creature': -1,
+    'entities.spawning.ticks-per-spawn.monster': -1,
+    'entities.spawning.ticks-per-spawn.underground_water_creature': -1,
+    'entities.spawning.ticks-per-spawn.water_ambient': -1,
+    'entities.spawning.ticks-per-spawn.water_creature': -1,
+    // entities.tracking-range-y
+    'entities.tracking-range-y.enabled': false,
+    // environment
+    'environment.disable-explosion-knockback': false,
+    'environment.disable-ice-and-snow': false,
+    'environment.disable-thunder': false,
+    'environment.frosted-ice.delay.max': 40,
+    'environment.frosted-ice.delay.min': 20,
+    'environment.frosted-ice.enabled': true,
+    'environment.optimize-explosions': false,
+    'environment.treasure-maps.enabled': true,
+    'environment.treasure-maps.find-already-discovered.loot-tables': false,
+    'environment.treasure-maps.find-already-discovered.villager-trade': false,
+    // feature-seeds
+    'feature-seeds.generate-random-seeds-for-all': false,
+    // lootables
+    'lootables.auto-replenish': false,
+    'lootables.max-refills': -1,
+    'lootables.refresh-max': '2d',
+    'lootables.refresh-min': '12h',
+    'lootables.reset-seed-on-fill': true,
+    'lootables.restrict-player-reloot': true,
+    // misc
+    'misc.disable-end-credits': false,
+    'misc.light-queue-size': 20,
+    'misc.max-leash-distance': 10.0,
+    'misc.redstone-implementation': 'VANILLA',
+    'misc.shield-blocking-delay': 5,
+    'misc.show-sign-click-command-failure-msgs-to-player': false,
+    'misc.update-pathfinding-on-block-update': true,
+    // tick-rates
+    'tick-rates.behavior.villager.acquirepoi': -1,
+    'tick-rates.behavior.villager.validatenearbypoi': -1,
+    'tick-rates.sensor.villager.nearestbedsensor': -1,
+    'tick-rates.sensor.villager.nearestlivingentitysensor': -1,
+    'tick-rates.sensor.villager.playersensor': -1,
+    'tick-rates.sensor.villager.secondarypoisensor': -1,
+    'tick-rates.sensor.villager.villagerbabiessensor': -1,
   },
+
+  // ── config/paper-global.yml ────────────────────────────────────────
+  // Source: https://docs.papermc.io/paper/reference/global-configuration/
   'config/paper-global.yml': {
-    'chunk-system.worker-threads': -1,
-    'chunk-system.io-threads': -1,
-    // paper docs: chunk-loading-basic defaults
+    // chunk-loading
+    'chunk-loading-advanced.auto-config-send-distance': true,
+    'chunk-loading-advanced.player-max-concurrent-chunk-generates': 0,
+    'chunk-loading-advanced.player-max-concurrent-chunk-loads': 0,
+    'chunk-loading-basic.player-max-chunk-generate-rate': -1,
     'chunk-loading-basic.player-max-chunk-load-rate': 100,
     'chunk-loading-basic.player-max-chunk-send-rate': 75,
-    'chunk-loading-basic.player-max-chunk-generate-rate': -1,
-    'chunk-loading-advanced.player-max-concurrent-chunk-loads': 0,
-    'chunk-loading-advanced.player-max-concurrent-chunk-generates': 0,
-    // paper docs: spam-limiter defaults
-    'spam-limiter.incoming-packet-threshold': 300,
-    'spam-limiter.tab-spam-increment': 1,
-    'spam-limiter.tab-spam-limit': 500,
+    // chunk-system
+    'chunk-system.io-threads': -1,
+    'chunk-system.worker-threads': -1,
+    // collisions
+    'collisions.enable-player-collisions': true,
+    'collisions.send-full-pos-for-hard-colliding-entities': true,
+    // commands
+    'commands.suggest-player-names-when-null-tab-completions': true,
+    'commands.time-command-affects-all-worlds': false,
+    // item-validation
     'item-validation.book-size.page-max': 2560,
     'item-validation.resolve-selectors-in-books': false,
+    // misc
+    'misc.compression-level': -1,
+    'misc.enable-nether': true,
+    'misc.fix-far-end-terrain-generation': true,
+    'misc.load-permissions-yml-before-plugins': true,
+    'misc.max-joins-per-tick': 5,
+    'misc.region-file-cache-size': 256,
+    'misc.send-full-pos-for-item-entities': false,
+    // packet-limiter
+    'packet-limiter.all-packets.action': 'KICK',
+    'packet-limiter.all-packets.interval': 7.0,
+    'packet-limiter.all-packets.max-packet-rate': 500.0,
+    // player-auto-save
+    'player-auto-save.max-per-tick': -1,
+    'player-auto-save.rate': -1,
+    // proxies
+    'proxies.bungee-cord.online-mode': true,
+    'proxies.bungee-cord.proxy-protocol': false,
+    'proxies.velocity.enabled': false,
+    'proxies.velocity.online-mode': true,
+    // scoreboards
+    'scoreboards.save-empty-scoreboard-teams': true,
+    'scoreboards.track-plugin-scoreboards': false,
+    // spam-limiter
+    'spam-limiter.incoming-packet-threshold': 300,
+    'spam-limiter.recipe-spam-increment': 1,
+    'spam-limiter.recipe-spam-limit': 20,
+    'spam-limiter.tab-spam-increment': 1,
+    'spam-limiter.tab-spam-limit': 500,
+    // watchdog
+    'watchdog.early-warning-delay': 10000,
+    'watchdog.early-warning-every': 5000,
   },
 };
 
