@@ -521,10 +521,22 @@ public class LessLagApiClient {
     }
 
     static String detectFork() {
+        // Folia and Folia-based forks expose the threaded-regions class
+        if (classExists("io.papermc.paper.threadedregions.RegionizedServer")) {
+            // Luminol is a Folia fork — probe it first
+            if (classExists("io.github.luminolmc.luminol.LuminolMC")
+                    || classExists("io.github.luminolmc.luminol.Luminol")
+                    || new java.io.File("luminol.yml").exists()) {
+                return "luminol";
+            }
+            return "folia";
+        }
         try {
             Class.forName("io.papermc.paper.configuration.GlobalConfiguration");
             if (classExists("org.purpurmc.purpur.PurpurConfig")) return "purpur";
             if (classExists("gg.pufferfish.pufferfish.PufferfishConfig")) return "pufferfish";
+            // Leaf and Pufferfish may shadow Paper detection — cross-check config file
+            if (new java.io.File("leaves.yml").exists()) return "leaf";
             return "paper";
         } catch (ClassNotFoundException e) {
             try {

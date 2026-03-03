@@ -32,6 +32,9 @@ public class ForkSpecificRules implements Rule {
         if (platform.isLeaf()) {
             evaluateLeaf(configs, tier, level, results, proposals);
         }
+        if (platform.isLuminol()) {
+            evaluateLuminol(results);
+        }
 
         // Paper-specific (applies to all Paper-based forks)
         if (platform.isPaper()) {
@@ -668,6 +671,17 @@ public class ForkSpecificRules implements Rule {
             .tradeoff("Some Leaf optimizations may change vanilla behavior")
             .recommendation("Review Leaf-specific settings in leaves.yml for your use case")
             .manualSteps("Check leaves.yml for performance settings like async pathfinding and entity optimizations")
+            .build());
+    }
+
+    private void evaluateLuminol(List<RuleResult> results) {
+        results.add(RuleResult.builder("luminol-detected")
+            .group("fork-specific").severity(Severity.INFO).confidence(0.9)
+            .why("Luminol server detected — this is a Folia-based fork with additional Paper features")
+            .impact("Luminol inherits Folia's threaded region scheduler; plugins must be Folia-compatible")
+            .tradeoff("Not all Paper plugins are compatible with Folia's regionized threading model")
+            .recommendation("Verify all plugins are Folia-compatible. Luminol also supports extra features — check its documentation")
+            .manualSteps("See https://github.com/LuminolMC/Luminol for Luminol-specific configuration options")
             .build());
     }
 }

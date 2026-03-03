@@ -5,11 +5,11 @@
 
  RUN  v3.2.4 /home/alexisbinh/dev/lesslag/lesslag-web/apps/api
 
- ✓ tests/rate-limiter.test.ts (3 tests) 29ms
- ✓ tests/api.test.ts (19 tests) 67ms
+ ✓ tests/rate-limiter.test.ts (3 tests) 30ms
+ ✓ tests/api.test.ts (19 tests) 82ms
 
  Test Files  2 passed (2)
       Tests  22 passed (22)
-   Start at  21:16:03
-   Duration  933ms (transform 294ms, setup 0ms, collect 645ms, tests 96ms, environment 0ms, prepare 327ms)
+   Start at  21:24:26
+   Duration  1.02s (transform 291ms, setup 0ms, collect 644ms, tests 113ms, environment 1ms, prepare 336ms)
 

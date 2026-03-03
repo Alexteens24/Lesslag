@@ -487,6 +487,7 @@ function evaluateForkSpecificRules(
   if (platform.isPurpur) evaluatePurpur(configs, tier, level, results, proposals);
   if (platform.isPufferfish) evaluatePufferfish(configs, tier, results, proposals);
   if (platform.isLeaf) evaluateLeaf(results);
+  if (platform.isLuminol) evaluateLuminol(results);
   if (platform.isPaper) {
     evaluatePaperWorldDefaults(configs, tier, level, profile, results, proposals);
     evaluatePaperGlobal(configs, results, proposals);
@@ -847,6 +848,16 @@ function evaluateLeaf(results: RuleResult[]): void {
     impact: 'Leaf includes extra performance patches beyond Paper/Purpur',
     tradeoff: 'Some Leaf optimizations may change vanilla behavior',
     recommendation: 'Review Leaf-specific settings in leaves.yml for your use case',
+  }));
+}
+
+function evaluateLuminol(results: RuleResult[]): void {
+  results.push(buildRuleResult('luminol-detected', {
+    group: 'fork-specific', severity: 'INFO', confidence: 0.9,
+    why: 'Luminol server detected — Folia-based fork with additional Paper features',
+    impact: 'Luminol inherits Folia\'s threaded region scheduler; plugins must be Folia-compatible',
+    tradeoff: 'Not all Paper plugins are compatible with Folia\'s regionized threading model',
+    recommendation: 'Verify all plugins are Folia-compatible. See https://github.com/LuminolMC/Luminol for Luminol-specific options',
   }));
 }
 

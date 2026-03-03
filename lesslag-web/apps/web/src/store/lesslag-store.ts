@@ -159,6 +159,7 @@ const defaultPlatform: PlatformInfo = {
   isPufferfish: false,
   isLeaf: false,
   hasFolia: false,
+  isLuminol: false,
 };
 
 // Full default values sourced from Paper docs: https://docs.papermc.io/paper/reference/configuration/
@@ -739,10 +740,12 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
         ...s.platform,
         fork,
         version: payload.mcVersion,
-        isPaper: ['paper', 'purpur', 'pufferfish', 'leaf'].includes(fork),
+        isPaper: ['paper', 'purpur', 'pufferfish', 'leaf', 'folia', 'luminol'].includes(fork),
         isPurpur: fork === 'purpur',
         isPufferfish: fork === 'pufferfish',
         isLeaf: fork === 'leaf',
+        hasFolia: fork === 'folia' || fork === 'luminol',
+        isLuminol: fork === 'luminol',
       },
     }));
   },

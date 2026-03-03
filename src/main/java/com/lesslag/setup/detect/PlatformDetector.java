@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.logging.Logger;
 
 /**
- * Detects which server fork is running (Paper, Purpur, Pufferfish, Leaf)
+ * Detects which server fork is running (Paper, Purpur, Pufferfish, Leaf, Folia, Luminol)
  * using runtime class probing and config-file signatures.
  */
 public class PlatformDetector {
@@ -26,7 +26,14 @@ public class PlatformDetector {
 
         // Probe in specificity order (most specific fork first)
         if (folia) {
-            detectedPlatform = "Folia";
+            // Luminol is a Folia fork — probe it before falling back to generic "Folia"
+            if (hasClass("io.github.luminolmc.luminol.LuminolMC")
+                    || hasClass("io.github.luminolmc.luminol.Luminol")
+                    || new File("luminol.yml").exists()) {
+                detectedPlatform = "Luminol";
+            } else {
+                detectedPlatform = "Folia";
+            }
         } else if (hasClass("org.leavesmc.leaves.LeavesConfig")
                 || hasClass("top.leavesmc.leaves.LeavesConfig")) {
             detectedPlatform = "Leaf";
@@ -56,6 +63,10 @@ public class PlatformDetector {
                 detectedPlatform = "Leaf";
             }
         }
+        // Catch Luminol identified via Folia runtime but its class wasn't loaded yet
+        if (detectedPlatform.equals("Folia") && new File(serverRoot, "luminol.yml").exists()) {
+            detectedPlatform = "Luminol";
+        }
 
         LOG.info("Detected platform: " + detectedPlatform + " (" + platformVersion + ")");
     }
@@ -72,6 +83,7 @@ public class PlatformDetector {
     public boolean isPurpur() { return detectedPlatform.equals("Purpur"); }
     public boolean isPufferfish() { return detectedPlatform.equals("Pufferfish"); }
     public boolean isLeaf() { return detectedPlatform.equals("Leaf"); }
+    public boolean isLuminol() { return detectedPlatform.equals("Luminol"); }
 
     private static boolean hasClass(String className) {
         try {

@@ -15,7 +15,7 @@ export const MAX_CONFIG_KEYS = 10_000;
 /** Max depth of nested config objects. */
 export const MAX_CONFIG_DEPTH = 20;
 
-const ServerFork = z.enum(['vanilla', 'spigot', 'paper', 'purpur', 'pufferfish', 'leaf']);
+const ServerFork = z.enum(['vanilla', 'spigot', 'paper', 'purpur', 'pufferfish', 'leaf', 'folia', 'luminol']);
 const GameProfile = z.enum(['SMP', 'SKYBLOCK', 'MINIGAME', 'CREATIVE']);
 const HardwareTier = z.enum(['LOW', 'MID', 'HIGH']);
 const Aggressiveness = z.enum(['SAFE', 'BALANCED', 'AGGRESSIVE']);
@@ -53,6 +53,7 @@ export const EvaluateRequest = z.object({
     isPufferfish: z.boolean().default(false),
     isLeaf: z.boolean().default(false),
     hasFolia: z.boolean().default(false),
+    isLuminol: z.boolean().default(false),
   }),
 
   profile: GameProfile,

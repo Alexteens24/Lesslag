@@ -97,6 +97,8 @@ const FORK_OPTIONS = [
   { id: 'purpur' as const, label: 'Purpur', description: 'Paper fork with extra features' },
   { id: 'pufferfish' as const, label: 'Pufferfish', description: 'Performance-focused Paper fork' },
   { id: 'leaf' as const, label: 'Leaf', description: 'Experimental high-performance fork' },
+  { id: 'folia' as const, label: 'Folia', description: 'Multi-threaded region-based fork' },
+  { id: 'luminol' as const, label: 'Luminol', description: 'Folia fork with extra Paper features' },
   { id: 'spigot' as const, label: 'Spigot', description: 'Classic server software' },
   { id: 'vanilla' as const, label: 'Vanilla', description: 'Unmodified Minecraft server' },
 ] as const;
@@ -270,10 +272,12 @@ export function HardwareWizard({ onCompleteHardwareBaseline }: HardwareWizardPro
                     onClick={() =>
                       setPlatform({
                         fork: f.id,
-                        isPaper: ['paper', 'purpur', 'pufferfish', 'leaf'].includes(f.id),
+                        isPaper: ['paper', 'purpur', 'pufferfish', 'leaf', 'folia', 'luminol'].includes(f.id),
                         isPurpur: f.id === 'purpur',
                         isPufferfish: f.id === 'pufferfish',
                         isLeaf: f.id === 'leaf',
+                        hasFolia: f.id === 'folia' || f.id === 'luminol',
+                        isLuminol: f.id === 'luminol',
                       })
                     }
                     className={`rounded-lg border p-3 text-left transition-all ${

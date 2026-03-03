@@ -66,7 +66,7 @@ export const SessionStatusMeta: Record<SessionStatus, { description: string }> =
 };
 
 // ─── Server Fork ────────────────────────────────────────────
-export const ServerForks = ['vanilla', 'spigot', 'paper', 'purpur', 'pufferfish', 'leaf'] as const;
+export const ServerForks = ['vanilla', 'spigot', 'paper', 'purpur', 'pufferfish', 'leaf', 'folia', 'luminol'] as const;
 export type ServerFork = (typeof ServerForks)[number];
 
 // ─── Target Files ───────────────────────────────────────────

@@ -28,6 +28,7 @@ export interface PlatformInfo {
   isPufferfish: boolean;
   isLeaf: boolean;
   hasFolia: boolean;
+  isLuminol: boolean;
 }
 
 /** Config map: file -> flat key-value map. */

@@ -23,6 +23,7 @@ function makeInput(overrides: Partial<EvaluationInput> = {}): EvaluationInput {
       isPufferfish: false,
       isLeaf: false,
       hasFolia: false,
+      isLuminol: false,
     },
     configs: {
       'server.properties': {
