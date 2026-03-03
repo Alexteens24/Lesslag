@@ -1,0 +1,61 @@
+name: Refresh Geekbench Benchmark Data
+
+on:
+  # Run every Monday at 03:00 UTC
+  schedule:
+    - cron: '0 3 * * 1'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    name: Scrape & commit geekbench-sc.json
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: lesslag-web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: lesslag-web
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Geekbench scraper
+        working-directory: lesslag-web
+        run: pnpm tsx scripts/scrape-geekbench.ts
+
+      - name: Validate minimum entries (500)
+        working-directory: lesslag-web
+        run: |
+          count=$(node -e "const d=require('./packages/shared-rules/src/data/geekbench-sc.json'); console.log(d.length);")
+          echo "Entry count: $count"
+          if [ "$count" -lt 500 ]; then
+            echo "ERROR: geekbench-sc.json has only $count entries (minimum 500 required)"
+            exit 1
+          fi
+
+      - name: Commit updated benchmark data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add lesslag-web/packages/shared-rules/src/data/geekbench-sc.json
+          if git diff --cached --quiet; then
+            echo "No changes to geekbench-sc.json — skipping commit."
+          else
+            git commit -m "chore(data): refresh geekbench-sc.json [skip ci]"
+            git push
+          fi

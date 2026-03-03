@@ -983,10 +983,20 @@ export function evaluate(input: EvaluationInput): EvaluationOutput {
 
   const dedupedProposals = Array.from(deduped.values());
 
+  // Show pre-generate reminder when view/sim distance or chunk settings are changed
+  const pregenerateReminder = dedupedProposals.some(
+    (p) =>
+      (p.targetFile === 'server.properties' &&
+        (p.configKey === 'view-distance' || p.configKey === 'simulation-distance')) ||
+      (typeof p.targetFile === 'string' && p.targetFile.includes('paper-world')) &&
+        p.configKey.includes('chunk'),
+  );
+
   return {
     results,
     proposals: dedupedProposals,
     summary: computeSummary(results, dedupedProposals),
+    pregenerateReminder,
   };
 }
 

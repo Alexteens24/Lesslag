@@ -77,8 +77,10 @@ describe('POST /api/evaluate', () => {
     });
     expect(res.status).toBe(422);
     const body = await res.json();
-    expect(body.messages).toBeInstanceOf(Array);
-    expect(body.messages.length).toBeGreaterThan(0);
+    // Zod validation returns { error, message, issues[] }
+    expect(body.error).toBe('Validation Error');
+    expect(body.issues).toBeInstanceOf(Array);
+    expect(body.issues.length).toBeGreaterThan(0);
   });
 
   it('rejects invalid profile value', async () => {
@@ -88,6 +90,35 @@ describe('POST /api/evaluate', () => {
       body: JSON.stringify({ ...VALID_EVAL_INPUT, profile: 'NOPE' }),
     });
     expect(res.status).toBe(422);
+  });
+
+  it('rejects oversized payload (> 200 KB)', async () => {
+    const bigConfigs: Record<string, Record<string, string>> = {};
+    for (let i = 0; i < 500; i++) {
+      bigConfigs[`file-${i}.yml`] = Object.fromEntries(
+        Array.from({ length: 50 }, (_, j) => [`key-${j}`, 'x'.repeat(20)]),
+      );
+    }
+    const res = await app.request('/api/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...VALID_EVAL_INPUT, configs: bigConfigs }),
+    });
+    expect(res.status).toBe(413);
+  });
+
+  it('issues array contains path and message fields', async () => {
+    const res = await app.request('/api/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: 'SMP' }), // missing required fields
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(Array.isArray(body.issues)).toBe(true);
+    for (const issue of body.issues) {
+      expect(typeof issue.message).toBe('string');
+    }
   });
 });
 

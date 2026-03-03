@@ -76,6 +76,7 @@ export const TargetFiles = [
   'spigot.yml',
   'config/paper-global.yml',
   'config/paper-world-defaults.yml',
+  'paper-world.yml',
   'purpur.yml',
   'pufferfish.yml',
   'leaves.yml',

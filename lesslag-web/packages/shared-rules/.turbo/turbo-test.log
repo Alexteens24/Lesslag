@@ -1,0 +1,17 @@
+
+> @lesslag/shared-rules@0.1.0 test /home/alexisbinh/dev/lesslag/lesslag-web/packages/shared-rules
+> vitest run
+
+
+ RUN  v3.2.4 /home/alexisbinh/dev/lesslag/lesslag-web/packages/shared-rules
+
+ ✓ tests/yaml-parser.test.ts (13 tests) 11ms
+ ✓ tests/diff-generator.test.ts (7 tests) 15ms
+ ✓ tests/evaluator.test.ts (27 tests) 42ms
+ ✓ tests/preset-generator.test.ts (66 tests) 79ms
+
+ Test Files  4 passed (4)
+      Tests  113 passed (113)
+   Start at  19:54:53
+   Duration  728ms (transform 476ms, setup 0ms, collect 751ms, tests 147ms, environment 1ms, prepare 576ms)
+

@@ -12,7 +12,7 @@ libraries:
 commands:
   lg:
     description: LessLag admin commands
-    usage: /lg <status|health|tps|gc|gcinfo|tickmonitor|entities|thresholds|sources|trace|chunks|redstone|predictive|frustum|density|breeding|worldguard|memory|villager|clear|ai|restore|setup|web|reload>
+    usage: /lg <status|health|tps|gc|gcinfo|tickmonitor|entities|thresholds|sources|trace|chunks|redstone|predictive|frustum|density|breeding|worldguard|memory|villager|clear|ai|restore|setup|web|apply|verify|drift|reload>
     permission: lesslag.admin
     aliases: [lesslag, lesslagadmin]
 

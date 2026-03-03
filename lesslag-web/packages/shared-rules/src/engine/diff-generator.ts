@@ -1,4 +1,5 @@
 import type { PatchProposal } from '../types/rule-result';
+import type { LessLagConfigJson } from '../types/config';
 
 /**
  * A single config change represented as a unified-diff-like entry.
@@ -106,4 +107,30 @@ function parseValue(val: string): string | number | boolean {
   const n = Number(val);
   if (!isNaN(n) && val.trim() !== '') return n;
   return val;
+}
+
+/**
+ * Generate the `lesslag-config.json` export from selected proposals.
+ *
+ * - Proposals with `applyScope === 'LESSLAG_APPLY'` go into `lesslag` (flat key→value).
+ * - Proposals with `applyScope === 'RECOMMEND'` go into `server_config_expectations`
+ *   (nested by file → key→value).
+ */
+export function generateLessLagConfigJson(proposals: PatchProposal[]): LessLagConfigJson {
+  const lesslag: Record<string, unknown> = {};
+  const expectations: Record<string, Record<string, unknown>> = {};
+
+  for (const p of proposals) {
+    if (p.beforeValue === p.afterValue) continue;
+
+    if (p.applyScope === 'LESSLAG_APPLY') {
+      lesslag[p.configKey] = parseValue(p.afterValue);
+    } else {
+      // RECOMMEND → server_config_expectations grouped by file
+      if (!expectations[p.targetFile]) expectations[p.targetFile] = {};
+      expectations[p.targetFile][p.configKey] = parseValue(p.afterValue);
+    }
+  }
+
+  return { lesslag, server_config_expectations: expectations };
 }

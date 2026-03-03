@@ -22,7 +22,6 @@ lesslag-web/packages/shared-rules/dist/
 lesslag-web/apps/web/node_modules/
 
 # API source (private - deployed separately on Cloudflare Workers)
-lesslag-web/apps/api/src/
 
 MODRINTH_DESCRIPTION.md
 SPIGOTMC_DESCRIPTION.md

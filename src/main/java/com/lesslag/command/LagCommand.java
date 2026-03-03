@@ -4,7 +4,10 @@ import com.lesslag.LessLag;
 import com.lesslag.action.ActionExecutor;
 import com.lesslag.action.ThresholdConfig;
 import com.lesslag.setup.SetupCommandHandler;
+import com.lesslag.web.ApplyConfigCommand;
 import com.lesslag.web.LessLagApiClient;
+import com.lesslag.web.VerifyConfigCommand;
+import com.lesslag.web.WebLinkCommand;
 import com.lesslag.monitor.BottleneckAnalyzer;
 import com.lesslag.monitor.BreedingLimiter;
 import com.lesslag.monitor.ChunkLimiter;
@@ -26,14 +29,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -160,6 +157,15 @@ public class LagCommand implements CommandExecutor {
             case "web":
                 handleWeb(sender, args);
                 break;
+            case "apply":
+                new ApplyConfigCommand(plugin).execute(sender);
+                break;
+            case "verify":
+                new VerifyConfigCommand(plugin).execute(sender);
+                break;
+            case "drift":
+                plugin.performDriftCheck(sender);
+                break;
             case "confirm":
                 plugin.confirmPendingPatch(args.length > 1 ? args[1] : "", sender);
                 break;
@@ -206,7 +212,10 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg ai          &8- &7AI control &8[disable|restore|status]");
         send(sender, "  &e/lg restore     &8- &7Restore all defaults");
         send(sender, "  &e/lg setup       &8- &7Setup Advisor wizard");
-        send(sender, "  &e/lg web         &8- &7Web optimizer & remote analysis");
+        send(sender, "  &e/lg web link    &8- &7Generate pre-filled web configurator link");
+        send(sender, "  &e/lg apply       &8- &7Apply lesslag-config.json from web");
+        send(sender, "  &e/lg verify      &8- &7Verify server config expectations");
+        send(sender, "  &e/lg drift       &8- &7Check for config drift from web snapshot");
         send(sender, "  &e/lg confirm      &8- &7Confirm pending web config patches");
         send(sender, "  &e/lg reload      &8- &7Reload configuration");
         send(sender, "");
@@ -1266,63 +1275,8 @@ public class LagCommand implements CommandExecutor {
         }
 
         if (args.length >= 2 && args[1].equalsIgnoreCase("link")) {
-            // Generate a session link for the web configurator
-            send(sender, plugin.getPrefix() + "&7Capturing server config and generating link...");
-
-            LessLagApiClient client = new LessLagApiClient(apiUrl);
-            var payload = LessLagApiClient.buildSessionPayload(plugin);
-            client.createSession(payload).thenAccept(response -> {
-                SchedulerAdapter.runGlobal(plugin, () -> {
-                    String url = LessLagApiClient.extractSessionUrl(response);
-                    if (url == null || url.isBlank()) {
-                        String token = LessLagApiClient.extractSessionToken(response);
-                        if (token != null && !token.isBlank()) {
-                            url = webUrl + "/session/" + token;
-                        }
-                    }
-
-                    if (url == null) {
-                        send(sender, plugin.getPrefix() + "&cFailed to create session. API did not return a link.");
-                        return;
-                    }
-
-                    send(sender, "");
-                    send(sender, "&a&l  ✓ Session created!");
-                    send(sender, "");
-
-                    if (sender instanceof Player player) {
-                        // Send clickable link using Adventure API
-                        Component clickable = Component.text("  ▸ ")
-                                .color(NamedTextColor.GRAY)
-                                .append(
-                                        Component.text("Click here to open the Web Configurator")
-                                                .color(NamedTextColor.AQUA)
-                                                .decorate(TextDecoration.UNDERLINED)
-                                                .clickEvent(ClickEvent.openUrl(url))
-                                                .hoverEvent(HoverEvent.showText(
-                                                        Component.text("Open: " + url)
-                                                                .color(NamedTextColor.YELLOW)))
-                                );
-                        player.sendMessage(clickable);
-                    } else {
-                        send(sender, "  &bURL: &f" + url);
-                    }
-
-                    send(sender, "");
-                    send(sender, "  &7Your server config has been uploaded.");
-                    send(sender, "  &7The link expires in &f7 days&7.");
-                    send(sender, "");
-                });
-            }).exceptionally(ex -> {
-                SchedulerAdapter.runGlobal(plugin, () -> {
-                    String msg = ex.getMessage();
-                    if (msg == null || msg.isBlank()) {
-                        msg = ex.toString();
-                    }
-                    send(sender, plugin.getPrefix() + "&cFailed to generate link: &f" + msg);
-                });
-                return null;
-            });
+            // Delegate to WebLinkCommand — encodes hardware payload in URL, no API call needed
+            new WebLinkCommand(plugin).execute(sender);
             return;
         }
 

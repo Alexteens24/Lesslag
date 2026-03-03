@@ -12,6 +12,10 @@ export type {
   EvaluationInput,
   EvaluationOutput,
   EvaluationSummary,
+  ServerPayload,
+  LessLagConfigJson,
+  StartupCommandResult,
+  ServerConfigChecklist,
 } from './types/config';
 
 // Enums & constants
@@ -54,6 +58,7 @@ export {
   renderFileDiff,
   renderFullDiff,
   applyDiffsToConfig,
+  generateLessLagConfigJson,
 } from './engine/diff-generator';
 export type { ConfigDiff } from './engine/diff-generator';
 

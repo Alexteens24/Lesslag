@@ -10,8 +10,13 @@ import type {
   HardwareProfile,
   PlatformInfo,
   PatchProposal,
+  ServerPayload,
+  LessLagConfigJson,
+  StartupCommandResult,
+  ServerConfigChecklist,
 } from '@lesslag/shared-rules';
-import { evaluate, generatePreset, generateDiffs, parseConfig, type ConfigDiff } from '@lesslag/shared-rules';
+import { evaluate, generatePreset, generateDiffs, generateLessLagConfigJson, parseConfig, type ConfigDiff } from '@lesslag/shared-rules';
+import { buildStartupCommand } from '@/lib/startup-command';
 
 interface Snapshot {
   id: string;
@@ -91,6 +96,14 @@ interface LessLagState {
   connectedServerName: string | null;
   setConnectedServer: (id: string | null, name: string | null) => void;
 
+  // ─── Server payload (from /lg web URL token) ───
+  serverPayload: ServerPayload | null;
+  benchmarkScore: number | null;
+  benchmarkTier: HardwareTier | null;
+  startupCommand: StartupCommandResult | null;
+  serverConfigChecklist: ServerConfigChecklist | null;
+  lesslagConfigJson: LessLagConfigJson | null;
+
   // ─── Actions ───
   setProfile: (p: GameProfile) => void;
   setTier: (t: HardwareTier) => void;
@@ -123,6 +136,11 @@ interface LessLagState {
 
   importConfigs: (files: Record<string, string>) => void;
   exportConfigs: () => Record<string, string>;
+
+  // ─── Payload actions ───
+  setServerPayload: (payload: ServerPayload) => void;
+  setBenchmarkResult: (score: number, tier: HardwareTier) => void;
+  buildExportArtifacts: () => void;
 }
 
 const defaultHardware: HardwareProfile = {
@@ -508,6 +526,14 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
   connectedServerName: null,
   setConnectedServer: (id, name) => set({ connectedServerId: id, connectedServerName: name }),
 
+  // ─── Payload defaults ───
+  serverPayload: null,
+  benchmarkScore: null,
+  benchmarkTier: null,
+  startupCommand: null,
+  serverConfigChecklist: null,
+  lesslagConfigJson: null,
+
   // ─── Setters ───
   setProfile: (p) => set({ profile: p }),
   setTier: (t) => set({ tier: t }),
@@ -690,6 +716,77 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
         .join('\n');
     }
     return result;
+  },
+
+  // ─── Payload actions ───
+  setServerPayload: (payload) => {
+    const forkMap: Record<string, PlatformInfo['fork']> = {
+      paper: 'paper', purpur: 'purpur', pufferfish: 'pufferfish',
+      leaf: 'leaf', spigot: 'spigot', vanilla: 'vanilla',
+    };
+    const fork = forkMap[payload.fork.toLowerCase()] ?? 'paper';
+    set((s) => ({
+      serverPayload: payload,
+      plugins: payload.pluginNames,
+      hardware: {
+        ...s.hardware,
+        cpuModel: payload.cpuModel,
+        availableProcessors: payload.cores,
+        maxHeapMB: payload.maxHeapMb,
+        averageMspt: payload.mspt,
+      },
+      platform: {
+        ...s.platform,
+        fork,
+        version: payload.mcVersion,
+        isPaper: ['paper', 'purpur', 'pufferfish', 'leaf'].includes(fork),
+        isPurpur: fork === 'purpur',
+        isPufferfish: fork === 'pufferfish',
+        isLeaf: fork === 'leaf',
+      },
+    }));
+  },
+
+  setBenchmarkResult: (score, tier) =>
+    set({ benchmarkScore: score, benchmarkTier: tier, tier }),
+
+  buildExportArtifacts: () => {
+    const s = get();
+    if (!s.evaluation) return;
+
+    // Filter to only selected proposals
+    const selectedDiffs = s.diffs.filter((d) => s.selectedProposals.has(`${d.file}:${d.key}`));
+    const selectedProposals = s.evaluation.proposals.filter((p) =>
+      s.selectedProposals.has(`${p.targetFile}:${p.configKey}`),
+    );
+
+    // Build lesslag-config.json
+    const lesslagConfigJson = generateLessLagConfigJson(selectedProposals);
+
+    // Build server config checklist from RECOMMEND proposals
+    const checklist: ServerConfigChecklist = {};
+    for (const d of selectedDiffs) {
+      if (d.scope !== 'RECOMMEND') continue;
+      if (!checklist[d.file]) checklist[d.file] = [];
+      checklist[d.file].push({
+        key: d.key,
+        currentValue: d.before,
+        expectedValue: d.after,
+        rationale: d.rationale,
+      });
+    }
+
+    // Build startup command
+    const jv = s.serverPayload?.javaVersion ?? 17;
+    const heap = s.serverPayload?.maxHeapMb ?? s.hardware.maxHeapMB;
+    const bench = s.benchmarkScore ?? 0;
+    const startupCmd = buildStartupCommand(jv, heap, bench);
+
+    set({
+      lesslagConfigJson,
+      serverConfigChecklist: Object.keys(checklist).length > 0 ? checklist : null,
+      startupCommand: startupCmd,
+    });
   },
 }));
 

@@ -186,6 +186,9 @@ public class LessLag extends JavaPlugin implements Listener {
 
         // Initialize web integration (server registration, heartbeat, apply-queue)
         initWebIntegration();
+
+        // Schedule startup drift check (runs 5 s after enable to avoid startup noise)
+        SchedulerAdapter.runGlobalDelayed(this, this::runDriftCheckOnStartup, 100L);
     }
 
     private void initializeMonitors() {
@@ -315,6 +318,79 @@ public class LessLag extends JavaPlugin implements Listener {
     }
 
     // ── Web Integration ────────────────────────────────────────────────────
+
+    /**
+     * Called on startup (delayed 5 s) to silently check if the current config.yml
+     * has drifted from the last applied {@code lesslag-config.json}.
+     * Logs a warning to console; does not spam ops.
+     */
+    private void runDriftCheckOnStartup() {
+        SchedulerAdapter.runAsync(this, () -> {
+            List<String> drifted = detectConfigDrift();
+            if (!drifted.isEmpty()) {
+                getLogger().warning("[LessLag] Config drift detected — " + drifted.size()
+                    + " key(s) differ from lesslag-config.json: " + String.join(", ", drifted));
+                getLogger().warning("[LessLag] Run '/lg verify' to view details or '/lg apply' to re-apply.");
+            }
+        });
+    }
+
+    /**
+     * Run a drift check and send a formatted report to {@code sender}.
+     * Called by {@code /lg drift}.
+     *
+     * @param sender the command sender (may be console or a player)
+     */
+    public void performDriftCheck(CommandSender sender) {
+        sendMessage(sender, getPrefix() + "&7Checking for config drift...");
+        SchedulerAdapter.runAsync(this, () -> {
+            List<String> drifted = detectConfigDrift();
+            SchedulerAdapter.runGlobal(this, () -> {
+                if (drifted.isEmpty()) {
+                    sendMessage(sender, getPrefix() + "&aNo drift detected. Config matches lesslag-config.json.");
+                } else {
+                    sendMessage(sender, "");
+                    sendMessage(sender, "&e&l  ⚠ Config drift detected! (" + drifted.size() + " key(s))");
+                    for (String key : drifted) {
+                        sendMessage(sender, "    &c✗ &7" + key);
+                    }
+                    sendMessage(sender, "");
+                    sendMessage(sender, "  &7Run &b/lg apply&7 to re-apply lesslag-config.json.");
+                    sendMessage(sender, "");
+                }
+            });
+        });
+    }
+
+    /**
+     * Compare {@code plugins/LessLag/lesslag-config.json}'s {@code lesslag} block
+     * against the live config.yml. Returns a list of keys that differ.
+     */
+    private List<String> detectConfigDrift() {
+        java.io.File configJson = new java.io.File(getDataFolder(), "lesslag-config.json");
+        if (!configJson.exists()) return java.util.Collections.emptyList();
+
+        List<String> drifted = new java.util.ArrayList<>();
+        try (java.io.FileReader reader = new java.io.FileReader(configJson)) {
+            com.google.gson.JsonObject root = new com.google.gson.Gson()
+                    .fromJson(reader, com.google.gson.JsonObject.class);
+            if (!root.has("lesslag") || !root.get("lesslag").isJsonObject()) return drifted;
+
+            com.google.gson.JsonObject lesslagBlock = root.getAsJsonObject("lesslag");
+            for (java.util.Map.Entry<String, com.google.gson.JsonElement> entry
+                    : lesslagBlock.entrySet()) {
+                String key = entry.getKey();
+                String expected = entry.getValue().getAsString();
+                Object actual = getConfig().get(key);
+                if (actual == null || !actual.toString().equals(expected)) {
+                    drifted.add(key);
+                }
+            }
+        } catch (Exception e) {
+            getLogger().warning("[LessLag] Drift check failed: " + e.getMessage());
+        }
+        return drifted;
+    }
 
     /**
      * Initialize web integration: build the API client, register the server if

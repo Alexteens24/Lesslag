@@ -9,11 +9,13 @@ import { DiffViewer } from '@/components/DiffViewer';
 import { RationalePanel } from '@/components/RationalePanel';
 import { ImportExportModal } from '@/components/ImportExportModal';
 import { HardwareWizard } from '@/components/HardwareWizard';
+import { DetectedHardwareCard } from '@/components/DetectedHardwareCard';
 import { PluginConflictDetector } from '@/components/PluginConflictDetector';
 import { SnapshotManager } from '@/components/SnapshotManager';
 import { Sidebar } from '@/components/Sidebar';
 import { ToastStack } from '@/components/ui/Toast';
 import { useShareableState, generateShareUrl } from '@/hooks/useShareableState';
+import { decodeServerPayload } from '@/lib/decode-payload';
 
 const SETUP_STEPS = [
   {
@@ -89,8 +91,57 @@ export default function HomePage() {
 
   const [isCreatingCloudLink, setIsCreatingCloudLink] = useState(false);
   const [lastCloudSessionUrl, setLastCloudSessionUrl] = useState<string | null>(null);
+  const [showManualHardware, setShowManualHardware] = useState(false);
+
+  const serverPayload = useLessLagStore((s) => s.serverPayload);
+  const setServerPayload = useLessLagStore((s) => s.setServerPayload);
+  const setBenchmarkResult = useLessLagStore((s) => s.setBenchmarkResult);
+  const buildExportArtifacts = useLessLagStore((s) => s.buildExportArtifacts);
 
   useShareableState();
+
+  // ── URL payload hydration ────────────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('s');
+    if (!token) return;
+
+    (async () => {
+      const payload = await decodeServerPayload(token);
+      if (!payload) {
+        addToast('Failed to decode server payload from URL.', 'error');
+        return;
+      }
+      setServerPayload(payload);
+      completeSetupStep('hardware');
+      setSetupStepReady('preset');
+      addToast('Server hardware detected from link — step 1 auto-completed.', 'success');
+
+      // Resolve benchmark score
+      try {
+        const res = await fetch(
+          `${API_URL}/api/benchmarks/search?q=${encodeURIComponent(payload.cpuModel)}`,
+        );
+        if (res.ok) {
+          const data = (await res.json()) as {
+            results: { model: string; score: number; tier: string; similarity: number }[];
+          };
+          if (data.results.length > 0) {
+            const best = data.results[0];
+            setBenchmarkResult(best.score, best.tier as 'LOW' | 'MID' | 'HIGH');
+            addToast(`CPU matched: ${best.model} (${best.score} pts, ${best.tier})`, 'info');
+          }
+        }
+      } catch {
+        // Non-critical: benchmark lookup failure
+      }
+
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -154,6 +205,7 @@ export default function HomePage() {
         return;
       }
       case 'export': {
+        buildExportArtifacts();
         completeSetupStep('export');
         setShowImportModal(true);
         return;
@@ -218,15 +270,14 @@ export default function HomePage() {
               <button
                 key={step.id}
                 onClick={() => goToStep(i)}
-                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
-                  isActive
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${isActive
                     ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                     : status === 'done'
                       ? 'border-[var(--success)]/40 bg-[var(--success)]/5 text-[var(--success)]'
                       : status === 'ready'
                         ? 'border-[var(--accent)]/30 text-[var(--text-secondary)]'
                         : 'border-[var(--border)] text-[var(--text-muted)]'
-                }`}
+                  }`}
               >
                 <span>{status === 'done' && !isActive ? '✓' : i + 1}</span>
                 <span>{step.title}</span>
@@ -235,11 +286,10 @@ export default function HomePage() {
           })}
           <button
             onClick={() => setActiveTab('conflicts')}
-            className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
-              activeTab === 'conflicts'
+            className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${activeTab === 'conflicts'
                 ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                 : 'border-[var(--border)] text-[var(--text-muted)]'
-            }`}
+              }`}
           >
             🔌 Plugins
           </button>
@@ -285,23 +335,27 @@ export default function HomePage() {
 
           {/* Tab content */}
           <div className="min-h-[55vh]">
-            {activeTab === 'presets'   && <PresetSelector />}
-            {activeTab === 'editor'    && (
+            {activeTab === 'presets' && <PresetSelector />}
+            {activeTab === 'editor' && (
               <div className="space-y-8">
                 <ConfigEditor />
                 <SnapshotManager />
               </div>
             )}
-            {activeTab === 'diff'      && <DiffViewer />}
+            {activeTab === 'diff' && <DiffViewer />}
             {activeTab === 'rationale' && <RationalePanel />}
-            {activeTab === 'hardware'  && (
-              <HardwareWizard
-                onCompleteHardwareBaseline={() => {
-                  completeSetupStep('hardware');
-                  setSetupStepReady('preset');
-                  addToast('Hardware baseline applied.', 'success');
-                }}
-              />
+            {activeTab === 'hardware' && (
+              serverPayload && !showManualHardware ? (
+                <DetectedHardwareCard onEditManually={() => setShowManualHardware(true)} />
+              ) : (
+                <HardwareWizard
+                  onCompleteHardwareBaseline={() => {
+                    completeSetupStep('hardware');
+                    setSetupStepReady('preset');
+                    addToast('Hardware baseline applied.', 'success');
+                  }}
+                />
+              )
             )}
             {activeTab === 'conflicts' && <PluginConflictDetector />}
           </div>

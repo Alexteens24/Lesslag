@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLessLagStore } from '@/store/lesslag-store';
 
 /** Known plugin conflicts from the Java rule engine knowledge. */
@@ -100,9 +100,24 @@ const STATUS_STYLES = {
 
 export function PluginConflictDetector() {
   const { plugins, setPlugins } = useLessLagStore();
+  const serverPayload = useLessLagStore((s) => s.serverPayload);
   const [inputText, setInputText] = useState(plugins.join('\n'));
   const [results, setResults] = useState<ConflictResult[]>([]);
   const [analyzed, setAnalyzed] = useState(false);
+  const [autoPopulated, setAutoPopulated] = useState(false);
+
+  // Auto-populate from server payload
+  useEffect(() => {
+    if (serverPayload && serverPayload.pluginNames.length > 0 && !autoPopulated) {
+      const text = serverPayload.pluginNames.join('\n');
+      setInputText(text);
+      setPlugins(serverPayload.pluginNames);
+      setResults(analyzePlugins(serverPayload.pluginNames));
+      setAnalyzed(true);
+      setAutoPopulated(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverPayload]);
 
   const handleAnalyze = () => {
     const pluginList = inputText

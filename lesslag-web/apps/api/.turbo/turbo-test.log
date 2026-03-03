@@ -1,0 +1,15 @@
+
+> @lesslag/api@0.1.0 test /home/alexisbinh/dev/lesslag/lesslag-web/apps/api
+> vitest run
+
+
+ RUN  v3.2.4 /home/alexisbinh/dev/lesslag/lesslag-web/apps/api
+
+ ✓ tests/rate-limiter.test.ts (3 tests) 37ms
+ ✓ tests/api.test.ts (17 tests) 51ms
+
+ Test Files  2 passed (2)
+      Tests  20 passed (20)
+   Start at  19:54:55
+   Duration  696ms (transform 250ms, setup 0ms, collect 635ms, tests 88ms, environment 0ms, prepare 189ms)
+

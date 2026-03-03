@@ -49,6 +49,8 @@ export interface EvaluationOutput {
   results: import('./rule-result').RuleResult[];
   proposals: import('./rule-result').PatchProposal[];
   summary: EvaluationSummary;
+  /** True when pre-generating chunks is recommended alongside the proposed changes. */
+  pregenerateReminder?: boolean;
 }
 
 export interface EvaluationSummary {
@@ -59,3 +61,39 @@ export interface EvaluationSummary {
   autoApplicable: number;
   recommendOnly: number;
 }
+
+/** Payload sent from the plugin to the web app via base64-encoded URL token. */
+export interface ServerPayload {
+  cpuModel: string;
+  cores: number;
+  maxHeapMb: number;
+  physicalRamMb: number;
+  javaVersion: number;
+  jvmFlags: string[];
+  fork: string;
+  mcVersion: string;
+  pluginNames: string[];
+  tps: number;
+  mspt: number;
+}
+
+/** The JSON file exported by the web configurator and consumed by `/lg apply`. */
+export interface LessLagConfigJson {
+  /** Flat key→value map for LessLag config.yml entries (auto-applied by plugin). */
+  lesslag: Record<string, unknown>;
+  /** Nested file→{key→value} map for server configs (verified by plugin, manual apply). */
+  server_config_expectations: Record<string, Record<string, unknown>>;
+}
+
+/** Result of the startup command builder (JVM flags recommendation). */
+export interface StartupCommandResult {
+  command: string;
+  gcType: 'ZGC' | 'G1GC';
+  reason: string;
+}
+
+/** Per-file checklist of expected server config values for the verify/export UI. */
+export type ServerConfigChecklist = Record<
+  string,
+  { key: string; currentValue: unknown; expectedValue: unknown; rationale: string }[]
+>;

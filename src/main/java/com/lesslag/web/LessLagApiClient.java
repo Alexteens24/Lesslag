@@ -520,7 +520,7 @@ public class LessLagApiClient {
         return compact.length() > 200 ? compact.substring(0, 200) + "..." : compact;
     }
 
-    private static String detectFork() {
+    static String detectFork() {
         try {
             Class.forName("io.papermc.paper.configuration.GlobalConfiguration");
             if (classExists("org.purpurmc.purpur.PurpurConfig")) return "purpur";

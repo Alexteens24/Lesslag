@@ -28,11 +28,10 @@ function AxisSelector<T extends string>({ label, value, options, meta, onChange 
           <button
             key={opt}
             onClick={() => onChange(opt)}
-            className={`rounded-lg border p-3 text-left transition-all ${
-              value === opt
-                ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
-                : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
-            }`}
+            className={`rounded-lg border p-3 text-left transition-all ${value === opt
+              ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
+              : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
+              }`}
           >
             <div className="font-medium">{meta[opt].displayName}</div>
             <div className="mt-1 text-xs text-[var(--text-muted)]">{meta[opt].description}</div>
@@ -48,7 +47,10 @@ export function PresetSelector() {
     profile, tier, aggressiveness, playerCount, preset,
     setProfile, setTier, setAggressiveness, setPlayerCount,
     generatePresetAction, applyPreset, runEvaluation,
+    serverPayload, benchmarkTier,
   } = useLessLagStore();
+
+  const hasAutoTier = serverPayload != null && benchmarkTier != null;
 
   const handleGenerate = () => {
     generatePresetAction();
@@ -65,13 +67,39 @@ export function PresetSelector() {
         onChange={setProfile}
       />
 
-      <AxisSelector<HardwareTier>
-        label="Hardware Tier"
-        value={tier}
-        options={HardwareTiers}
-        meta={HardwareTierMeta}
-        onChange={setTier}
-      />
+      {hasAutoTier ? (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
+            Hardware Tier
+            <span className="ml-2 inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+              AUTO-DETECTED
+            </span>
+          </label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {HardwareTiers.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setTier(opt)}
+                className={`rounded-lg border p-3 text-left transition-all ${tier === opt
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
+                    : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
+                  }`}
+              >
+                <div className="font-medium">{HardwareTierMeta[opt].displayName}</div>
+                <div className="mt-1 text-xs text-[var(--text-muted)]">{HardwareTierMeta[opt].description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <AxisSelector<HardwareTier>
+          label="Hardware Tier"
+          value={tier}
+          options={HardwareTiers}
+          meta={HardwareTierMeta}
+          onChange={setTier}
+        />
+      )}
 
       <AxisSelector<AggressivenessLevel>
         label="Aggressiveness"

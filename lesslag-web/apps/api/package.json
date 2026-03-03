@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@lesslag/shared-rules": "workspace:*",
-    "hono": "^4.7.0"
+    "hono": "^4.7.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",
