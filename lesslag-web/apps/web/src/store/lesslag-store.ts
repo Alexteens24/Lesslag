@@ -20,6 +20,38 @@ interface Snapshot {
   configs: ConfigMap;
 }
 
+export type SetupStepId = 'hardware' | 'preset' | 'analysis' | 'changes' | 'export';
+export type SetupStepStatus = 'not_started' | 'ready' | 'done';
+
+type SetupProgress = Record<SetupStepId, SetupStepStatus>;
+
+const defaultSetupProgress: SetupProgress = {
+  hardware: 'ready',
+  preset: 'not_started',
+  analysis: 'not_started',
+  changes: 'not_started',
+  export: 'not_started',
+};
+
+const setupOrder: SetupStepId[] = ['hardware', 'preset', 'analysis', 'changes', 'export'];
+
+function markStepDone(progress: SetupProgress, step: SetupStepId): SetupProgress {
+  const next: SetupProgress = { ...progress, [step]: 'done' };
+  const idx = setupOrder.indexOf(step);
+  if (idx >= 0 && idx < setupOrder.length - 1) {
+    const nextStep = setupOrder[idx + 1];
+    if (next[nextStep] === 'not_started') {
+      next[nextStep] = 'ready';
+    }
+  }
+  return next;
+}
+
+function ensureStepReady(progress: SetupProgress, step: SetupStepId): SetupProgress {
+  if (progress[step] !== 'not_started') return progress;
+  return { ...progress, [step]: 'ready' };
+}
+
 interface LessLagState {
   // ─── Wizard inputs ───
   profile: GameProfile;
@@ -41,6 +73,7 @@ interface LessLagState {
   selectedProposals: Set<string>; // keyed by `file:key`
   activeTab: 'editor' | 'presets' | 'diff' | 'rationale' | 'hardware' | 'conflicts';
   showImportModal: boolean;
+  setupProgress: SetupProgress;
 
   // ─── Snapshots (Phase 4) ───
   snapshots: Snapshot[];
@@ -58,6 +91,8 @@ interface LessLagState {
   updateConfig: (file: string, key: string, value: string | number | boolean) => void;
   setActiveTab: (tab: LessLagState['activeTab']) => void;
   setShowImportModal: (show: boolean) => void;
+  completeSetupStep: (step: SetupStepId) => void;
+  setSetupStepReady: (step: SetupStepId) => void;
 
   runEvaluation: () => void;
   generatePresetAction: () => void;
@@ -156,6 +191,7 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
   selectedProposals: new Set<string>(),
   activeTab: 'presets',
   showImportModal: false,
+  setupProgress: defaultSetupProgress,
   snapshots: [],
   currentSnapshotId: null,
 
@@ -177,6 +213,14 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
     })),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setShowImportModal: (show) => set({ showImportModal: show }),
+  completeSetupStep: (step) =>
+    set((s) => ({
+      setupProgress: markStepDone(s.setupProgress, step),
+    })),
+  setSetupStepReady: (step) =>
+    set((s) => ({
+      setupProgress: ensureStepReady(s.setupProgress, step),
+    })),
 
   // ─── Engine actions ───
   runEvaluation: () => {
@@ -199,7 +243,10 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
   generatePresetAction: () => {
     const s = get();
     const preset = generatePreset(s.profile, s.tier, s.aggressiveness, s.playerCount, s.platform.fork);
-    set({ preset });
+    set({
+      preset,
+      setupProgress: markStepDone(s.setupProgress, 'preset'),
+    });
   },
 
   applyPreset: () => {
@@ -263,13 +310,20 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
   applySelectedProposals: () => {
     const s = get();
     const newConfigs = structuredClone(s.configs);
+    let appliedCount = 0;
     for (const d of s.diffs) {
       const key = `${d.file}:${d.key}`;
       if (!s.selectedProposals.has(key)) continue;
       if (!newConfigs[d.file]) newConfigs[d.file] = {};
       newConfigs[d.file]![d.key] = parseValue(d.after);
+      appliedCount += 1;
     }
-    set({ configs: newConfigs });
+
+    const nextSetupProgress = appliedCount > 0
+      ? markStepDone(s.setupProgress, 'changes')
+      : s.setupProgress;
+
+    set({ configs: newConfigs, setupProgress: nextSetupProgress });
   },
 
   // ─── Snapshots ───

@@ -66,6 +66,7 @@ export default function HomePage() {
     setActiveTab,
     evaluation,
     diffs,
+    selectedProposals,
     snapshots,
     setShowImportModal,
     profile,
@@ -78,6 +79,10 @@ export default function HomePage() {
     configs,
     runEvaluation,
     generatePresetAction,
+    applySelectedProposals,
+    setupProgress,
+    completeSetupStep,
+    setSetupStepReady,
   } = useLessLagStore();
 
   const [isCreatingCloudLink, setIsCreatingCloudLink] = useState(false);
@@ -95,17 +100,15 @@ export default function HomePage() {
     }
   }, []);
 
-  const activeStepIndex = Math.max(
-    0,
-    SETUP_STEPS.findIndex((step) => step.tab === activeTab),
-  );
+  const activeStepIndex = Math.max(0, SETUP_STEPS.findIndex((step) => step.tab === activeTab));
+  const currentStep = SETUP_STEPS[activeStepIndex];
 
   const stepCompletion = {
-    hardware: hardware.availableProcessors > 0 && hardware.maxHeapMB >= 1024 && platform.version.length > 0,
-    preset: profile.length > 0 && tier.length > 0 && aggressiveness.length > 0,
-    analysis: evaluation != null,
-    changes: diffs.length > 0,
-    export: snapshots.length > 0 || diffs.length > 0,
+    hardware: setupProgress.hardware === 'done',
+    preset: setupProgress.preset === 'done',
+    analysis: setupProgress.analysis === 'done',
+    changes: setupProgress.changes === 'done',
+    export: setupProgress.export === 'done',
   } as const;
 
   const completedCount = Object.values(stepCompletion).filter(Boolean).length;
@@ -113,27 +116,58 @@ export default function HomePage() {
 
   const goToStep = (stepIndex: number) => {
     const bounded = Math.max(0, Math.min(stepIndex, SETUP_STEPS.length - 1));
-
-    if (bounded >= 2 && !evaluation) {
-      generatePresetAction();
-      runEvaluation();
-    }
-
     setActiveTab(SETUP_STEPS[bounded].tab);
   };
 
-  const handleNextStep = () => {
-    if (activeStepIndex === 1) {
-      generatePresetAction();
-      runEvaluation();
+  const handleStepPrimaryAction = () => {
+    switch (currentStep.id) {
+      case 'hardware': {
+        completeSetupStep('hardware');
+        setSetupStepReady('preset');
+        setCloudMessage('Hardware baseline saved. Continue with profile and preset.');
+        goToStep(1);
+        return;
+      }
+      case 'preset': {
+        generatePresetAction();
+        runEvaluation();
+        setSetupStepReady('analysis');
+        setCloudMessage('Recommendations generated. Review analysis next.');
+        goToStep(2);
+        return;
+      }
+      case 'analysis': {
+        if (!evaluation) {
+          runEvaluation();
+        }
+        completeSetupStep('analysis');
+        setSetupStepReady('changes');
+        setCloudMessage('Analysis reviewed. Continue to proposed changes.');
+        goToStep(3);
+        return;
+      }
+      case 'changes': {
+        if (diffs.length === 0) {
+          setCloudMessage('No proposed changes available yet. Generate recommendations first.');
+          return;
+        }
+        if (selectedProposals.size === 0) {
+          setCloudMessage('Select at least one proposed change before applying.');
+          return;
+        }
+        const selectedCount = selectedProposals.size;
+        applySelectedProposals();
+        completeSetupStep('changes');
+        setSetupStepReady('export');
+        setCloudMessage(`Applied ${selectedCount} selected change${selectedCount > 1 ? 's' : ''}.`);
+        goToStep(4);
+        return;
+      }
+      case 'export': {
+        completeSetupStep('export');
+        setShowImportModal(true);
+      }
     }
-
-    if (activeStepIndex >= SETUP_STEPS.length - 1) {
-      setShowImportModal(true);
-      return;
-    }
-
-    goToStep(activeStepIndex + 1);
   };
 
   const handlePreviousStep = () => {
@@ -321,15 +355,19 @@ export default function HomePage() {
               className={`rounded-lg border px-3 py-2 text-left transition-colors ${
                 index === activeStepIndex
                   ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
-                  : index < activeStepIndex
+                  : setupProgress[step.id] === 'done'
                     ? 'border-[var(--success)]/40 bg-[var(--success)]/10 text-[var(--text-primary)]'
-                    : 'border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
+                    : setupProgress[step.id] === 'ready'
+                      ? 'border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--text-secondary)]'
+                      : 'border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
               }`}
             >
               <div className="flex items-center justify-between gap-2 text-xs font-medium sm:text-sm">
                 <span>{index + 1}. {step.title}</span>
-                {stepCompletion[step.id] ? (
+                {setupProgress[step.id] === 'done' ? (
                   <span className="rounded-full bg-[var(--success)]/15 px-2 py-0.5 text-[10px] text-[var(--success)]">Done</span>
+                ) : setupProgress[step.id] === 'ready' ? (
+                  <span className="rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] text-[var(--accent)]">Ready</span>
                 ) : (
                   <span className="rounded-full bg-[var(--bg-elevated)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">Pending</span>
                 )}
@@ -351,23 +389,16 @@ export default function HomePage() {
             Previous Step
           </button>
           <div className="flex items-center gap-2">
-            {activeStepIndex === 2 && !evaluation && (
-              <button
-                onClick={() => {
-                  generatePresetAction();
-                  runEvaluation();
-                  setCloudMessage('Analysis generated from current profile and hardware inputs.');
-                }}
-                className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] sm:text-sm"
-              >
-                Run Analysis
-              </button>
-            )}
             <button
-              onClick={handleNextStep}
+              onClick={handleStepPrimaryAction}
+              disabled={currentStep.id === 'changes' && (diffs.length === 0 || selectedProposals.size === 0)}
               className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:text-sm"
             >
-              {activeStepIndex === SETUP_STEPS.length - 1 ? 'Open Import / Export' : 'Continue'}
+              {currentStep.id === 'hardware' && 'Save Hardware'}
+              {currentStep.id === 'preset' && 'Generate Recommendations'}
+              {currentStep.id === 'analysis' && 'Review Findings'}
+              {currentStep.id === 'changes' && 'Apply Selected Changes'}
+              {currentStep.id === 'export' && 'Export / Share'}
             </button>
           </div>
         </div>
@@ -418,7 +449,15 @@ export default function HomePage() {
         )}
         {activeTab === 'diff' && <DiffViewer />}
         {activeTab === 'rationale' && <RationalePanel />}
-        {activeTab === 'hardware' && <HardwareWizard />}
+        {activeTab === 'hardware' && (
+          <HardwareWizard
+            onCompleteHardwareBaseline={() => {
+              completeSetupStep('hardware');
+              setSetupStepReady('preset');
+              setCloudMessage('Hardware baseline applied. Continue with profile and preset.');
+            }}
+          />
+        )}
         {activeTab === 'conflicts' && <PluginConflictDetector />}
       </main>
 

@@ -101,7 +101,11 @@ const FORK_OPTIONS = [
   { id: 'vanilla' as const, label: 'Vanilla', description: 'Unmodified Minecraft server' },
 ] as const;
 
-export function HardwareWizard() {
+interface HardwareWizardProps {
+  onCompleteHardwareBaseline?: () => void;
+}
+
+export function HardwareWizard({ onCompleteHardwareBaseline }: HardwareWizardProps) {
   const [step, setStep] = useState(0);
   const { hardware, platform, setHardware, setPlatform, setTier, playerCount, setPlayerCount } = useLessLagStore();
 
@@ -351,12 +355,11 @@ export function HardwareWizard() {
                 <button
                   onClick={() => {
                     autoDetectTier();
-                    // Navigate to presets tab
-                    useLessLagStore.getState().setActiveTab('presets');
+                    onCompleteHardwareBaseline?.();
                   }}
                   className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] transition-colors sm:px-4 sm:text-sm"
                 >
-                  Apply Configuration
+                  Apply Hardware Baseline
                 </button>
               </div>
             </div>
