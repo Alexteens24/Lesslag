@@ -78,6 +78,10 @@ public class ChunkLimiter {
     // ══════════════════════════════════════════════════
 
     private void beginAsyncScan() {
+        if (!plugin.isEnabled()) {
+            return;
+        }
+
         Set<String> whitelist = cachedWhitelist;
         ScanContext context = new ScanContext();
 
@@ -86,6 +90,7 @@ public class ChunkLimiter {
             for (World world : Bukkit.getWorlds()) {
                 Chunk[] loadedChunks = world.getLoadedChunks();
                 for (Chunk chunk : loadedChunks) {
+                    if (!plugin.isEnabled()) return;
                     final Chunk c = chunk;
                     SchedulerAdapter.runAtChunk(plugin, c.getWorld(), c.getX(), c.getZ(), () -> {
                         if (!c.isLoaded()) return;
@@ -96,10 +101,12 @@ public class ChunkLimiter {
                 }
             }
             // Schedule report on global thread after a short delay to let region tasks complete
+            if (!plugin.isEnabled()) return;
             SchedulerAdapter.runGlobalDelayed(plugin, () -> finishScan(context), 20L);
         } else {
             // On Paper/Spigot: use WorkloadDistributor for tick-spreading
             plugin.getWorkloadDistributor().addWorkload(() -> {
+                if (!plugin.isEnabled()) return;
                 List<World> worlds = Bukkit.getWorlds();
                 if (!worlds.isEmpty()) {
                     scheduleWorldScan(worlds, 0, whitelist, context);

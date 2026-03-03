@@ -491,6 +491,9 @@ public class SchedulerAdapter {
             regionExecuteAtLocation.invoke(regionScheduler, plugin, location, runnable);
             return true;
         } catch (Exception ex) {
+            if (isPluginDisabledSchedulerError(ex)) {
+                return false;
+            }
             log(Level.WARNING, "Folia location execution failed", ex);
             return false;
         }
@@ -508,6 +511,9 @@ public class SchedulerAdapter {
             entitySchedulerRun.invoke(entityScheduler, plugin, (Consumer<Object>) task -> runnable.run(), null);
             return true;
         } catch (Exception ex) {
+            if (isPluginDisabledSchedulerError(ex)) {
+                return false;
+            }
             log(Level.WARNING, "Folia entity execution failed", ex);
             return false;
         }
@@ -524,6 +530,9 @@ public class SchedulerAdapter {
             regionExecuteAtChunk.invoke(regionScheduler, plugin, world, chunkX, chunkZ, runnable);
             return true;
         } catch (Exception ex) {
+            if (isPluginDisabledSchedulerError(ex)) {
+                return false;
+            }
             log(Level.WARNING, "Folia chunk execution failed", ex);
             return false;
         }
@@ -537,9 +546,24 @@ public class SchedulerAdapter {
         try {
             bukkitRunSync.invoke(bukkitScheduler, plugin, runnable);
         } catch (Exception ex) {
+            if (isPluginDisabledSchedulerError(ex)) {
+                return;
+            }
             log(Level.WARNING, "Bukkit sync execution failed", ex);
             safeRun(runnable);
         }
+    }
+
+    private boolean isPluginDisabledSchedulerError(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof org.bukkit.plugin.IllegalPluginAccessException) {
+                String message = current.getMessage();
+                return message != null && message.contains("while disabled");
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private void runBukkitDelayed(Runnable runnable, long delayTicks) {

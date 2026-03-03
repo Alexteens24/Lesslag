@@ -81,11 +81,17 @@ public class FrustumCuller {
     // ══════════════════════════════════════════════════
 
     private void beginAsyncCull() {
+        if (!plugin.isEnabled()) {
+            return;
+        }
+
         double fovCosine = Math.cos(Math.toRadians(fovDegrees / 2.0));
         double maxRadiusSq = maxRadius * maxRadius;
         double behindRadiusSq = behindRadius * behindRadius;
 
         java.util.function.Consumer<SnapshotResult> onComplete = snapshot -> {
+            if (!plugin.isEnabled())
+                return;
             if (snapshot.mobs.isEmpty())
                 return;
             SchedulerAdapter.runAsync(plugin, () -> {
@@ -194,10 +200,16 @@ public class FrustumCuller {
 
         @Override
         public void run() {
+            if (!plugin.isEnabled()) {
+                return;
+            }
             long stopTime = System.nanoTime() + MAX_NANOS_PER_TICK;
 
             while (playerIndex < allPlayers.size()) {
                 if (System.nanoTime() > stopTime) {
+                    if (!plugin.isEnabled()) {
+                        return;
+                    }
                     SchedulerAdapter.runGlobal(plugin, this);
                     return;
                 }
@@ -365,6 +377,9 @@ public class FrustumCuller {
         final List<MobSnapshot> currentBatch = new ArrayList<>(batch);
 
         if (SchedulerAdapter.isFolia()) {
+            if (!plugin.isEnabled()) {
+                return true;
+            }
             // On Folia: dispatch per-entity to owning region thread via chunk location
             for (MobSnapshot mob : currentBatch) {
                 World world = Bukkit.getWorld(mob.worldUID);

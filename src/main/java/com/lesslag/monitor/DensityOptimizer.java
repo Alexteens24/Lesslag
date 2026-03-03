@@ -244,6 +244,17 @@ public class DensityOptimizer {
     }
 
     private void restore() {
+        // During plugin disable, schedulers reject new tasks. Use direct restore on
+        // classic runtimes and skip region dispatch on Folia to avoid shutdown spam.
+        if (!plugin.isEnabled()) {
+            if (SchedulerAdapter.isFolia()) {
+                plugin.getLogger().fine("Skipping DensityOptimizer restore scheduling during disable on Folia runtime.");
+                return;
+            }
+            restoreDirect();
+            return;
+        }
+
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
                 if (SchedulerAdapter.isFolia()) {
@@ -253,6 +264,14 @@ public class DensityOptimizer {
                 } else {
                     restoreChunk(chunk);
                 }
+            }
+        }
+    }
+
+    private void restoreDirect() {
+        for (World world : Bukkit.getWorlds()) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                restoreChunk(chunk);
             }
         }
     }
