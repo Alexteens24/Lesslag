@@ -47,10 +47,12 @@ export function PresetSelector() {
     profile, tier, aggressiveness, playerCount, preset,
     setProfile, setTier, setAggressiveness, setPlayerCount,
     generatePresetAction, applyPreset, runEvaluation,
-    serverPayload, benchmarkTier,
+    serverPayload, benchmarkScore,
   } = useLessLagStore();
 
-  const hasAutoTier = serverPayload != null && benchmarkTier != null;
+  // Tier is considered auto-detected any time we have a server payload —
+  // regardless of whether the Geekbench lookup succeeded.
+  const hasAutoTier = serverPayload != null;
 
   const handleGenerate = () => {
     generatePresetAction();
@@ -67,28 +69,26 @@ export function PresetSelector() {
         onChange={setProfile}
       />
 
-      {hasAutoTier ? (
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
-            Hardware Tier
-            <span className="ml-2 inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-              AUTO-DETECTED
+      {hasAutoTier && serverPayload ? (
+        /* ── Locked auto-detected hardware summary ────────────────────── */
+        <div className="rounded-lg border border-emerald-600/25 bg-emerald-500/5 px-4 py-3">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Hardware
             </span>
-          </label>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {HardwareTiers.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => setTier(opt)}
-                className={`rounded-lg border p-3 text-left transition-all ${tier === opt
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
-                    : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
-                  }`}
-              >
-                <div className="font-medium">{HardwareTierMeta[opt].displayName}</div>
-                <div className="mt-1 text-xs text-[var(--text-muted)]">{HardwareTierMeta[opt].description}</div>
-              </button>
-            ))}
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
+              ✓ Auto-detected · {HardwareTierMeta[tier].displayName}
+            </span>
+          </div>
+          <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+            {serverPayload.cpuModel}
+          </div>
+          <div className="mt-1 flex flex-wrap gap-3 text-xs text-[var(--text-muted)]">
+            <span>{serverPayload.cores} cores</span>
+            <span>{Math.round(serverPayload.maxHeapMb / 1024)} GB heap</span>
+            {benchmarkScore ? (
+              <span>{benchmarkScore.toLocaleString()} pts Geekbench SC</span>
+            ) : null}
           </div>
         </div>
       ) : (

@@ -17,6 +17,45 @@ import { ToastStack } from '@/components/ui/Toast';
 import { useShareableState, generateShareUrl } from '@/hooks/useShareableState';
 import { decodeServerPayload } from '@/lib/decode-payload';
 
+// ── Adaptive step display ────────────────────────────────────────────────
+// When a server payload is present, titles/descriptions reflect real data.
+type StepId = 'hardware' | 'preset' | 'analysis' | 'changes' | 'export';
+type StepDisplay = { title: string; description: string; primaryLabel: string };
+
+function getStepDisplay(
+  step: { id: StepId; title: string; description: string; primaryLabel: string },
+  serverPayload: { fork: string; mcVersion: string; javaVersion: number; maxHeapMb: number; tps: number; mspt: number; cpuModel: string } | null,
+): StepDisplay {
+  if (!serverPayload) return step;
+  const { fork, mcVersion, javaVersion, maxHeapMb, tps, mspt } = serverPayload;
+  const heapGb = Math.round(maxHeapMb / 1024);
+  switch (step.id) {
+    case 'hardware':
+      return {
+        title: 'Detected Server',
+        description:
+          `${fork} ${mcVersion} · Java ${javaVersion} · ${heapGb} GB heap ` +
+          `· TPS ${tps.toFixed(1)} · ${mspt.toFixed(0)} ms MSPT — detected from your plugin link.`,
+        primaryLabel: 'Confirm & Continue',
+      };
+    case 'preset':
+      return {
+        title: 'Optimisation Profile',
+        description:
+          'Choose your server type and aggressiveness — hardware tier was detected automatically from the plugin.',
+        primaryLabel: step.primaryLabel,
+      };
+    case 'analysis':
+      return {
+        title: 'Analyse Configuration',
+        description: `Reviewing rule engine findings for your ${fork} ${mcVersion} configuration.`,
+        primaryLabel: step.primaryLabel,
+      };
+    default:
+      return step;
+  }
+}
+
 const SETUP_STEPS = [
   {
     id: 'hardware' as SetupStepId,
@@ -256,6 +295,12 @@ export default function HomePage() {
 
   const isChangesCTADisabled =
     currentStep.id === 'changes' && (diffs.length === 0 || selectedProposals.size === 0);
+
+  const stepDisplay = getStepDisplay(
+    currentStep as Parameters<typeof getStepDisplay>[0],
+    serverPayload,
+  );
+
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
@@ -315,10 +360,10 @@ export default function HomePage() {
             {isSetupTab ? (
               <>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] sm:text-xl">
-                  {currentStep.title}
+                  {stepDisplay.title}
                 </h2>
                 <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-                  {currentStep.description}
+                  {stepDisplay.description}
                 </p>
               </>
             ) : (
@@ -380,7 +425,7 @@ export default function HomePage() {
                 disabled={isChangesCTADisabled}
                 className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:text-sm"
               >
-                {currentStep.primaryLabel} →
+                {stepDisplay.primaryLabel} →
               </button>
             </div>
           )}
