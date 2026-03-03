@@ -1,452 +1,1148 @@
 [
-    {
-        "model": "Intel Core i9-13900K",
-        "normalized": "intel core i9-13900k",
-        "score": 2958,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i9-13900KS",
-        "normalized": "intel core i9-13900ks",
-        "score": 3015,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i9-12900K",
-        "normalized": "intel core i9-12900k",
-        "score": 2610,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i9-12900KS",
-        "normalized": "intel core i9-12900ks",
-        "score": 2680,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i7-13700K",
-        "normalized": "intel core i7-13700k",
-        "score": 2719,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i7-12700K",
-        "normalized": "intel core i7-12700k",
-        "score": 2375,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i7-12700",
-        "normalized": "intel core i7-12700",
-        "score": 2300,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i5-13600K",
-        "normalized": "intel core i5-13600k",
-        "score": 2575,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i5-12600K",
-        "normalized": "intel core i5-12600k",
-        "score": 2220,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Intel Core i5-12400",
-        "normalized": "intel core i5-12400",
-        "score": 1880,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-12400F",
-        "normalized": "intel core i5-12400f",
-        "score": 1880,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i7-11700K",
-        "normalized": "intel core i7-11700k",
-        "score": 1870,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i9-11900K",
-        "normalized": "intel core i9-11900k",
-        "score": 1920,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-11400",
-        "normalized": "intel core i5-11400",
-        "score": 1580,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-11400F",
-        "normalized": "intel core i5-11400f",
-        "score": 1580,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i7-10700K",
-        "normalized": "intel core i7-10700k",
-        "score": 1500,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-10400",
-        "normalized": "intel core i5-10400",
-        "score": 1290,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-10400F",
-        "normalized": "intel core i5-10400f",
-        "score": 1290,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i7-9700K",
-        "normalized": "intel core i7-9700k",
-        "score": 1380,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-9600K",
-        "normalized": "intel core i5-9600k",
-        "score": 1310,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i7-8700K",
-        "normalized": "intel core i7-8700k",
-        "score": 1350,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-8400",
-        "normalized": "intel core i5-8400",
-        "score": 1150,
-        "tier": "LOW"
-    },
-    {
-        "model": "Intel Core i7-7700K",
-        "normalized": "intel core i7-7700k",
-        "score": 1250,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Core i5-7400",
-        "normalized": "intel core i5-7400",
-        "score": 1000,
-        "tier": "LOW"
-    },
-    {
-        "model": "Intel Xeon E-2388G",
-        "normalized": "intel xeon e-2388g",
-        "score": 1780,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2386G",
-        "normalized": "intel xeon e-2386g",
-        "score": 1700,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2378G",
-        "normalized": "intel xeon e-2378g",
-        "score": 1650,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2374G",
-        "normalized": "intel xeon e-2374g",
-        "score": 1700,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2356G",
-        "normalized": "intel xeon e-2356g",
-        "score": 1620,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2336",
-        "normalized": "intel xeon e-2336",
-        "score": 1580,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2288G",
-        "normalized": "intel xeon e-2288g",
-        "score": 1440,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2286G",
-        "normalized": "intel xeon e-2286g",
-        "score": 1350,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2276G",
-        "normalized": "intel xeon e-2276g",
-        "score": 1400,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2274G",
-        "normalized": "intel xeon e-2274g",
-        "score": 1420,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2236",
-        "normalized": "intel xeon e-2236",
-        "score": 1340,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2234",
-        "normalized": "intel xeon e-2234",
-        "score": 1280,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2176G",
-        "normalized": "intel xeon e-2176g",
-        "score": 1250,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2174G",
-        "normalized": "intel xeon e-2174g",
-        "score": 1220,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E-2136",
-        "normalized": "intel xeon e-2136",
-        "score": 1200,
-        "tier": "MID"
-    },
-    {
-        "model": "Intel Xeon E5-2680 v4",
-        "normalized": "intel xeon e5-2680 v4",
-        "score": 780,
-        "tier": "LOW"
-    },
-    {
-        "model": "Intel Xeon E5-2680 v3",
-        "normalized": "intel xeon e5-2680 v3",
-        "score": 700,
-        "tier": "LOW"
-    },
-    {
-        "model": "Intel Xeon E5-2690 v4",
-        "normalized": "intel xeon e5-2690 v4",
-        "score": 820,
-        "tier": "LOW"
-    },
-    {
-        "model": "Intel Xeon E5-1650 v4",
-        "normalized": "intel xeon e5-1650 v4",
-        "score": 950,
-        "tier": "LOW"
-    },
-    {
-        "model": "AMD Ryzen 9 7950X",
-        "normalized": "amd ryzen 9 7950x",
-        "score": 2872,
-        "tier": "HIGH"
-    },
-    {
-        "model": "AMD Ryzen 9 7950X3D",
-        "normalized": "amd ryzen 9 7950x3d",
-        "score": 2700,
-        "tier": "HIGH"
-    },
-    {
-        "model": "AMD Ryzen 9 7900X",
-        "normalized": "amd ryzen 9 7900x",
-        "score": 2755,
-        "tier": "HIGH"
-    },
-    {
-        "model": "AMD Ryzen 7 7800X3D",
-        "normalized": "amd ryzen 7 7800x3d",
-        "score": 2580,
-        "tier": "HIGH"
-    },
-    {
-        "model": "AMD Ryzen 7 7700X",
-        "normalized": "amd ryzen 7 7700x",
-        "score": 2575,
-        "tier": "HIGH"
-    },
-    {
-        "model": "AMD Ryzen 5 7600X",
-        "normalized": "amd ryzen 5 7600x",
-        "score": 2480,
-        "tier": "HIGH"
-    },
-    {
-        "model": "AMD Ryzen 5 7600",
-        "normalized": "amd ryzen 5 7600",
-        "score": 2350,
-        "tier": "HIGH"
-    },
-    {
-        "model": "AMD Ryzen 9 5950X",
-        "normalized": "amd ryzen 9 5950x",
-        "score": 1900,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 9 5900X",
-        "normalized": "amd ryzen 9 5900x",
-        "score": 1870,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 7 5800X",
-        "normalized": "amd ryzen 7 5800x",
-        "score": 1780,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 7 5800X3D",
-        "normalized": "amd ryzen 7 5800x3d",
-        "score": 1800,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 5 5600X",
-        "normalized": "amd ryzen 5 5600x",
-        "score": 1680,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 5 5600",
-        "normalized": "amd ryzen 5 5600",
-        "score": 1620,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 7 3700X",
-        "normalized": "amd ryzen 7 3700x",
-        "score": 1350,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 5 3600",
-        "normalized": "amd ryzen 5 3600",
-        "score": 1300,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 5 3600X",
-        "normalized": "amd ryzen 5 3600x",
-        "score": 1320,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD Ryzen 5 2600",
-        "normalized": "amd ryzen 5 2600",
-        "score": 1100,
-        "tier": "LOW"
-    },
-    {
-        "model": "AMD Ryzen 7 2700X",
-        "normalized": "amd ryzen 7 2700x",
-        "score": 1150,
-        "tier": "LOW"
-    },
-    {
-        "model": "AMD EPYC 7763",
-        "normalized": "amd epyc 7763",
-        "score": 1360,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD EPYC 7713",
-        "normalized": "amd epyc 7713",
-        "score": 1300,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD EPYC 7543",
-        "normalized": "amd epyc 7543",
-        "score": 1280,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD EPYC 7443",
-        "normalized": "amd epyc 7443",
-        "score": 1250,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD EPYC 7413",
-        "normalized": "amd epyc 7413",
-        "score": 1200,
-        "tier": "MID"
-    },
-    {
-        "model": "AMD EPYC 7R32",
-        "normalized": "amd epyc 7r32",
-        "score": 1150,
-        "tier": "LOW"
-    },
-    {
-        "model": "Apple M2 Ultra",
-        "normalized": "apple m2 ultra",
-        "score": 2760,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Apple M2 Pro",
-        "normalized": "apple m2 pro",
-        "score": 2650,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Apple M2",
-        "normalized": "apple m2",
-        "score": 2570,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Apple M1 Pro",
-        "normalized": "apple m1 pro",
-        "score": 2400,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Apple M1",
-        "normalized": "apple m1",
-        "score": 2310,
-        "tier": "HIGH"
-    },
-    {
-        "model": "Ampere Altra Q80-30",
-        "normalized": "ampere altra q80-30",
-        "score": 850,
-        "tier": "LOW"
-    },
-    {
-        "model": "AWS Graviton3",
-        "normalized": "aws graviton3",
-        "score": 1300,
-        "tier": "MID"
-    },
-    {
-        "model": "AWS Graviton2",
-        "normalized": "aws graviton2",
-        "score": 900,
-        "tier": "LOW"
-    }
+  {
+    "model": "AMD Ryzen 9 9950X",
+    "normalized": "amd ryzen 9 9950x",
+    "score": 3900,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 9950X 16-Core Processor",
+    "normalized": "amd ryzen 9 9950x 16-core processor",
+    "score": 3900,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M3 Max",
+    "normalized": "apple m3 max",
+    "score": 3900,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M3 Pro",
+    "normalized": "apple m3 pro",
+    "score": 3800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 9900X",
+    "normalized": "amd ryzen 9 9900x",
+    "score": 3700,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 7 9700X",
+    "normalized": "amd ryzen 7 9700x",
+    "score": 3550,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-14900KS",
+    "normalized": "intel core i9-14900ks",
+    "score": 3550,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M3",
+    "normalized": "apple m3",
+    "score": 3500,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 5 9600X",
+    "normalized": "amd ryzen 5 9600x",
+    "score": 3400,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-14900K",
+    "normalized": "intel core i9-14900k",
+    "score": 3400,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M2 Ultra",
+    "normalized": "apple m2 ultra",
+    "score": 3400,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-14900F",
+    "normalized": "intel core i9-14900f",
+    "score": 3300,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-13900KS",
+    "normalized": "intel core i9-13900ks",
+    "score": 3250,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen Threadripper PRO 7995WX",
+    "normalized": "amd ryzen threadripper pro 7995wx",
+    "score": 3250,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 7950X",
+    "normalized": "amd ryzen 9 7950x",
+    "score": 3200,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M2 Pro",
+    "normalized": "apple m2 pro",
+    "score": 3200,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen Threadripper PRO 7985WX",
+    "normalized": "amd ryzen threadripper pro 7985wx",
+    "score": 3200,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 7950X3D",
+    "normalized": "amd ryzen 9 7950x3d",
+    "score": 3100,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i7-14700K",
+    "normalized": "intel core i7-14700k",
+    "score": 3100,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-13900K",
+    "normalized": "intel core i9-13900k",
+    "score": 3100,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-13900KF",
+    "normalized": "intel core i9-13900kf",
+    "score": 3100,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M2 Max",
+    "normalized": "apple m2 max",
+    "score": 3100,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 7900X",
+    "normalized": "amd ryzen 9 7900x",
+    "score": 3050,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i7-14700KF",
+    "normalized": "intel core i7-14700kf",
+    "score": 3050,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 7900X3D",
+    "normalized": "amd ryzen 9 7900x3d",
+    "score": 2950,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 7 7700X",
+    "normalized": "amd ryzen 7 7700x",
+    "score": 2950,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-13900F",
+    "normalized": "intel core i9-13900f",
+    "score": 2950,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M2",
+    "normalized": "apple m2",
+    "score": 2900,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 7900",
+    "normalized": "amd ryzen 9 7900",
+    "score": 2850,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i7-13700K",
+    "normalized": "intel core i7-13700k",
+    "score": 2850,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 7 7700",
+    "normalized": "amd ryzen 7 7700",
+    "score": 2800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 7 7800X3D",
+    "normalized": "amd ryzen 7 7800x3d",
+    "score": 2800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 5 7600X",
+    "normalized": "amd ryzen 5 7600x",
+    "score": 2800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i7-13700KF",
+    "normalized": "intel core i7-13700kf",
+    "score": 2800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-12900KS",
+    "normalized": "intel core i9-12900ks",
+    "score": 2800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Xeon w9-3595X",
+    "normalized": "intel xeon w9-3595x",
+    "score": 2800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M1 Ultra",
+    "normalized": "apple m1 ultra",
+    "score": 2800,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i5-14600K",
+    "normalized": "intel core i5-14600k",
+    "score": 2750,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 5 7600",
+    "normalized": "amd ryzen 5 7600",
+    "score": 2700,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i5-14600KF",
+    "normalized": "intel core i5-14600kf",
+    "score": 2700,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-12900K",
+    "normalized": "intel core i9-12900k",
+    "score": 2700,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M1 Pro",
+    "normalized": "apple m1 pro",
+    "score": 2700,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i5-13600K",
+    "normalized": "intel core i5-13600k",
+    "score": 2650,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-12900KF",
+    "normalized": "intel core i9-12900kf",
+    "score": 2650,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M1 Max",
+    "normalized": "apple m1 max",
+    "score": 2650,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i5-13600KF",
+    "normalized": "intel core i5-13600kf",
+    "score": 2600,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD EPYC 9354P",
+    "normalized": "amd epyc 9354p",
+    "score": 2600,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD EPYC 9354",
+    "normalized": "amd epyc 9354",
+    "score": 2600,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i9-12900F",
+    "normalized": "intel core i9-12900f",
+    "score": 2550,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD EPYC 9374F",
+    "normalized": "amd epyc 9374f",
+    "score": 2550,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i7-12700K",
+    "normalized": "intel core i7-12700k",
+    "score": 2500,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD EPYC 9474F",
+    "normalized": "amd epyc 9474f",
+    "score": 2500,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Xeon w7-3465X",
+    "normalized": "intel xeon w7-3465x",
+    "score": 2500,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen Threadripper PRO 5995WX",
+    "normalized": "amd ryzen threadripper pro 5995wx",
+    "score": 2500,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 5950X",
+    "normalized": "amd ryzen 9 5950x",
+    "score": 2450,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core i7-12700KF",
+    "normalized": "intel core i7-12700kf",
+    "score": 2450,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AWS Graviton4 (Neoverse V2)",
+    "normalized": "aws graviton4 (neoverse v2)",
+    "score": 2450,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen Threadripper PRO 5975WX",
+    "normalized": "amd ryzen threadripper pro 5975wx",
+    "score": 2450,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD EPYC 9554",
+    "normalized": "amd epyc 9554",
+    "score": 2400,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Xeon w5-3435X",
+    "normalized": "intel xeon w5-3435x",
+    "score": 2400,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Apple M1",
+    "normalized": "apple m1",
+    "score": 2400,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen 9 5900X",
+    "normalized": "amd ryzen 9 5900x",
+    "score": 2350,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i7-12700",
+    "normalized": "intel core i7-12700",
+    "score": 2350,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-12600K",
+    "normalized": "intel core i5-12600k",
+    "score": 2350,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 9254",
+    "normalized": "amd epyc 9254",
+    "score": 2350,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 5800X3D",
+    "normalized": "amd ryzen 7 5800x3d",
+    "score": 2300,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-14400",
+    "normalized": "intel core i5-14400",
+    "score": 2300,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-12600KF",
+    "normalized": "intel core i5-12600kf",
+    "score": 2300,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 9 5900",
+    "normalized": "amd ryzen 9 5900",
+    "score": 2250,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i9-11900K",
+    "normalized": "intel core i9-11900k",
+    "score": 2250,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 9654",
+    "normalized": "amd epyc 9654",
+    "score": 2250,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 5800X",
+    "normalized": "amd ryzen 7 5800x",
+    "score": 2200,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i9-11900KF",
+    "normalized": "intel core i9-11900kf",
+    "score": 2200,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-13400",
+    "normalized": "intel core i5-13400",
+    "score": 2150,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i7-11700K",
+    "normalized": "intel core i7-11700k",
+    "score": 2150,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 9124",
+    "normalized": "amd epyc 9124",
+    "score": 2150,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 5800",
+    "normalized": "amd ryzen 7 5800",
+    "score": 2100,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 5600X",
+    "normalized": "amd ryzen 5 5600x",
+    "score": 2100,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-13400F",
+    "normalized": "intel core i5-13400f",
+    "score": 2100,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-11600K",
+    "normalized": "intel core i5-11600k",
+    "score": 2100,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Gold 6438N",
+    "normalized": "intel xeon gold 6438n",
+    "score": 2050,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 5600",
+    "normalized": "amd ryzen 5 5600",
+    "score": 2000,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-12400",
+    "normalized": "intel core i5-12400",
+    "score": 2000,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i9-10900K",
+    "normalized": "intel core i9-10900k",
+    "score": 2000,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Platinum 8490H",
+    "normalized": "intel xeon platinum 8490h",
+    "score": 2000,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2488G",
+    "normalized": "intel xeon e-2488g",
+    "score": 2000,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon W-3375",
+    "normalized": "intel xeon w-3375",
+    "score": 2000,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i3-13100",
+    "normalized": "intel core i3-13100",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-12400F",
+    "normalized": "intel core i5-12400f",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i9-10900KF",
+    "normalized": "intel core i9-10900kf",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i7-10700K",
+    "normalized": "intel core i7-10700k",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 72F3",
+    "normalized": "amd epyc 72f3",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2468",
+    "normalized": "intel xeon e-2468",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon W-2295",
+    "normalized": "intel xeon w-2295",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "AWS Graviton3 (Neoverse V1)",
+    "normalized": "aws graviton3 (neoverse v1)",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen Threadripper PRO 3995WX",
+    "normalized": "amd ryzen threadripper pro 3995wx",
+    "score": 1950,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i3-12100",
+    "normalized": "intel core i3-12100",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-11400",
+    "normalized": "intel core i5-11400",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 73F3",
+    "normalized": "amd epyc 73f3",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Gold 6354",
+    "normalized": "intel xeon gold 6354",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Gold 6338",
+    "normalized": "intel xeon gold 6338",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2388G",
+    "normalized": "intel xeon e-2388g",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen Threadripper 3990X",
+    "normalized": "amd ryzen threadripper 3990x",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen Threadripper 3970X",
+    "normalized": "amd ryzen threadripper 3970x",
+    "score": 1900,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 5500",
+    "normalized": "amd ryzen 5 5500",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i3-12100F",
+    "normalized": "intel core i3-12100f",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-10600K",
+    "normalized": "intel core i5-10600k",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 74F3",
+    "normalized": "amd epyc 74f3",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Platinum 8380",
+    "normalized": "intel xeon platinum 8380",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2386G",
+    "normalized": "intel xeon e-2386g",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon W-2275",
+    "normalized": "intel xeon w-2275",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen Threadripper 3960X",
+    "normalized": "amd ryzen threadripper 3960x",
+    "score": 1850,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 9 3900XT",
+    "normalized": "amd ryzen 9 3900xt",
+    "score": 1800,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 75F3",
+    "normalized": "amd epyc 75f3",
+    "score": 1800,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Platinum 8358",
+    "normalized": "intel xeon platinum 8358",
+    "score": 1800,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Gold 6314U",
+    "normalized": "intel xeon gold 6314u",
+    "score": 1800,
+    "tier": "MID"
+  },
+  {
+    "model": "DO-Premium-AMD",
+    "normalized": "do-premium-amd",
+    "score": 1800,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 9 3900X",
+    "normalized": "amd ryzen 9 3900x",
+    "score": 1750,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7B13",
+    "normalized": "amd epyc 7b13",
+    "score": 1750,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2378G",
+    "normalized": "intel xeon e-2378g",
+    "score": 1750,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7543",
+    "normalized": "amd epyc 7543",
+    "score": 1700,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7443",
+    "normalized": "amd epyc 7443",
+    "score": 1700,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7443P",
+    "normalized": "amd epyc 7443p",
+    "score": 1700,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2374G",
+    "normalized": "intel xeon e-2374g",
+    "score": 1700,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2356G",
+    "normalized": "intel xeon e-2356g",
+    "score": 1700,
+    "tier": "MID"
+  },
+  {
+    "model": "Ampere AmpereOne A192-32",
+    "normalized": "ampere ampereone a192-32",
+    "score": 1700,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 3700X",
+    "normalized": "amd ryzen 7 3700x",
+    "score": 1650,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 3600X",
+    "normalized": "amd ryzen 5 3600x",
+    "score": 1650,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-10400",
+    "normalized": "intel core i5-10400",
+    "score": 1650,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7763",
+    "normalized": "amd epyc 7763",
+    "score": 1650,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7313",
+    "normalized": "amd epyc 7313",
+    "score": 1650,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7313P",
+    "normalized": "amd epyc 7313p",
+    "score": 1650,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC-Milan Processor",
+    "normalized": "amd epyc-milan processor",
+    "score": 1650,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 3600",
+    "normalized": "amd ryzen 5 3600",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7713",
+    "normalized": "amd epyc 7713",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7663",
+    "normalized": "amd epyc 7663",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7B12",
+    "normalized": "amd epyc 7b12",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2336",
+    "normalized": "intel xeon e-2336",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2334",
+    "normalized": "intel xeon e-2334",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "Ampere Altra Q80-30",
+    "normalized": "ampere altra q80-30",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "Hetzner Ampere Altra (CAX)",
+    "normalized": "hetzner ampere altra (cax)",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7B12 Processor",
+    "normalized": "amd epyc 7b12 processor",
+    "score": 1600,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Silver 4316",
+    "normalized": "intel xeon silver 4316",
+    "score": 1550,
+    "tier": "MID"
+  },
+  {
+    "model": "Ampere Altra Q64-22",
+    "normalized": "ampere altra q64-22",
+    "score": 1550,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7F32",
+    "normalized": "amd epyc 7f32",
+    "score": 1500,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E3-1270 v6",
+    "normalized": "intel xeon e3-1270 v6",
+    "score": 1500,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7F52",
+    "normalized": "amd epyc 7f52",
+    "score": 1450,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E3-1245 v6",
+    "normalized": "intel xeon e3-1245 v6",
+    "score": 1450,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7003 Series (shared vCPU)",
+    "normalized": "amd epyc 7003 series (shared vcpu)",
+    "score": 1450,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E3-1240 v6",
+    "normalized": "intel xeon e3-1240 v6",
+    "score": 1430,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7F72",
+    "normalized": "amd epyc 7f72",
+    "score": 1400,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 2700X",
+    "normalized": "amd ryzen 7 2700x",
+    "score": 1350,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Gold 6248R",
+    "normalized": "intel xeon gold 6248r",
+    "score": 1350,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 2600X",
+    "normalized": "amd ryzen 5 2600x",
+    "score": 1300,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 7R52",
+    "normalized": "amd epyc 7r52",
+    "score": 1300,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Gold 6226R",
+    "normalized": "intel xeon gold 6226r",
+    "score": 1300,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon Gold 6230R",
+    "normalized": "intel xeon gold 6230r",
+    "score": 1300,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 2600",
+    "normalized": "amd ryzen 5 2600",
+    "score": 1250,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7R32",
+    "normalized": "amd epyc 7r32",
+    "score": 1250,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E3-1246 v3",
+    "normalized": "intel xeon e3-1246 v3",
+    "score": 1220,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon Gold 6154",
+    "normalized": "intel xeon gold 6154",
+    "score": 1200,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E-2314",
+    "normalized": "intel xeon e-2314",
+    "score": 1200,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E3-1231 v3",
+    "normalized": "intel xeon e3-1231 v3",
+    "score": 1200,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon Silver 4214R",
+    "normalized": "intel xeon silver 4214r",
+    "score": 1150,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E-2224G",
+    "normalized": "intel xeon e-2224g",
+    "score": 1150,
+    "tier": "LOW"
+  },
+  {
+    "model": "AWS Graviton2 (Neoverse N1)",
+    "normalized": "aws graviton2 (neoverse n1)",
+    "score": 1150,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core Processor (Skylake, IBRS)",
+    "normalized": "intel core processor (skylake, ibrs)",
+    "score": 1150,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7742",
+    "normalized": "amd epyc 7742",
+    "score": 1100,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7702",
+    "normalized": "amd epyc 7702",
+    "score": 1100,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7552",
+    "normalized": "amd epyc 7552",
+    "score": 1100,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon Silver 4210R",
+    "normalized": "intel xeon silver 4210r",
+    "score": 1100,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon Gold 6140",
+    "normalized": "intel xeon gold 6140",
+    "score": 1100,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7532",
+    "normalized": "amd epyc 7532",
+    "score": 1050,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7452",
+    "normalized": "amd epyc 7452",
+    "score": 1050,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7282",
+    "normalized": "amd epyc 7282",
+    "score": 1050,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC-Rome Processor",
+    "normalized": "amd epyc-rome processor",
+    "score": 1050,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7351P",
+    "normalized": "amd epyc 7351p",
+    "score": 1000,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7351",
+    "normalized": "amd epyc 7351",
+    "score": 950,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7301",
+    "normalized": "amd epyc 7301",
+    "score": 900,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7601",
+    "normalized": "amd epyc 7601",
+    "score": 850,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2690 v4",
+    "normalized": "intel xeon e5-2690 v4",
+    "score": 850,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2697 v3",
+    "normalized": "intel xeon e5-2697 v3",
+    "score": 830,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2690 v3",
+    "normalized": "intel xeon e5-2690 v3",
+    "score": 810,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7501",
+    "normalized": "amd epyc 7501",
+    "score": 800,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2680 v4",
+    "normalized": "intel xeon e5-2680 v4",
+    "score": 800,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2680 v3",
+    "normalized": "intel xeon e5-2680 v3",
+    "score": 790,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2650 v4",
+    "normalized": "intel xeon e5-2650 v4",
+    "score": 780,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2640 v4",
+    "normalized": "intel xeon e5-2640 v4",
+    "score": 760,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2650 v3",
+    "normalized": "intel xeon e5-2650 v3",
+    "score": 760,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2620 v4",
+    "normalized": "intel xeon e5-2620 v4",
+    "score": 720,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5645",
+    "normalized": "intel xeon e5645",
+    "score": 600,
+    "tier": "LOW"
+  }
 ]

@@ -14,9 +14,9 @@ export const HardwareTiers = ['LOW', 'MID', 'HIGH'] as const;
 export type HardwareTier = (typeof HardwareTiers)[number];
 
 export const HardwareTierMeta: Record<HardwareTier, { displayName: string; description: string }> = {
-  LOW: { displayName: 'Entry VPS', description: '2 vCPU and 2-4 GB RAM, suitable for small communities' },
-  MID: { displayName: 'Standard VPS', description: '4 vCPU and 6-8 GB RAM, recommended for most servers' },
-  HIGH: { displayName: 'Performance VPS / Dedicated', description: '6+ vCPU and 10+ GB RAM for larger workloads' },
+  LOW: { displayName: 'Entry VPS', description: 'Budget/shared vCPU (old Xeon E5, EPYC Naples/Rome) · up to ~20 players' },
+  MID: { displayName: 'Standard VPS', description: 'Modern VPS (EPYC Milan, Xeon E-2300, Graviton 3, Ryzen 5) · 20–80 players' },
+  HIGH: { displayName: 'Performance / Dedicated', description: 'High-end dedicated (Zen 4/5, Intel 13th+, EPYC Genoa, Graviton 4) · 80+ players' },
 };
 
 // ─── Aggressiveness Level ───────────────────────────────────

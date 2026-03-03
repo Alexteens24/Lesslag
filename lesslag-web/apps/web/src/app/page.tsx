@@ -170,6 +170,15 @@ export default function HomePage() {
             const best = data.results[0];
             setBenchmarkResult(best.score, best.tier as 'LOW' | 'MID' | 'HIGH');
             addToast(`CPU matched: ${best.model} (${best.score} pts, ${best.tier})`, 'info');
+          } else {
+            // Fallback: derive tier from hardware specs when CPU isn't in our database
+            const derivedTier: 'LOW' | 'MID' | 'HIGH' =
+              payload.maxHeapMb >= 10240 && payload.cores >= 8
+                ? 'HIGH'
+                : payload.maxHeapMb >= 6144 && payload.cores >= 4
+                  ? 'MID'
+                  : 'LOW';
+            setBenchmarkResult(0, derivedTier);
           }
         }
       } catch {

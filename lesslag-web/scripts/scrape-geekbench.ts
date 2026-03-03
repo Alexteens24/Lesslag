@@ -39,8 +39,8 @@ function normalizeModel(raw: string): string {
 }
 
 function deriveTier(score: number): 'LOW' | 'MID' | 'HIGH' {
-    if (score >= 2000) return 'HIGH';
-    if (score >= 1200) return 'MID';
+    if (score >= 2400) return 'HIGH';
+    if (score >= 1300) return 'MID';
     return 'LOW';
 }
 

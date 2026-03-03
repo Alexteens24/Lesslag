@@ -1,0 +1,15 @@
+
+> @lesslag/web@0.1.0 test /home/alexisbinh/dev/lesslag/lesslag-web/apps/web
+> vitest run
+
+
+ RUN  v3.2.4 /home/alexisbinh/dev/lesslag/lesslag-web/apps/web
+
+ ✓ src/lib/__tests__/decode-payload.test.ts (26 tests) 11ms
+ ✓ src/lib/__tests__/startup-command.test.ts (19 tests) 10ms
+
+ Test Files  2 passed (2)
+      Tests  45 passed (45)
+   Start at  21:16:03
+   Duration  714ms (transform 129ms, setup 0ms, collect 157ms, tests 21ms, environment 1ms, prepare 337ms)
+
