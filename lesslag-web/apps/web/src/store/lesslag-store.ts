@@ -86,6 +86,11 @@ interface LessLagState {
   snapshots: Snapshot[];
   currentSnapshotId: string | null;
 
+  // ─── Connected server (from plugin session) ───
+  connectedServerId: string | null;
+  connectedServerName: string | null;
+  setConnectedServer: (id: string | null, name: string | null) => void;
+
   // ─── Actions ───
   setProfile: (p: GameProfile) => void;
   setTier: (t: HardwareTier) => void;
@@ -499,6 +504,9 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
   setupProgress: defaultSetupProgress,
   snapshots: [],
   currentSnapshotId: null,
+  connectedServerId: null,
+  connectedServerName: null,
+  setConnectedServer: (id, name) => set({ connectedServerId: id, connectedServerName: name }),
 
   // ─── Setters ───
   setProfile: (p) => set({ profile: p }),

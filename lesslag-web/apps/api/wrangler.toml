@@ -18,3 +18,10 @@ WEB_DASHBOARD_URL = "https://lesslag-web.vercel.app"
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "1b995059ed3e4db3bf04130d40ec7460"
+
+# KV namespace for server identities, metrics, and apply-queue
+# (create with: npx wrangler kv namespace create SERVERS)
+# Falls back to in-memory store if not bound.
+# [[kv_namespaces]]
+# binding = "SERVERS"
+# id = "<your-servers-kv-namespace-id>"

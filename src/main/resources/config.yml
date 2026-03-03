@@ -22,6 +22,19 @@ web:
   api-url: "https://lesslag-api.daucatmoitu.workers.dev"
   # Web dashboard URL
   dashboard-url: "https://lesslag-web.vercel.app"
+  # Server identity — populated automatically on first startup via /lg web register
+  server-id: ""
+  server-secret: ""
+  # Heartbeat: keep the dashboard "online" badge alive
+  heartbeat:
+    enabled: true
+    interval-seconds: 30
+  # Apply-queue: receive config patches from the web dashboard
+  apply-queue:
+    enabled: false
+    poll-interval-seconds: 60
+    # Auto-confirm SAFE/BALANCED patches after this many seconds (0 = disable)
+    auto-confirm-seconds: 300
 
 # Max time (ms) per tick for heavy tasks (WorkloadDistributor)
 workload-limit-ms: 2

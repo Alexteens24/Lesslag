@@ -146,4 +146,37 @@ public class ConfigAdapter {
     }
 
     public Properties getServerProperties() { return serverProperties; }
+
+    /**
+     * Export all loaded configs as a flat map suitable for session/API payloads.
+     * Structure: configFileName → (configKey → value).
+     * Covers all files discovered by {@link #scan()}, including per-world overrides.
+     */
+    public Map<String, Map<String, Object>> toFlatConfigMap() {
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+
+        // server.properties
+        if (serverProperties != null) {
+            Map<String, Object> props = new LinkedHashMap<>();
+            for (String key : serverProperties.stringPropertyNames()) {
+                props.put(key, serverProperties.getProperty(key));
+            }
+            result.put("server.properties", props);
+        }
+
+        // All YAML configs (bukkit.yml, spigot.yml, paper-*.yml, purpur.yml, etc.)
+        for (Map.Entry<String, YamlConfiguration> entry : loadedConfigs.entrySet()) {
+            YamlConfiguration yaml = entry.getValue();
+            Map<String, Object> flat = new LinkedHashMap<>();
+            for (String key : yaml.getKeys(true)) {
+                if (!yaml.isConfigurationSection(key)) {
+                    Object val = yaml.get(key);
+                    flat.put(key, val != null ? val : "");
+                }
+            }
+            result.put(entry.getKey(), flat);
+        }
+
+        return result;
+    }
 }

@@ -13,6 +13,14 @@ import java.util.*;
  */
 public class RuleEngine {
 
+    /**
+     * Semantic version of the rule set.
+     * Increment the major when rules change in a breaking / semantically incompatible way.
+     * The plugin sends this to the API so drift between the Java and TypeScript
+     * implementations can be detected at runtime.
+     */
+    public static final String RULES_VERSION = "1.0.0";
+
     private final List<Rule> rules = new ArrayList<>();
 
     public RuleEngine() {

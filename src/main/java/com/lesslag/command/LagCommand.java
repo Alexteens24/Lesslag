@@ -160,6 +160,9 @@ public class LagCommand implements CommandExecutor {
             case "web":
                 handleWeb(sender, args);
                 break;
+            case "confirm":
+                plugin.confirmPendingPatch(args.length > 1 ? args[1] : "", sender);
+                break;
             case "reload":
                 doReload(sender);
                 break;
@@ -204,6 +207,7 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg restore     &8- &7Restore all defaults");
         send(sender, "  &e/lg setup       &8- &7Setup Advisor wizard");
         send(sender, "  &e/lg web         &8- &7Web optimizer & remote analysis");
+        send(sender, "  &e/lg confirm      &8- &7Confirm pending web config patches");
         send(sender, "  &e/lg reload      &8- &7Reload configuration");
         send(sender, "");
         send(sender, "  &8Permissions: &7lesslag.admin &8(commands) &7lesslag.notify &8(alerts)");

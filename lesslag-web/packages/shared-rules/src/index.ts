@@ -65,3 +65,6 @@ export {
   serializeProperties,
   detectFormat,
 } from './util/yaml-parser';
+
+// Version
+export { RULES_VERSION } from './version';

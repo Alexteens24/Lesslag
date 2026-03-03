@@ -1,6 +1,7 @@
 'use client';
 
 import { useLessLagStore } from '@/store/lesslag-store';
+import { LiveMetricsPanel } from '@/components/LiveMetricsPanel';
 import type { SetupStepId } from '@/store/lesslag-store';
 
 const STEPS: {
@@ -29,6 +30,8 @@ export function Sidebar({ onShare, onCloudLink, isCreatingCloudLink, lastCloudSe
     setupProgress,
     evaluation, diffs, snapshots,
     setShowImportModal,
+    connectedServerId,
+    connectedServerName,
   } = useLessLagStore();
 
   const completedCount = STEPS.filter((s) => setupProgress[s.id] === 'done').length;
@@ -36,6 +39,21 @@ export function Sidebar({ onShare, onCloudLink, isCreatingCloudLink, lastCloudSe
 
   return (
     <aside className="hidden md:flex flex-col gap-2 w-52 shrink-0 sticky top-6">
+
+      {/* ── Server status ──────────────────────────── */}
+      {connectedServerId ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Server
+            </span>
+          </div>
+          <p className="mb-2 truncate text-xs font-medium text-[var(--text-primary)]">
+            {connectedServerName ?? 'Minecraft Server'}
+          </p>
+          <LiveMetricsPanel serverId={connectedServerId} />
+        </div>
+      ) : null}
 
       {/* ── Setup flow ─────────────────────────────── */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3">

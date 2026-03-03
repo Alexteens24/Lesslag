@@ -4,21 +4,21 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.lesslag.LessLag;
+import com.lesslag.monitor.LagSourceAnalyzer;
+import com.lesslag.monitor.GCMonitor;
+import com.lesslag.monitor.TPSMonitor;
+import com.lesslag.setup.detect.ConfigAdapter;
+import com.lesslag.setup.rules.RuleEngine;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -33,11 +33,146 @@ public class LessLagApiClient {
     private final HttpClient httpClient;
     private final String baseUrl;
 
+    /** Server identity — set after registration. May be null before first registration. */
+    private volatile String serverId;
+    private volatile String serverSecret;
+
     public LessLagApiClient(String baseUrl) {
+        this(baseUrl, null, null);
+    }
+
+    public LessLagApiClient(String baseUrl, String serverId, String serverSecret) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.serverId = serverId;
+        this.serverSecret = serverSecret;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(TIMEOUT)
                 .build();
+    }
+
+    /** Update server credentials (call after first-time registration). */
+    public void setCredentials(String serverId, String serverSecret) {
+        this.serverId = serverId;
+        this.serverSecret = serverSecret;
+    }
+
+    public String getServerId() { return serverId; }
+
+    // ── Server identity ──────────────────────────────────────────────────────
+
+    /**
+     * POST /api/servers/register — register this server and obtain credentials.
+     * The returned JSON contains {@code serverId} and {@code serverSecret}.
+     *
+     * @param serverName Human-readable server name (e.g. MOTD)
+     * @return Future resolving to raw JSON response
+     */
+    public CompletableFuture<String> registerServer(String serverName) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("name", serverName);
+        return postJson("/api/servers/register", body);
+    }
+
+    // ── Heartbeat ────────────────────────────────────────────────────────────
+
+    /**
+     * POST /api/servers/:id/heartbeat — push a live-metrics snapshot.
+     *
+     * @param payload heartbeat payload (build with {@link #buildHeartbeatPayload})
+     * @return Future resolving to raw JSON
+     */
+    public CompletableFuture<String> sendHeartbeat(Map<String, Object> payload) {
+        if (serverId == null) {
+            return CompletableFuture.failedFuture(new IllegalStateException("No serverId set"));
+        }
+        return postAuthJson("/api/servers/" + serverId + "/heartbeat", payload);
+    }
+
+    /**
+     * Build a heartbeat payload from live monitor data.
+     */
+    public static Map<String, Object> buildHeartbeatPayload(LessLag plugin) {
+        Map<String, Object> p = new LinkedHashMap<>();
+
+        TPSMonitor tps = plugin.getTpsMonitor();
+        if (tps != null) {
+            p.put("tps",  tps.getCurrentTPS());
+            p.put("tps1m", tps.getTPS1m());
+            // Nested mspt shape expected by the TypeScript consumer
+            Map<String, Object> msptObj = new LinkedHashMap<>();
+            msptObj.put("current", tps.getCurrentMSPT());
+            msptObj.put("min",     tps.getMinMSPT());
+            msptObj.put("max",     tps.getMaxMSPT());
+            p.put("mspt", msptObj);
+        }
+
+        GCMonitor gc = plugin.getGcMonitor();
+        if (gc != null) {
+            p.put("gcOverheadPercent", gc.getGCOverheadPercent());
+        }
+
+        Runtime rt = Runtime.getRuntime();
+        long usedMB = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
+        long maxMB  = rt.maxMemory() / (1024 * 1024);
+        p.put("heapUsedMB", usedMB);
+        p.put("heapMaxMB",  maxMB);
+
+        // "onlinePlayers" matches the TypeScript HeartbeatSnapshot interface
+        p.put("onlinePlayers", Bukkit.getOnlinePlayers().size());
+        p.put("timestamp",    System.currentTimeMillis());
+        return p;
+    }
+
+    // ── Apply-queue ──────────────────────────────────────────────────────────
+
+    /**
+     * GET /api/servers/:id/apply-queue — poll queued config patches.
+     *
+     * @return Future resolving to list of patch maps (empty list on error)
+     */
+    @SuppressWarnings("unchecked")
+    public CompletableFuture<List<Map<String, Object>>> pollApplyQueue() {
+        if (serverId == null) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+        return getAuth("/api/servers/" + serverId + "/apply-queue")
+                .thenApply(json -> {
+                    try {
+                        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+                        if (!obj.has("patches") || !obj.get("patches").isJsonArray()) {
+                            return Collections.<Map<String, Object>>emptyList();
+                        }
+                        List<Map<String, Object>> result = new ArrayList<>();
+                        for (var el : obj.getAsJsonArray("patches")) {
+                            result.add((Map<String, Object>) GSON.fromJson(el, Map.class));
+                        }
+                        return result;
+                    } catch (Exception e) {
+                        return Collections.<Map<String, Object>>emptyList();
+                    }
+                })
+                .exceptionally(ex -> Collections.emptyList());
+    }
+
+    /**
+     * DELETE /api/servers/:id/apply-queue/:patchId — confirm or reject a patch.
+     *
+     * @param patchId     UUID of the patch
+     * @param status      "APPLIED" or "REJECTED"
+     * @param msptBefore  MSPT before applying (0 = unknown)
+     * @param msptAfter   MSPT after applying (0 = unknown)
+     * @return Future resolving to raw JSON
+     */
+    public CompletableFuture<String> confirmPatch(String patchId, String status,
+                                                   double msptBefore, double msptAfter) {
+        if (serverId == null) {
+            return CompletableFuture.failedFuture(new IllegalStateException("No serverId set"));
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status",     status);
+        body.put("msptBefore", msptBefore);
+        body.put("msptAfter",  msptAfter);
+        return deleteAuthJson("/api/servers/" + serverId + "/apply-queue/" + patchId, body);
     }
 
     /**
@@ -220,21 +355,13 @@ public class LessLagApiClient {
         else tier = "LOW";
         payload.put("tier", tier);
 
-        // ── Configs (read actual files) ──
-        File serverDir = new File(".");
-        Map<String, Object> configs = new LinkedHashMap<>();
-
-        // server.properties
-        configs.put("server.properties", readServerProperties(serverDir));
-
-        // YAML configs
-        readYamlInto(configs, serverDir, "bukkit.yml");
-        readYamlInto(configs, serverDir, "spigot.yml");
-        readYamlInto(configs, new File(serverDir, "config"), "paper-world-defaults.yml");
-        readYamlInto(configs, new File(serverDir, "config"), "paper-global.yml");
-        readYamlInto(configs, serverDir, "purpur.yml");
-        readYamlInto(configs, serverDir, "pufferfish.yml");
-        payload.put("configs", configs);
+        // ── Configs — delegate to ConfigAdapter for full coverage
+        // (server.properties, bukkit.yml, spigot.yml, paper-global.yml,
+        //  paper-world-defaults.yml, paper.yml (legacy), purpur.yml,
+        //  pufferfish.yml, leaves.yml, and per-world paper-world-<name>.yml) ──
+        ConfigAdapter configAdapter = new ConfigAdapter(new File("."));
+        configAdapter.scan();
+        payload.put("configs", configAdapter.toFlatConfigMap());
 
         // ── Plugins ──
         List<String> pluginNames = new ArrayList<>();
@@ -243,70 +370,66 @@ public class LessLagApiClient {
         }
         payload.put("plugins", pluginNames);
 
-        // ── Defaults ──
+        // ── Diagnostics — lag sources from last cached analysis ──
+        List<Map<String, Object>> diagnostics = new ArrayList<>();
+        LagSourceAnalyzer lagAnalyzer = plugin.getLagSourceAnalyzer();
+        if (lagAnalyzer != null) {
+            for (LagSourceAnalyzer.LagSource src : lagAnalyzer.getCachedAnalysis()) {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("type", src.type.name());
+                // Strip Bukkit color codes (&X format) before sending to the API
+                entry.put("description", src.description.replaceAll("&[0-9a-fklmnorA-FKLMNOR]", "").trim());
+                entry.put("count", src.count);
+                diagnostics.add(entry);
+            }
+        }
+        payload.put("diagnostics", diagnostics);
+
+        // ── Metadata ──
         payload.put("profile", "SMP");
         payload.put("aggressiveness", "BALANCED");
         payload.put("playerCount", Bukkit.getOnlinePlayers().size());
         payload.put("serverName", net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(Bukkit.getServer().motd()));
+        payload.put("rulesVersion", RuleEngine.RULES_VERSION);
 
         return payload;
     }
 
-    // ── Config file readers ───────────────────────────────
-
-    private static Map<String, Object> readServerProperties(File serverDir) {
-        Map<String, Object> props = new LinkedHashMap<>();
-        File file = new File(serverDir, "server.properties");
-        if (!file.exists()) {
-            // Fallback to Bukkit API
-            props.put("view-distance", Bukkit.getViewDistance());
-            props.put("simulation-distance", Bukkit.getSimulationDistance());
-            props.put("online-mode", Bukkit.getOnlineMode());
-            props.put("max-players", Bukkit.getMaxPlayers());
-            return props;
-        }
-        try {
-            Properties p = new Properties();
-            p.load(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
-            for (String key : p.stringPropertyNames()) {
-                props.put(key, p.getProperty(key));
-            }
-        } catch (Exception e) {
-            props.put("view-distance", Bukkit.getViewDistance());
-            props.put("online-mode", Bukkit.getOnlineMode());
-        }
-        return props;
-    }
-
-    private static void readYamlInto(Map<String, Object> configs, File dir, String filename) {
-        File file = new File(dir, filename);
-        if (!file.exists()) return;
-        try {
-            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-            Map<String, Object> flat = new LinkedHashMap<>();
-            for (String key : yaml.getKeys(true)) {
-                if (!yaml.isConfigurationSection(key)) {
-                    Object val = yaml.get(key);
-                    flat.put(key, val != null ? val : "");
-                }
-            }
-            // Determine the config key name (e.g., "config/paper-world-defaults.yml")
-            String configKey;
-            if (dir.getName().equals("config")) {
-                configKey = "config/" + filename;
-            } else {
-                configKey = filename;
-            }
-            configs.put(configKey, flat);
-        } catch (Exception e) {
-            // skip unreadable files
-        }
+    /**
+     * Checks the API's {@code rulesVersion} against the plugin's {@link RuleEngine#RULES_VERSION}.
+     * Logs a warning when the major versions differ, indicating the rule sets may have drifted.
+     * Call once on startup after the API client is initialized; failures are silently ignored.
+     */
+    public CompletableFuture<Void> warnOnRulesVersionDrift(LessLag plugin) {
+        return health()
+                .thenAccept(body -> {
+                    try {
+                        JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+                        if (!json.has("rulesVersion")) return;
+                        String apiVersion    = json.get("rulesVersion").getAsString();
+                        String pluginVersion = RuleEngine.RULES_VERSION;
+                        int apiMajor    = Integer.parseInt(apiVersion.split("\\.")[0]);
+                        int pluginMajor = Integer.parseInt(pluginVersion.split("\\.")[0]);
+                        if (apiMajor != pluginMajor) {
+                            plugin.getLogger().warning(
+                                "[LessLag] Rules version mismatch: plugin=" + pluginVersion
+                                    + ", api=" + apiVersion
+                                    + ". Some web recommendations may be inaccurate."
+                                    + " Update the plugin or the API deployment.");
+                        }
+                    } catch (Exception ignored) { /* non-critical */ }
+                })
+                .exceptionally(ex -> null);
     }
 
     // ── Internal helpers ──────────────────────────────────
 
     private CompletableFuture<String> postJson(String path, Map<String, Object> body) {
         return postRawJson(path, GSON.toJson(body));
+    }
+
+    private CompletableFuture<String> postAuthJson(String path, Map<String, Object> body) {
+        return postAuthRawJson(path, GSON.toJson(body));
     }
 
     private CompletableFuture<String> postRawJson(String path, String jsonBody) {
@@ -316,20 +439,50 @@ public class LessLagApiClient {
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
+        return sendAndUnpack(request);
+    }
 
+    private CompletableFuture<String> postAuthRawJson(String path, String jsonBody) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .timeout(TIMEOUT)
+                .header("Content-Type", "application/json");
+        if (serverId != null)     builder.header("X-Server-Id",     serverId);
+        if (serverSecret != null) builder.header("X-Server-Secret", serverSecret);
+        HttpRequest request = builder.POST(HttpRequest.BodyPublishers.ofString(jsonBody)).build();
+        return sendAndUnpack(request);
+    }
+
+    private CompletableFuture<String> getAuth(String path) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .timeout(TIMEOUT)
+                .GET();
+        if (serverId != null)     builder.header("X-Server-Id",     serverId);
+        if (serverSecret != null) builder.header("X-Server-Secret", serverSecret);
+        return sendAndUnpack(builder.build());
+    }
+
+    private CompletableFuture<String> deleteAuthJson(String path, Map<String, Object> body) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .timeout(TIMEOUT)
+                .header("Content-Type", "application/json");
+        if (serverId != null)     builder.header("X-Server-Id",     serverId);
+        if (serverSecret != null) builder.header("X-Server-Secret", serverSecret);
+        HttpRequest request = builder.method("DELETE",
+                HttpRequest.BodyPublishers.ofString(GSON.toJson(body))).build();
+        return sendAndUnpack(request);
+    }
+
+    private CompletableFuture<String> sendAndUnpack(HttpRequest request) {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(resp -> {
                     int status = resp.statusCode();
-                    String body = resp.body();
-
-                    if (status >= 200 && status < 300) {
-                        return body;
-                    }
-
-                    String message = extractErrorMessage(body);
-                    if (status == 429) {
-                        throw new RuntimeException("Rate limited by API. " + message);
-                    }
+                    String respBody = resp.body();
+                    if (status >= 200 && status < 300) return respBody;
+                    String message = extractErrorMessage(respBody);
+                    if (status == 429) throw new RuntimeException("Rate limited by API. " + message);
                     throw new RuntimeException("API request failed (" + status + "): " + message);
                 });
     }
@@ -393,6 +546,19 @@ public class LessLagApiClient {
             return true;
         } catch (ClassNotFoundException e) {
             return false;
+        }
+    }
+
+    /**
+     * Extract a top-level string value from a JSON string.
+     * Returns {@code null} if the key is absent or parsing fails.
+     */
+    public static String extractFromJson(String json, String key) {
+        try {
+            JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+            return obj.has(key) ? obj.get(key).getAsString() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 }

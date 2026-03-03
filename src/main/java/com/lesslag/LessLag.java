@@ -20,6 +20,7 @@ import com.lesslag.monitor.BreedingLimiter;
 import com.lesslag.monitor.DensityOptimizer;
 import com.lesslag.util.CompatibilityManager;
 import com.lesslag.util.SchedulerAdapter;
+import com.lesslag.web.LessLagApiClient;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -33,9 +34,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -61,6 +68,12 @@ public class LessLag extends JavaPlugin implements Listener {
     private CompatibilityManager compatManager;
     private PremiumService premiumService;
     private SetupAdvisor setupAdvisor;
+
+    // Web integration
+    private LessLagApiClient apiClient;
+    private final Map<String, Map<String, Object>> pendingPatches = new ConcurrentHashMap<>();
+    private SchedulerAdapter.TaskHandle heartbeatTask;
+    private SchedulerAdapter.TaskHandle applyQueueTask;
 
     // Shared async executor for all monitoring tasks
     private ExecutorService asyncExecutor;
@@ -174,6 +187,9 @@ public class LessLag extends JavaPlugin implements Listener {
             getLogger().warning("Failed to load Premium features: " + e.getMessage());
             premiumService = new NoOpPremiumService();
         }
+
+        // Initialize web integration (server registration, heartbeat, apply-queue)
+        initWebIntegration();
     }
 
     private void initializeMonitors() {
@@ -238,6 +254,14 @@ public class LessLag extends JavaPlugin implements Listener {
             breedingLimiter.stop();
         if (densityOptimizer != null)
             densityOptimizer.stop();
+        if (heartbeatTask != null) {
+            heartbeatTask.cancel();
+            heartbeatTask = null;
+        }
+        if (applyQueueTask != null) {
+            applyQueueTask.cancel();
+            applyQueueTask = null;
+        }
     }
 
     @Override
@@ -293,6 +317,184 @@ public class LessLag extends JavaPlugin implements Listener {
         stopMonitors();
         initializeMonitors();
     }
+
+    // ── Web Integration ────────────────────────────────────────────────────
+
+    /**
+     * Initialize web integration: build the API client, register the server if
+     * needed, then schedule the heartbeat and (optionally) apply-queue poller.
+     */
+    private void initWebIntegration() {
+        String apiUrl = getConfig().getString("web.api-url", "https://lesslag-api.daucatmoitu.workers.dev");
+        String storedId     = getConfig().getString("web.server-id",     "");
+        String storedSecret = getConfig().getString("web.server-secret", "");
+
+        boolean hasCredentials = storedId != null && !storedId.isBlank()
+                              && storedSecret != null && !storedSecret.isBlank();
+        apiClient = new LessLagApiClient(apiUrl,
+                hasCredentials ? storedId     : null,
+                hasCredentials ? storedSecret : null);
+
+        // Warn on rules version drift (non-blocking)
+        apiClient.warnOnRulesVersionDrift(this);
+
+        if (!hasCredentials) {
+            // Auto-register on first run
+            String motd;
+            try {
+                motd = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                        .plainText().serialize(Bukkit.getServer().motd());
+            } catch (Exception e) {
+                motd = "Minecraft Server";
+            }
+            apiClient.registerServer(motd).thenAccept(json -> {
+                String newId     = LessLagApiClient.extractFromJson(json, "serverId");
+                String newSecret = LessLagApiClient.extractFromJson(json, "serverSecret");
+                if (newId == null || newSecret == null) return;
+
+                apiClient.setCredentials(newId, newSecret);
+
+                // Persist to config.yml
+                getConfig().set("web.server-id",     newId);
+                getConfig().set("web.server-secret", newSecret);
+                saveConfig();
+                getLogger().info("[LessLag Web] Registered new server identity: " + newId);
+
+                scheduleHeartbeat();
+                scheduleApplyQueuePoll();
+            }).exceptionally(ex -> {
+                getLogger().warning("[LessLag Web] Server registration failed: " + ex.getMessage());
+                return null;
+            });
+        } else {
+            scheduleHeartbeat();
+            scheduleApplyQueuePoll();
+        }
+    }
+
+    /** Schedule recurring heartbeat (default: every 30 s). */
+    private void scheduleHeartbeat() {
+        if (!getConfig().getBoolean("web.heartbeat.enabled", true)) return;
+        int intervalSec = getConfig().getInt("web.heartbeat.interval-seconds", 30);
+        long periodTicks = intervalSec * 20L;
+        heartbeatTask = SchedulerAdapter.runAsyncRepeating(this, () -> {
+            Map<String, Object> payload = LessLagApiClient.buildHeartbeatPayload(this);
+            apiClient.sendHeartbeat(payload).exceptionally(ex -> {
+                // Suppress routine network errors silently
+                return null;
+            });
+        }, periodTicks, periodTicks);
+    }
+
+    /** Schedule recurring apply-queue poll (default: every 60 s). */
+    private void scheduleApplyQueuePoll() {
+        if (!getConfig().getBoolean("web.apply-queue.enabled", false)) return;
+        int intervalSec = getConfig().getInt("web.apply-queue.poll-interval-seconds", 60);
+        long periodTicks = intervalSec * 20L;
+        applyQueueTask = SchedulerAdapter.runAsyncRepeating(this, () ->
+            apiClient.pollApplyQueue().thenAccept(patches -> {
+                for (Map<String, Object> patch : patches) handleIncomingPatch(patch);
+            }).exceptionally(ex -> null),
+        periodTicks * 2, periodTicks);
+    }
+
+    /**
+     * Receive a patch map from the apply-queue and decide whether to
+     * auto-apply it or hold it pending a player {@code /lg confirm} command.
+     */
+    void handleIncomingPatch(Map<String, Object> patch) {
+        String patchId    = String.valueOf(patch.getOrDefault("patchId", ""));
+        String riskLevel  = String.valueOf(patch.getOrDefault("riskLevel", "SAFE")).toUpperCase();
+        if (patchId.isBlank() || pendingPatches.containsKey(patchId)) return;
+
+        int autoSec = getConfig().getInt("web.apply-queue.auto-confirm-seconds", 300);
+        boolean isAggressive = "AGGRESSIVE".equals(riskLevel);
+
+        if (!isAggressive && autoSec > 0) {
+            // Auto-apply once after the configured delay (one-shot, not repeating)
+            pendingPatches.put(patchId, patch);
+            SchedulerAdapter.runAsyncDelayed(this, () -> {
+                if (pendingPatches.remove(patchId) != null) {
+                    applyPatch(patchId, patch);
+                }
+            }, autoSec * 20L);
+        } else {
+            // Queue for manual confirm — notify online ops via Folia-compatible runGlobal
+            pendingPatches.put(patchId, patch);
+            String shortId = patchId.length() >= 8 ? patchId.substring(0, 8) : patchId;
+            @SuppressWarnings("unchecked")
+            List<String> changes = (List<String>) patch.getOrDefault("changes", List.of());
+            SchedulerAdapter.runGlobal(this, () ->
+                Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(
+                    "&b[LessLag] &7New web patch (&e" + riskLevel + "&7, " + changes.size()
+                    + " change(s)). Confirm with &b/lg confirm " + shortId))
+            );
+        }
+    }
+
+    /** Apply a patch by writing the key/value entries to config. */
+    @SuppressWarnings("unchecked")
+    private void applyPatch(String patchId, Map<String, Object> patch) {
+        double msptBefore = tpsMonitor != null ? tpsMonitor.getCurrentMSPT() : 0;
+        List<Map<String, Object>> changes =
+                (List<Map<String, Object>>) patch.getOrDefault("changes", List.of());
+        for (Map<String, Object> change : changes) {
+            String file  = String.valueOf(change.getOrDefault("file",  ""));
+            String key   = String.valueOf(change.getOrDefault("key",   ""));
+            Object value = change.get("value");
+            if (!file.isBlank() && !key.isBlank() && value != null) {
+                getLogger().info("[LessLag Web] Applying patch: " + file + " " + key + " = " + value);
+                // Only config.yml keys are applied directly via the Bukkit config object
+                if ("config.yml".equals(file)) {
+                    getConfig().set(key, value);
+                }
+                // Other files (paper.yml, spigot.yml, …) would require per-format handling —
+                // left as an extension point.
+            }
+        }
+        saveConfig();
+        double msptAfter = tpsMonitor != null ? tpsMonitor.getCurrentMSPT() : 0;
+        apiClient.confirmPatch(patchId, "APPLIED", msptBefore, msptAfter)
+                 .exceptionally(ex -> null);
+    }
+
+    /**
+     * Called by {@link com.lesslag.command.LagCommand} when a player runs
+     * {@code /lg confirm <shortId>}.
+     */
+    public void confirmPendingPatch(String shortId, CommandSender sender) {
+        if (shortId == null || shortId.isBlank()) {
+            if (pendingPatches.isEmpty()) {
+                sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
+                        .deserialize("&b[LessLag] &7No pending patches."));
+            } else {
+                sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
+                        .deserialize("&b[LessLag] &7Pending patches:"));
+                for (String id : pendingPatches.keySet()) {
+                    String sid = id.length() >= 8 ? id.substring(0, 8) : id;
+                    sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
+                            .deserialize("  &e" + sid));
+                }
+            }
+            return;
+        }
+        String matchedId = pendingPatches.keySet().stream()
+                .filter(id -> id.startsWith(shortId) || id.equals(shortId))
+                .findFirst().orElse(null);
+        if (matchedId == null) {
+            sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
+                    .deserialize("&b[LessLag] &cNo patch matching '" + shortId + "'."));
+            return;
+        }
+        Map<String, Object> patch = pendingPatches.remove(matchedId);
+        if (patch != null) {
+            applyPatch(matchedId, patch);
+            sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
+                    .deserialize("&b[LessLag] &aPatch applied successfully."));
+        }
+    }
+
+    public LessLagApiClient getApiClient() { return apiClient; }
 
     // ── Getters ────────────────────────────
 

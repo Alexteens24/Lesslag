@@ -35,6 +35,7 @@ export default function SessionPage() {
     setPlatform,
     setHardware,
     setConfigs,
+    setConnectedServer,
   } = useLessLagStore();
 
   useEffect(() => {
@@ -68,6 +69,11 @@ export default function SessionPage() {
         if (data.platform) setPlatform(data.platform);
         if (data.hardware) setHardware(data.hardware);
         if (data.configs) setConfigs(data.configs);
+
+        // Wire up server identity for live metrics
+        if (data.serverId) {
+          setConnectedServer(data.serverId, data.serverName ?? 'Minecraft Server');
+        }
 
         // Navigate to main configurator – store is already populated
         router.replace('/');
