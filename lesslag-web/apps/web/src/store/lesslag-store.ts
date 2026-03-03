@@ -138,6 +138,7 @@ const defaultPlatform: PlatformInfo = {
   hasFolia: false,
 };
 
+// Default values sourced from Paper docs: https://docs.papermc.io/paper/reference/configuration/
 const defaultConfigs: ConfigMap = {
   'server.properties': {
     'online-mode': 'true',
@@ -147,38 +148,90 @@ const defaultConfigs: ConfigMap = {
     'pause-when-empty-seconds': '60',
   },
   'bukkit.yml': {
+    // spawn-limits (paper docs: monsters=70,animals=10,water-animals=5,water-ambient=20,water-underground-creature=5,axolotls=5,ambient=15)
     'spawn-limits.monsters': 70,
     'spawn-limits.animals': 10,
+    'spawn-limits.water-animals': 5,
+    'spawn-limits.water-ambient': 20,
+    'spawn-limits.water-underground-creature': 5,
+    'spawn-limits.axolotls': 5,
     'spawn-limits.ambient': 15,
+    // ticks-per (paper docs: animal-spawns=400, monster-spawns=1, autosave=6000)
+    'ticks-per.monster-spawns': 1,
     'ticks-per.animal-spawns': 400,
+    'ticks-per.water-spawns': 1,
+    'ticks-per.water-ambient-spawns': 1,
+    'ticks-per.ambient-spawns': 1,
+    'ticks-per.autosave': 6000,
   },
   'spigot.yml': {
     'world-settings.default.simulation-distance': 10,
     'world-settings.default.mob-spawn-range': 8,
-    'world-settings.default.merge-radius.item': -1,
+    // paper docs: merge-radius.exp=-1, merge-radius.item=0.5
+    'world-settings.default.merge-radius.item': 0.5,
     'world-settings.default.merge-radius.exp': -1,
+    // paper docs: hopper-transfer=8, hopper-check=1, hopper-amount=1
+    'world-settings.default.ticks-per.hopper-transfer': 8,
+    'world-settings.default.ticks-per.hopper-check': 1,
+    'world-settings.default.ticks-per.hopper-amount': 1,
+    // entity-tracking-range (spigot defaults)
     'world-settings.default.entity-tracking-range.players': 128,
+    'world-settings.default.entity-tracking-range.animals': 96,
+    'world-settings.default.entity-tracking-range.monsters': 96,
+    'world-settings.default.entity-tracking-range.misc': 96,
+    'world-settings.default.entity-tracking-range.other': 64,
+    'world-settings.default.entity-tracking-range.display': 128,
   },
   'config/paper-world-defaults.yml': {
+    // paper docs: redstone-implementation default is VANILLA
     'misc.redstone-implementation': 'VANILLA',
+    // paper docs: per-player-mob-spawns=true
     'entities.spawning.per-player-mob-spawns': true,
-    'chunks.prevent-moving-into-unloaded-chunks': true,
+    // paper docs: prevent-moving-into-unloaded-chunks=false
+    'chunks.prevent-moving-into-unloaded-chunks': false,
+    // paper docs: max-entity-collisions=8
     'collisions.max-entity-collisions': 8,
-    'collisions.fix-climbing-bypassing-cramming-rule': true,
+    // paper docs: fix-climbing-bypassing-cramming-rule=false
+    'collisions.fix-climbing-bypassing-cramming-rule': false,
     'environment.optimize-explosions': false,
     'environment.treasure-maps.find-already-discovered.villager-trade': false,
     'feature-seeds.generate-random-seeds-for-all': false,
+    // paper docs: delay-chunk-unloads-by=10s, max-auto-save-chunks-per-tick=24
     'chunks.delay-chunk-unloads-by': '10s',
     'chunks.max-auto-save-chunks-per-tick': 24,
     'entities.spawning.alt-item-despawn-rate.enabled': false,
+    // paper docs: entity-per-chunk-save-limit defaults are all -1
     'chunks.entity-per-chunk-save-limit.arrow': -1,
+    'chunks.entity-per-chunk-save-limit.ender_pearl': -1,
+    'chunks.entity-per-chunk-save-limit.experience_orb': -1,
+    'chunks.entity-per-chunk-save-limit.fireball': -1,
+    'chunks.entity-per-chunk-save-limit.snowball': -1,
+    // paper docs: armor-stands tick=true, do-collision-entity-lookups=true
     'entities.armor-stands.tick': true,
     'entities.armor-stands.do-collision-entity-lookups': true,
     'entities.tracking-range-y.enabled': false,
+    // paper docs: spawn-limits in paper-world-defaults are all -1 (inherits bukkit.yml)
+    'entities.spawning.spawn-limits.monster': -1,
+    'entities.spawning.spawn-limits.creature': -1,
+    'entities.spawning.spawn-limits.ambient': -1,
+    'entities.spawning.spawn-limits.axolotls': -1,
+    'entities.spawning.spawn-limits.water_creature': -1,
+    'entities.spawning.spawn-limits.water_ambient': -1,
+    'entities.spawning.spawn-limits.underground_water_creature': -1,
   },
   'config/paper-global.yml': {
     'chunk-system.worker-threads': -1,
     'chunk-system.io-threads': -1,
+    // paper docs: chunk-loading-basic defaults
+    'chunk-loading-basic.player-max-chunk-load-rate': 100,
+    'chunk-loading-basic.player-max-chunk-send-rate': 75,
+    'chunk-loading-basic.player-max-chunk-generate-rate': -1,
+    'chunk-loading-advanced.player-max-concurrent-chunk-loads': 0,
+    'chunk-loading-advanced.player-max-concurrent-chunk-generates': 0,
+    // paper docs: spam-limiter defaults
+    'spam-limiter.incoming-packet-threshold': 300,
+    'spam-limiter.tab-spam-increment': 1,
+    'spam-limiter.tab-spam-limit': 500,
     'item-validation.book-size.page-max': 2560,
     'item-validation.resolve-selectors-in-books': false,
   },
