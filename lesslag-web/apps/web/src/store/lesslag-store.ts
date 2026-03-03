@@ -20,6 +20,12 @@ interface Snapshot {
   configs: ConfigMap;
 }
 
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+}
+
 export type SetupStepId = 'hardware' | 'preset' | 'analysis' | 'changes' | 'export';
 export type SetupStepStatus = 'not_started' | 'ready' | 'done';
 
@@ -73,6 +79,7 @@ interface LessLagState {
   selectedProposals: Set<string>; // keyed by `file:key`
   activeTab: 'editor' | 'presets' | 'diff' | 'rationale' | 'hardware' | 'conflicts';
   showImportModal: boolean;
+  toasts: Toast[];
   setupProgress: SetupProgress;
 
   // ─── Snapshots (Phase 4) ───
@@ -91,6 +98,8 @@ interface LessLagState {
   updateConfig: (file: string, key: string, value: string | number | boolean) => void;
   setActiveTab: (tab: LessLagState['activeTab']) => void;
   setShowImportModal: (show: boolean) => void;
+  addToast: (message: string, type?: Toast['type']) => void;
+  dismissToast: (id: string) => void;
   completeSetupStep: (step: SetupStepId) => void;
   setSetupStepReady: (step: SetupStepId) => void;
 
@@ -191,6 +200,7 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
   selectedProposals: new Set<string>(),
   activeTab: 'presets',
   showImportModal: false,
+  toasts: [],
   setupProgress: defaultSetupProgress,
   snapshots: [],
   currentSnapshotId: null,
@@ -213,6 +223,12 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
     })),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setShowImportModal: (show) => set({ showImportModal: show }),
+  addToast: (message, type = 'info') =>
+    set((s) => ({
+      toasts: [...s.toasts.slice(-4), { id: crypto.randomUUID(), message, type }],
+    })),
+  dismissToast: (id) =>
+    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
   completeSetupStep: (step) =>
     set((s) => ({
       setupProgress: markStepDone(s.setupProgress, step),

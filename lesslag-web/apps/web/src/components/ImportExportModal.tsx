@@ -140,14 +140,14 @@ export function ImportExportModal() {
                 readOnly
                 value={exportJson}
                 className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-secondary)] font-mono resize-none"
-                rows={10}
+                rows={7}
               />
               <div className="flex gap-3">
                 <button
                   onClick={copyToClipboard}
                   className="flex-1 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
                 >
-                  📋 Copy to Clipboard
+                  📋 Copy JSON
                 </button>
                 <button
                   onClick={downloadFile}
@@ -155,6 +155,32 @@ export function ImportExportModal() {
                 >
                   💾 Download JSON
                 </button>
+              </div>
+
+              {/* Per-file downloads */}
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">Download individual files</p>
+                {Object.entries(exportData).map(([filepath, content]) => {
+                  const filename = filepath.split('/').pop() ?? filepath;
+                  return (
+                    <button
+                      key={filepath}
+                      onClick={() => {
+                        const blob = new Blob([content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-elevated)] hover:border-[var(--border-hover)]"
+                    >
+                      <span className="font-mono text-[var(--accent)]">{filename}</span>
+                      <span className="text-[var(--text-muted)]">↓ download</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

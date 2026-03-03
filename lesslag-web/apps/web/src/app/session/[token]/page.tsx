@@ -81,13 +81,13 @@ export default function SessionPage() {
   /* ── Error state ─────────────────────────────────── */
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950 text-white">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <div className="space-y-4 text-center">
-          <h1 className="text-2xl font-bold text-red-400">Session Error</h1>
-          <p className="text-gray-400">{error}</p>
+          <h1 className="text-2xl font-bold text-[var(--danger)]">Session Error</h1>
+          <p className="text-[var(--text-muted)]">{error}</p>
           <a
             href="/"
-            className="inline-block rounded bg-blue-600 px-4 py-2 hover:bg-blue-700"
+            className="inline-block rounded bg-[var(--accent)] px-4 py-2 hover:bg-[var(--accent-hover)] text-white"
           >
             Go to Configurator
           </a>
@@ -98,11 +98,11 @@ export default function SessionPage() {
 
   /* ── Loading state ───────────────────────────────── */
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-950 text-white">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="space-y-4 text-center">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
-        <p className="text-gray-400">Loading server configuration…</p>
-        <p className="text-xs text-gray-600">Token: {token}</p>
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+        <p className="text-[var(--text-muted)]">Loading server configuration…</p>
+        <p className="text-xs text-[var(--text-subtle)]">Token: {token}</p>
       </div>
     </div>
   );
