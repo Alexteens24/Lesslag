@@ -421,14 +421,22 @@ public class LessLag extends JavaPlugin implements Listener {
     public boolean isMobAwareSafe(Mob mob) {
         if (mob == null)
             return true;
-        return mob.isAware();
+        try {
+            return mob.isAware();
+        } catch (IllegalStateException ignored) {
+            return true;
+        }
     }
 
     public boolean setMobAwareSafe(Mob mob, boolean aware) {
         if (mob == null)
             return false;
-        mob.setAware(aware);
-        return true;
+        try {
+            mob.setAware(aware);
+            return true;
+        } catch (IllegalStateException ignored) {
+            return false;
+        }
     }
 
     /**

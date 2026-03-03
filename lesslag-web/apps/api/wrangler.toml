@@ -1,0 +1,19 @@
+name = "lesslag-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+RATE_LIMIT_MAX = "30"
+RATE_LIMIT_WINDOW_SEC = "60"
+
+# KV namespace for rate limiting (create with: wrangler kv namespace create RATE_LIMIT)
+# Uncomment and fill in after creating:
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT"
+# id = "your-kv-namespace-id"
+
+# KV namespace for session tokens (create with: npx wrangler kv namespace create SESSIONS)
+# Falls back to in-memory store if not bound.
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "1b995059ed3e4db3bf04130d40ec7460"

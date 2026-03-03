@@ -28,6 +28,8 @@ public class BottleneckAnalyzer {
     // Config values
     private long thresholdMs;
     private long sampleIntervalMs;
+    private int minSamples;
+    private long reportCooldownMs;
 
     // State tracking
     private volatile long lastTickTimeNano;
@@ -37,6 +39,7 @@ public class BottleneckAnalyzer {
     private volatile boolean isSpiking = false;
     private final Map<String, Integer> currentSpikeSamples = new ConcurrentHashMap<>();
     private final AtomicInteger totalSamplesInCurrentSpike = new AtomicInteger(0);
+    private volatile long lastReportTimeMs = 0;
 
     // Runtime stats (volatile for cross-thread command reads)
     private volatile int totalSpikes = 0;
@@ -55,6 +58,8 @@ public class BottleneckAnalyzer {
         // Defaults to 100ms threshold, 5ms sampling interval
         this.thresholdMs = plugin.getConfig().getLong("system.bottleneck-analyzer.threshold-ms", 100L);
         this.sampleIntervalMs = plugin.getConfig().getLong("system.bottleneck-analyzer.sample-interval-ms", 5L);
+        this.minSamples = plugin.getConfig().getInt("system.bottleneck-analyzer.min-samples", 3);
+        this.reportCooldownMs = plugin.getConfig().getLong("system.bottleneck-analyzer.report-cooldown-ms", 1500L);
     }
 
     /**
@@ -62,6 +67,16 @@ public class BottleneckAnalyzer {
      */
     public void start() {
         if (!plugin.getConfig().getBoolean("system.bottleneck-analyzer.enabled", true)) {
+            return;
+        }
+
+        // Regionized runtimes (Folia/Luminol/etc.) do not have a single authoritative
+        // main thread for tick ownership. The watchdog model here is built around one
+        // main thread, so it can produce false positives on Folia.
+        if (SchedulerAdapter.isFolia()) {
+            running = false;
+            plugin.getLogger().info(
+                    "BottleneckAnalyzer disabled on Folia/regionized runtime (single-thread watchdog is not reliable).");
             return;
         }
 
@@ -113,14 +128,16 @@ public class BottleneckAnalyzer {
      */
     public void tickPing() {
         if (!running) return;
-        lastTickTimeNano = System.nanoTime();
+        long now = System.nanoTime();
+        long elapsedMs = (now - lastTickTimeNano) / 1_000_000L;
+        lastTickTimeNano = now;
 
         // If we were spiking but now the tick completed, process the samples
         if (isSpiking) {
             isSpiking = false;
             int totalSamples = totalSamplesInCurrentSpike.getAndSet(0);
             if (totalSamples > 0) {
-                processAndReportSpike(new HashMap<>(currentSpikeSamples), totalSamples);
+                processAndReportSpike(new HashMap<>(currentSpikeSamples), totalSamples, Math.max(elapsedMs, thresholdMs));
                 currentSpikeSamples.clear();
             }
         }
@@ -187,6 +204,7 @@ public class BottleneckAnalyzer {
     private String extractMeaningfulMethod(StackTraceElement[] stack) {
         for (StackTraceElement element : stack) {
             String className = element.getClassName();
+            String methodName = element.getMethodName();
 
             // Skip JVM internals
             if (className.startsWith("java.") || className.startsWith("javax.") || className.startsWith("sun.")) {
@@ -195,27 +213,32 @@ public class BottleneckAnalyzer {
 
             // Skip standard NMS/Paper tick loops unless it's the only thing there
             if (className.startsWith("net.minecraft.server") &&
-                    (element.getMethodName().equals("tick") || element.getMethodName().equals("doTick"))) {
+                    (methodName.equals("tick") || methodName.equals("doTick") || methodName.equals("runServer")
+                            || methodName.equals("run"))) {
                 continue;
             }
 
             // Format: com.plugin.Class.method
-            return className + "." + element.getMethodName();
+            return className + "." + methodName;
         }
 
-        // Fallback to top if everything was skipped
-        if (stack.length > 0) {
-            return stack[0].getClassName() + "." + stack[0].getMethodName();
-        }
-        return "Unknown";
+        // If only generic loop/internal frames were found, skip this sample.
+        return null;
     }
 
     /**
      * Analyze aggregated samples and report to admins
      */
-    private void processAndReportSpike(Map<String, Integer> samples, int totalSamples) {
+    private void processAndReportSpike(Map<String, Integer> samples, int totalSamples, long measuredDurationMs) {
         if (totalSamples == 0 || samples.isEmpty())
             return;
+        if (totalSamples < minSamples)
+            return;
+
+        long nowMs = System.currentTimeMillis();
+        if (nowMs - lastReportTimeMs < reportCooldownMs)
+            return;
+        lastReportTimeMs = nowMs;
 
         // Find the method taking the most time
         Map.Entry<String, Integer> worstMethod = Collections.max(
@@ -223,13 +246,7 @@ public class BottleneckAnalyzer {
                 Map.Entry.comparingByValue());
 
         double percentage = (worstMethod.getValue() * 100.0) / totalSamples;
-        // The lastTickTimeNano was already updated by the pingWatchdog before this
-        // method was called,
-        // so we calculate the approximate duration based on the number of samples
-        // taken.
-        // We add thresholdMs because sampling only starts AFTER the threshold is
-        // reached.
-        long durationMs = thresholdMs + (totalSamples * sampleIntervalMs);
+        long durationMs = measuredDurationMs;
 
         // Track stats
         totalSpikes++;

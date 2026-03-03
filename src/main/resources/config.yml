@@ -296,6 +296,10 @@ system:
     threshold-ms: 100
     # How often to sample the thread while it's frozen
     sample-interval-ms: 5
+    # Ignore tiny sample windows to reduce false positives/noise
+    min-samples: 3
+    # Minimum time between reported spikes
+    report-cooldown-ms: 1500
 
 # =============================================================
 #  AUTOMATION: Predictive & Thresholds

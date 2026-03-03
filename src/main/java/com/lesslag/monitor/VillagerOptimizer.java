@@ -19,6 +19,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Villager Lobotomizer — Optimizes villagers by disabling AI when they are
@@ -47,6 +48,7 @@ public class VillagerOptimizer implements Listener {
     // State
     // UUIDs of villagers who have AI temporarily enabled [UUID -> ActiveVillagerInfo]
     private final Map<UUID, ActiveVillagerInfo> activeVillagers = new ConcurrentHashMap<>();
+    private final AtomicInteger optimizedVillagers = new AtomicInteger(0);
 
     // ── Incremental scan state ──
     private Chunk[] scanChunks = null;
@@ -204,6 +206,7 @@ public class VillagerOptimizer implements Listener {
                     plugin.setMobAwareSafe(villager, false);
                     villager.setMetadata("LessLag.VillagerOptimized",
                             new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                    optimizedVillagers.incrementAndGet();
                 }
                 // Update last check timestamp
                 villager.setMetadata("LessLag.LastTrappedCheck",
@@ -213,6 +216,7 @@ public class VillagerOptimizer implements Listener {
                 plugin.setMobAwareSafe(villager, true);
                 villager.removeMetadata("LessLag.VillagerOptimized", plugin);
                 villager.removeMetadata("LessLag.LastTrappedCheck", plugin);
+                optimizedVillagers.updateAndGet(value -> Math.max(0, value - 1));
             }
         }
     }
@@ -284,6 +288,7 @@ public class VillagerOptimizer implements Listener {
         if (!plugin.isMobAwareSafe(villager)) {
             plugin.setMobAwareSafe(villager, true);
             villager.removeMetadata("LessLag.VillagerOptimized", plugin);
+            optimizedVillagers.updateAndGet(value -> Math.max(0, value - 1));
         }
 
         // 2. Mark as active with location data for region-safe dispatch
@@ -320,6 +325,7 @@ public class VillagerOptimizer implements Listener {
                                 plugin.setMobAwareSafe(v, false);
                                 v.setMetadata("LessLag.VillagerOptimized",
                                         new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                                optimizedVillagers.incrementAndGet();
                             }
                         }
                     });
@@ -333,6 +339,7 @@ public class VillagerOptimizer implements Listener {
                                 plugin.setMobAwareSafe(v, false);
                                 v.setMetadata("LessLag.VillagerOptimized",
                                         new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                                optimizedVillagers.incrementAndGet();
                             }
                         }
                     });
@@ -346,15 +353,7 @@ public class VillagerOptimizer implements Listener {
     // ══════════════════════════════════════════════════
 
     public int getOptimizedCount() {
-        int count = 0;
-        for (World w : Bukkit.getWorlds()) {
-            for (Entity e : w.getEntitiesByClass(Villager.class)) {
-                if (!plugin.isMobAwareSafe((Villager) e)) {
-                    count++;
-                }
-            }
-        }
-        return count;
+        return optimizedVillagers.get();
     }
 
     public int getActiveRestoredCount() {

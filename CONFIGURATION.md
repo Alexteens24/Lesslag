@@ -201,6 +201,11 @@ Manages server view distance and chunk loading to maintain TPS.
     *   `auto-analyze-tps`: Automatically starts analysis if TPS drops below this value.
 *   `system.tick-monitor`: Logs tick spikes.
     *   `threshold-ms`: Logs any tick taking longer than this to execute.
+*   `system.bottleneck-analyzer`: Stack-sampling analyzer for long main-thread stalls.
+    *   `threshold-ms`: Start sampling when elapsed time since last tick exceeds this value.
+    *   `sample-interval-ms`: Sampling period while the stall is ongoing.
+    *   `min-samples`: Minimum collected samples required before a spike is reported.
+    *   `report-cooldown-ms`: Minimum delay between spike reports to avoid console spam.
 
 ---
 
@@ -265,3 +270,86 @@ Configures what information is shown in the `/lg health` command.
 *   `disk`: Disk usage and I/O.
 *   `worlds`: Loaded chunks and entities per world.
 *   `entity-breakdown`: Detailed count of entities by type.
+
+---
+
+## Practical Tuning Order (Production)
+
+Use this order to reduce risk and isolate side effects:
+
+1. **Observe first**
+    - Run `/lg status`, `/lg health`, `/lg tickmonitor`, `/lg trace` before edits.
+2. **Limit burst sources**
+    - Tune `modules.redstone` and `modules.entities` first.
+3. **Tune AI and farm load**
+    - Then adjust `modules.mob-ai`, `modules.villager-optimizer`, `modules.density-optimizer`, `modules.breeding-limiter`.
+4. **Tune chunk pressure**
+    - Then adjust `modules.chunks` and optional `modules.chunks.world-guard`.
+5. **Tune automation thresholds last**
+    - Finalize `automation.thresholds` and `automation.predictive-optimization` once baseline is stable.
+
+Change one section at a time and validate for at least one peak session window.
+
+---
+
+## Profile Baselines
+
+These are baseline ideas, not strict presets.
+
+### SMP (Balanced)
+
+- `workload-limit-ms`: `2`
+- `modules.mob-ai.active-radius`: `40-48`
+- `modules.entities.chunk-limiter.max-entities-per-chunk`: `40-60`
+- `modules.density-optimizer.check-interval`: `40`
+
+### Farm-Heavy / Skyblock
+
+- Keep `modules.density-optimizer.enabled: true`
+- Lower `modules.density-optimizer.limits` for dominant farm species first
+- Use `modules.breeding-limiter.max-animals-per-chunk` in `10-20`
+- Consider lower `modules.entities.chunk-limiter.max-entities-per-chunk`
+
+### Lobby / Minigame
+
+- Keep farm modules conservative or disabled if irrelevant
+- Focus on `modules.chunks`, `modules.redstone`, and `automation.thresholds`
+- Keep notifications clear to avoid alert fatigue
+
+---
+
+## Troubleshooting by Symptom
+
+### Symptom: Frequent spike warnings in `/lg tickmonitor`
+
+- Check `system.tick-monitor.threshold-ms` and `system.bottleneck-analyzer.threshold-ms`
+- Run `/lg trace` for culprit patterns
+- Reduce burst load in redstone/farm modules before tightening global limits
+
+### Symptom: TPS unstable during exploration
+
+- Review `modules.chunks` and `modules.chunks.world-guard`
+- Check world chunk pressure using `/lg worldguard` and `/lg chunks`
+- Lower view/simulation distances incrementally
+
+### Symptom: Farm lag despite limiter modules enabled
+
+- Run `/lg density` and `/lg breeding` to verify runtime counters are changing
+- Lower species limits under `modules.density-optimizer.limits`
+- Re-check bypass settings (`bypass-tamed`, `bypass-named`, `bypass-leashed`)
+
+### Symptom: Memory pressure trends upward over time
+
+- Review `system.memory-leak-detection.*`
+- Verify `notify` and slope thresholds are appropriate
+- Cross-check with `/lg gcinfo` for GC frequency and pause times
+
+---
+
+## Safe Change Checklist
+
+- Capture before/after snapshots with `/lg status` and `/lg tickmonitor`
+- Keep edits small (one module group per change)
+- Use `/lg reload` after each change batch
+- Keep a rollback copy of `config.yml`
+- Revisit threshold actions if they trigger too aggressively
