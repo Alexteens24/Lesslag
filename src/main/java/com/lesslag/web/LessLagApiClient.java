@@ -69,7 +69,7 @@ public class LessLagApiClient {
      */
     public CompletableFuture<String> registerServer(String serverName) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("name", serverName);
+        body.put("serverName", serverName);  // matched by API body.serverName check
         return postJson("/api/servers/register", body);
     }
 

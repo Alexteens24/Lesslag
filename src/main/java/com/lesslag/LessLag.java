@@ -34,11 +34,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -403,12 +399,17 @@ public class LessLag extends JavaPlugin implements Listener {
      * auto-apply it or hold it pending a player {@code /lg confirm} command.
      */
     void handleIncomingPatch(Map<String, Object> patch) {
-        String patchId    = String.valueOf(patch.getOrDefault("patchId", ""));
-        String riskLevel  = String.valueOf(patch.getOrDefault("riskLevel", "SAFE")).toUpperCase();
+        String patchId = String.valueOf(patch.getOrDefault("patchId", ""));
         if (patchId.isBlank() || pendingPatches.containsKey(patchId)) return;
 
-        int autoSec = getConfig().getInt("web.apply-queue.auto-confirm-seconds", 300);
+        // Derive overall risk level from the highest riskTag across proposals
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> proposals =
+                (List<Map<String, Object>>) patch.getOrDefault("proposals", List.of());
+        String riskLevel = deriveRiskLevel(proposals);
         boolean isAggressive = "AGGRESSIVE".equals(riskLevel);
+
+        int autoSec = getConfig().getInt("web.apply-queue.auto-confirm-seconds", 300);
 
         if (!isAggressive && autoSec > 0) {
             // Auto-apply once after the configured delay (one-shot, not repeating)
@@ -422,33 +423,46 @@ public class LessLag extends JavaPlugin implements Listener {
             // Queue for manual confirm — notify online ops via Folia-compatible runGlobal
             pendingPatches.put(patchId, patch);
             String shortId = patchId.length() >= 8 ? patchId.substring(0, 8) : patchId;
-            @SuppressWarnings("unchecked")
-            List<String> changes = (List<String>) patch.getOrDefault("changes", List.of());
             SchedulerAdapter.runGlobal(this, () ->
                 Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(
-                    "&b[LessLag] &7New web patch (&e" + riskLevel + "&7, " + changes.size()
+                    "&b[LessLag] &7New web patch (&e" + riskLevel + "&7, " + proposals.size()
                     + " change(s)). Confirm with &b/lg confirm " + shortId))
             );
         }
+    }
+
+    /**
+     * Returns the highest risk level found across a list of proposals.
+     * Ranking: SAFE < BALANCED < AGGRESSIVE (case-insensitive).
+     */
+    private static String deriveRiskLevel(List<Map<String, Object>> proposals) {
+        int max = 0; // 0=SAFE, 1=BALANCED, 2=AGGRESSIVE
+        for (Map<String, Object> p : proposals) {
+            String tag = String.valueOf(p.getOrDefault("riskTag", "safe")).toLowerCase();
+            if (tag.equals("aggressive")) max = Math.max(max, 2);
+            else if (tag.equals("balanced")) max = Math.max(max, 1);
+        }
+        return max == 2 ? "AGGRESSIVE" : max == 1 ? "BALANCED" : "SAFE";
     }
 
     /** Apply a patch by writing the key/value entries to config. */
     @SuppressWarnings("unchecked")
     private void applyPatch(String patchId, Map<String, Object> patch) {
         double msptBefore = tpsMonitor != null ? tpsMonitor.getCurrentMSPT() : 0;
-        List<Map<String, Object>> changes =
-                (List<Map<String, Object>>) patch.getOrDefault("changes", List.of());
-        for (Map<String, Object> change : changes) {
-            String file  = String.valueOf(change.getOrDefault("file",  ""));
-            String key   = String.valueOf(change.getOrDefault("key",   ""));
-            Object value = change.get("value");
+        // apply-queue uses PatchProposalLike: { targetFile, configKey, beforeValue, afterValue }
+        List<Map<String, Object>> proposals =
+                (List<Map<String, Object>>) patch.getOrDefault("proposals", List.of());
+        for (Map<String, Object> proposal : proposals) {
+            String file  = String.valueOf(proposal.getOrDefault("targetFile",  ""));
+            String key   = String.valueOf(proposal.getOrDefault("configKey",   ""));
+            Object value = proposal.get("afterValue");
             if (!file.isBlank() && !key.isBlank() && value != null) {
                 getLogger().info("[LessLag Web] Applying patch: " + file + " " + key + " = " + value);
                 // Only config.yml keys are applied directly via the Bukkit config object
                 if ("config.yml".equals(file)) {
                     getConfig().set(key, value);
                 }
-                // Other files (paper.yml, spigot.yml, …) would require per-format handling —
+                // Other files (paper.yml, spigot.yml, …) require per-format handling —
                 // left as an extension point.
             }
         }
