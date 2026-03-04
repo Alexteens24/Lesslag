@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Auto-detects conflicting plugins and server forks at startup.
@@ -27,8 +28,9 @@ public class CompatibilityManager {
     private boolean clearlagDetected = false;
     private boolean mobFarmManagerDetected = false;
 
-    // What we auto-disabled
+    // What we auto-disabled / warned about
     private final List<String> autoDisabled = new ArrayList<>();
+    private final List<String> warnings = new ArrayList<>();
 
     public CompatibilityManager(LessLag plugin) {
         this.plugin = plugin;
@@ -67,6 +69,11 @@ public class CompatibilityManager {
             }
             plugin.getLogger().info("╚══════════════════════════════════════════╝");
             plugin.getLogger().info("[Compat] Override in config.yml → compatibility section");
+        }
+        if (!warnings.isEmpty()) {
+            for (String w : warnings) {
+                plugin.getLogger().warning("[Compat] " + w);
+            }
         }
     }
 
@@ -149,14 +156,12 @@ public class CompatibilityManager {
             // implementation.
             // We'll warn about potential conflict instead of forcefully disabling it.
             if (plugin.getConfig().getBoolean("modules.redstone.enabled", true)) {
-                plugin.getLogger().warning("[Compat] ClearLag detected! Both plugins have Redstone Limiting enabled.");
-                plugin.getLogger().warning("[Compat] Consider disabling one to avoid conflicts.");
+                warnings.add("ClearLag detected! Both plugins have Redstone Limiting enabled. Consider disabling one.");
             }
 
-            // Remove clear-ground-items and clear-xp-orbs from threshold actions
-            // (ClearLag already clears them on interval, doubling up wastes effort)
-            // We log a warning instead of directly modifying threshold actions
-            autoDisabled.add("WARNING: clear-ground-items/clear-xp-orbs may duplicate ClearLag's clearing");
+            // Warn that clear-ground-items/clear-xp-orbs may double up with ClearLag's
+            // clearing
+            warnings.add("clear-ground-items/clear-xp-orbs may duplicate ClearLag's clearing interval.");
         }
     }
 
@@ -177,11 +182,14 @@ public class CompatibilityManager {
         plugin.getLogger().info("[Compat] MobFarmManager detected!");
 
         if (autoAdjust) {
+            boolean configChanged = false;
+
             // MFM manages farm entities — raise our per-chunk limit to avoid conflict
             int currentLimit = plugin.getConfig().getInt("modules.entities.chunk-limiter.max-entities-per-chunk", 50);
             if (currentLimit < 75) {
                 plugin.getConfig().set("modules.entities.chunk-limiter.max-entities-per-chunk", 75);
                 autoDisabled.add("Chunk Limiter threshold raised to 75 (MobFarmManager manages farms)");
+                configChanged = true;
             }
 
             // Extend scan interval to let MFM do its work first
@@ -189,6 +197,11 @@ public class CompatibilityManager {
             if (currentInterval < 60) {
                 plugin.getConfig().set("modules.entities.chunk-limiter.scan-interval", 60);
                 autoDisabled.add("Chunk Limiter interval extended to 60s (defers to MobFarmManager)");
+                configChanged = true;
+            }
+
+            if (configChanged) {
+                plugin.saveConfig();
             }
         }
     }
@@ -201,14 +214,14 @@ public class CompatibilityManager {
     private boolean modelEngineDetected = false;
     private boolean citizensDetected = false;
     private boolean cmiDetected = false;
-    private boolean hologramsDetected = false;
+    private boolean holographicDisplaysDetected = false; // real ArmorStand entities
+    private boolean packetHologramsDetected = false; // DH / FancyHolograms — packet-based, no Bukkit entities
     private boolean customItemsDetected = false;
     private boolean evenMoreFishDetected = false;
     private boolean fancyNpcsDetected = false;
     private boolean fancyHologramsDetected = false;
-    private boolean decentHologramsDetected = false;
 
-    public void detectCustomMobPlugins() {
+    private void detectCustomMobPlugins() {
         if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
             mythicMobsDetected = true;
             plugin.getLogger().info("[Compat] MythicMobs detected!");
@@ -230,11 +243,17 @@ public class CompatibilityManager {
             plugin.getLogger().info("[Compat] CMI detected!");
         }
 
-        if (plugin.getConfig().getBoolean("compatibility.plugins.holograms", true)
-                && (Bukkit.getPluginManager().getPlugin("HolographicDisplays") != null
-                        || Bukkit.getPluginManager().getPlugin("DecentHolograms") != null)) {
-            hologramsDetected = true;
-            plugin.getLogger().info("[Compat] Hologram plugin detected!");
+        if (plugin.getConfig().getBoolean("compatibility.plugins.holograms", true)) {
+            if (Bukkit.getPluginManager().getPlugin("HolographicDisplays") != null) {
+                holographicDisplaysDetected = true;
+                plugin.getLogger().info("[Compat] HolographicDisplays detected! (uses real ArmorStands)");
+            }
+            if (Bukkit.getPluginManager().getPlugin("DecentHolograms") != null
+                    || Bukkit.getPluginManager().getPlugin("FancyHolograms") != null) {
+                packetHologramsDetected = true;
+                plugin.getLogger()
+                        .info("[Compat] Packet-based hologram plugin detected (DecentHolograms/FancyHolograms).");
+            }
         }
 
         if (plugin.getConfig().getBoolean("compatibility.plugins.custom-items", true)
@@ -264,7 +283,6 @@ public class CompatibilityManager {
 
         if (plugin.getConfig().getBoolean("compatibility.plugins.decentholograms", true)
                 && Bukkit.getPluginManager().getPlugin("DecentHolograms") != null) {
-            decentHologramsDetected = true;
             plugin.getLogger().info("[Compat] DecentHolograms detected!");
         }
     }
@@ -332,7 +350,9 @@ public class CompatibilityManager {
             Object pluginObj = pluginClass.getMethod("get").invoke(null);
             Object npcManager = pluginClass.getMethod("getNpcManager").invoke(pluginObj);
 
-            Object npc = npcManager.getClass().getMethod("getNpc", int.class).invoke(npcManager, entity.getEntityId());
+            // FancyNpcs stores NPCs by UUID; look up via entity's UUID
+            UUID entityId = entity.getUniqueId();
+            Object npc = npcManager.getClass().getMethod("getNpc", UUID.class).invoke(npcManager, entityId);
             if (npc != null) {
                 return true;
             }
@@ -372,28 +392,6 @@ public class CompatibilityManager {
     }
 
     /**
-     * Check if an entity is part of a DecentHologram.
-     */
-    public boolean isDecentHologram(org.bukkit.entity.Entity entity) {
-        if (!decentHologramsDetected || entity == null)
-            return false;
-
-        try {
-            // Because DecentHolograms does not expose a direct get-by-entity method,
-            // and DHAPI.getHologram takes a name string, it's difficult to verify cleanly.
-            // Normally DH only spawns packet-based entities that Bukkit won't see anyway.
-            // But if it leaks anArmorStand/Display, we assume the name check heuristic in
-            // isProtectedEntity works.
-            // Just returning false here and heavily relying on the backup names checks.
-            return false;
-        } catch (Exception e) {
-            // Silently fail if API changed or unavailable
-        }
-
-        return false;
-    }
-
-    /**
      * Unified method to check if an entity belongs to ANY supported plugin and
      * should NOT be
      * touched by LessLag (e.g. not cleared, AI not disabled, not culled).
@@ -402,9 +400,8 @@ public class CompatibilityManager {
         if (entity == null)
             return false;
 
-        // 1. Check legacy methods
-        if (isNPC(entity) || isCustomMob(entity) || isFancyNpc(entity) || isFancyHologram(entity)
-                || isDecentHologram(entity)) {
+        // 1. Check known plugin methods
+        if (isNPC(entity) || isCustomMob(entity) || isFancyNpc(entity) || isFancyHologram(entity)) {
             return true;
         }
 
@@ -413,11 +410,12 @@ public class CompatibilityManager {
             return true;
         }
 
-        // ItemsAdder & Oraxen often use armor stands, item frames, or display entities
-        // as furniture
-        // Checking custom name is a broad heuristic, often used by Holograms and Custom
-        // Items
-        if (hologramsDetected || customItemsDetected || cmiDetected) {
+        // HolographicDisplays uses real ArmorStand entities (customNameVisible = true
+        // for text).
+        // Packet-based plugins (DecentHolograms, FancyHolograms) don't create Bukkit
+        // entities.
+        // ItemsAdder / Oraxen / CMI also use real stands as furniture.
+        if (holographicDisplaysDetected || customItemsDetected || cmiDetected) {
             if (entity instanceof org.bukkit.entity.Display || entity instanceof org.bukkit.entity.ArmorStand) {
                 @SuppressWarnings("deprecation")
                 String customName = entity.getCustomName();
