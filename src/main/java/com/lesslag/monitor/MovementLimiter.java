@@ -135,9 +135,9 @@ public class MovementLimiter implements Listener {
                     safeLoc = from; // Fallback to where they just were
                 }
 
-                // Actually teleport them back (must be done on main thread for safety,
-                // but PlayerMoveEvent fires on main thread anyway)
-                player.teleport(safeLoc);
+                // Actually teleport them back (teleportAsync is extremely safe and
+                // natively supports Folia's region-based ticking without throwing exceptions)
+                player.teleportAsync(safeLoc);
             }
 
             if (cancelVelocity) {
