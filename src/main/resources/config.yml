@@ -198,6 +198,24 @@ modules:
     bypass-named: true
     bypass-leashed: true
   # -----------------------------------------------------------
+  # Movement Speed & Chunk Load Limiter
+  # Prevents players from exploring/flying too fast and crashing the server.
+  # -----------------------------------------------------------
+  movement-limiter:
+    enabled: true
+    # Maximum number of chunk borders a player can cross per second.
+    # Note: 1 chunk = 16 blocks. Normal flight is rarely > 10 chunks/sec.
+    max-chunks-per-second: 20
+    # The action to take: "rubberband" (pulls them back) or "cancel" (freezes them)
+    action: "rubberband"
+    # Should we cancel their velocity? (Extremely useful against Elytra launchers)
+    cancel-velocity: true
+    # Send a warning message to the player?
+    message: "&cYou are moving too fast! Server needs time to load chunks."
+    # Notify admins?
+    notify-admin: true
+
+  # -----------------------------------------------------------
   # Chunk Management
   # Unloads unused chunks and prevents world overload.
   # -----------------------------------------------------------

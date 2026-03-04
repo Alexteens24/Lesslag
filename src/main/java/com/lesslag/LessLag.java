@@ -18,6 +18,7 @@ import com.lesslag.monitor.TickMonitor;
 import com.lesslag.monitor.VillagerOptimizer;
 import com.lesslag.monitor.BreedingLimiter;
 import com.lesslag.monitor.DensityOptimizer;
+import com.lesslag.monitor.MovementLimiter;
 import com.lesslag.util.CompatibilityManager;
 import com.lesslag.util.SchedulerAdapter;
 import com.lesslag.web.LessLagApiClient;
@@ -60,6 +61,7 @@ public class LessLag extends JavaPlugin implements Listener {
     private PredictiveOptimizer predictiveOptimizer;
     private FrustumCuller frustumCuller;
     private WorldChunkGuard worldChunkGuard;
+    private MovementLimiter movementLimiter;
     private MemoryLeakDetector memoryLeakDetector;
     private CompatibilityManager compatManager;
     private PremiumService premiumService;
@@ -208,6 +210,7 @@ public class LessLag extends JavaPlugin implements Listener {
         redstoneMonitor = new RedstoneMonitor(this);
         frustumCuller = new FrustumCuller(this);
         worldChunkGuard = new WorldChunkGuard(this, actionExecutor);
+        movementLimiter = new MovementLimiter(this);
         memoryLeakDetector = new MemoryLeakDetector(this);
         villagerOptimizer = new VillagerOptimizer(this);
         breedingLimiter = new BreedingLimiter(this);
@@ -222,6 +225,7 @@ public class LessLag extends JavaPlugin implements Listener {
         redstoneMonitor.start();
         frustumCuller.start();
         worldChunkGuard.start();
+        movementLimiter.start();
         memoryLeakDetector.start();
         villagerOptimizer.start();
         breedingLimiter.start();
@@ -245,6 +249,8 @@ public class LessLag extends JavaPlugin implements Listener {
             frustumCuller.stop();
         if (worldChunkGuard != null)
             worldChunkGuard.stop();
+        if (movementLimiter != null)
+            movementLimiter.stop();
         if (memoryLeakDetector != null)
             memoryLeakDetector.stop();
         if (villagerOptimizer != null)
@@ -275,7 +281,8 @@ public class LessLag extends JavaPlugin implements Listener {
             workloadDistributor.shutdown();
         }
 
-        // Restore original settings synchronously (no scheduler available during disable)
+        // Restore original settings synchronously (no scheduler available during
+        // disable)
         if (actionExecutor != null) {
             actionExecutor.restoreDefaultsSync();
         }
@@ -296,7 +303,7 @@ public class LessLag extends JavaPlugin implements Listener {
         instance = null;
     }
 
-    private java.util.logging.Logger getSafeLogger() {
+    public java.util.logging.Logger getSafeLogger() {
         java.util.logging.Logger logger = null;
         try {
             logger = getLogger();
@@ -329,7 +336,7 @@ public class LessLag extends JavaPlugin implements Listener {
             List<String> drifted = detectConfigDrift();
             if (!drifted.isEmpty()) {
                 getLogger().warning("[LessLag] Config drift detected — " + drifted.size()
-                    + " key(s) differ from lesslag-config.json: " + String.join(", ", drifted));
+                        + " key(s) differ from lesslag-config.json: " + String.join(", ", drifted));
                 getLogger().warning("[LessLag] Run '/lg verify' to view details or '/lg apply' to re-apply.");
             }
         });
@@ -368,17 +375,18 @@ public class LessLag extends JavaPlugin implements Listener {
      */
     private List<String> detectConfigDrift() {
         java.io.File configJson = new java.io.File(getDataFolder(), "lesslag-config.json");
-        if (!configJson.exists()) return java.util.Collections.emptyList();
+        if (!configJson.exists())
+            return java.util.Collections.emptyList();
 
         List<String> drifted = new java.util.ArrayList<>();
         try (java.io.FileReader reader = new java.io.FileReader(configJson)) {
             com.google.gson.JsonObject root = new com.google.gson.Gson()
                     .fromJson(reader, com.google.gson.JsonObject.class);
-            if (!root.has("lesslag") || !root.get("lesslag").isJsonObject()) return drifted;
+            if (!root.has("lesslag") || !root.get("lesslag").isJsonObject())
+                return drifted;
 
             com.google.gson.JsonObject lesslagBlock = root.getAsJsonObject("lesslag");
-            for (java.util.Map.Entry<String, com.google.gson.JsonElement> entry
-                    : lesslagBlock.entrySet()) {
+            for (java.util.Map.Entry<String, com.google.gson.JsonElement> entry : lesslagBlock.entrySet()) {
                 String key = entry.getKey();
                 String expected = entry.getValue().getAsString();
                 Object actual = getConfig().get(key);
@@ -398,13 +406,13 @@ public class LessLag extends JavaPlugin implements Listener {
      */
     private void initWebIntegration() {
         String apiUrl = getConfig().getString("web.api-url", "https://lesslag-api.daucatmoitu.workers.dev");
-        String storedId     = getConfig().getString("web.server-id",     "");
+        String storedId = getConfig().getString("web.server-id", "");
         String storedSecret = getConfig().getString("web.server-secret", "");
 
         boolean hasCredentials = storedId != null && !storedId.isBlank()
-                              && storedSecret != null && !storedSecret.isBlank();
+                && storedSecret != null && !storedSecret.isBlank();
         apiClient = new LessLagApiClient(apiUrl,
-                hasCredentials ? storedId     : null,
+                hasCredentials ? storedId : null,
                 hasCredentials ? storedSecret : null);
 
         // Warn on rules version drift (non-blocking)
@@ -420,14 +428,15 @@ public class LessLag extends JavaPlugin implements Listener {
                 motd = "Minecraft Server";
             }
             apiClient.registerServer(motd).thenAccept(json -> {
-                String newId     = LessLagApiClient.extractFromJson(json, "serverId");
+                String newId = LessLagApiClient.extractFromJson(json, "serverId");
                 String newSecret = LessLagApiClient.extractFromJson(json, "serverSecret");
-                if (newId == null || newSecret == null) return;
+                if (newId == null || newSecret == null)
+                    return;
 
                 apiClient.setCredentials(newId, newSecret);
 
                 // Persist to config.yml
-                getConfig().set("web.server-id",     newId);
+                getConfig().set("web.server-id", newId);
                 getConfig().set("web.server-secret", newSecret);
                 saveConfig();
                 getLogger().info("[LessLag Web] Registered new server identity: " + newId);
@@ -446,7 +455,8 @@ public class LessLag extends JavaPlugin implements Listener {
 
     /** Schedule recurring heartbeat (default: every 30 s). */
     private void scheduleHeartbeat() {
-        if (!getConfig().getBoolean("web.heartbeat.enabled", true)) return;
+        if (!getConfig().getBoolean("web.heartbeat.enabled", true))
+            return;
         int intervalSec = getConfig().getInt("web.heartbeat.interval-seconds", 30);
         long periodTicks = intervalSec * 20L;
         heartbeatTask = SchedulerAdapter.runAsyncRepeating(this, () -> {
@@ -460,14 +470,16 @@ public class LessLag extends JavaPlugin implements Listener {
 
     /** Schedule recurring apply-queue poll (default: every 60 s). */
     private void scheduleApplyQueuePoll() {
-        if (!getConfig().getBoolean("web.apply-queue.enabled", false)) return;
+        if (!getConfig().getBoolean("web.apply-queue.enabled", false))
+            return;
         int intervalSec = getConfig().getInt("web.apply-queue.poll-interval-seconds", 60);
         long periodTicks = intervalSec * 20L;
-        applyQueueTask = SchedulerAdapter.runAsyncRepeating(this, () ->
-            apiClient.pollApplyQueue().thenAccept(patches -> {
-                for (Map<String, Object> patch : patches) handleIncomingPatch(patch);
-            }).exceptionally(ex -> null),
-        periodTicks * 2, periodTicks);
+        applyQueueTask = SchedulerAdapter.runAsyncRepeating(this,
+                () -> apiClient.pollApplyQueue().thenAccept(patches -> {
+                    for (Map<String, Object> patch : patches)
+                        handleIncomingPatch(patch);
+                }).exceptionally(ex -> null),
+                periodTicks * 2, periodTicks);
     }
 
     /**
@@ -476,12 +488,12 @@ public class LessLag extends JavaPlugin implements Listener {
      */
     void handleIncomingPatch(Map<String, Object> patch) {
         String patchId = String.valueOf(patch.getOrDefault("patchId", ""));
-        if (patchId.isBlank() || pendingPatches.containsKey(patchId)) return;
+        if (patchId.isBlank() || pendingPatches.containsKey(patchId))
+            return;
 
         // Derive overall risk level from the highest riskTag across proposals
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> proposals =
-                (List<Map<String, Object>>) patch.getOrDefault("proposals", List.of());
+        List<Map<String, Object>> proposals = (List<Map<String, Object>>) patch.getOrDefault("proposals", List.of());
         String riskLevel = deriveRiskLevel(proposals);
         boolean isAggressive = "AGGRESSIVE".equals(riskLevel);
 
@@ -499,11 +511,10 @@ public class LessLag extends JavaPlugin implements Listener {
             // Queue for manual confirm — notify online ops via Folia-compatible runGlobal
             pendingPatches.put(patchId, patch);
             String shortId = patchId.length() >= 8 ? patchId.substring(0, 8) : patchId;
-            SchedulerAdapter.runGlobal(this, () ->
-                Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(
-                    "&b[LessLag] &7New web patch (&e" + riskLevel + "&7, " + proposals.size()
-                    + " change(s)). Confirm with &b/lg confirm " + shortId))
-            );
+            SchedulerAdapter.runGlobal(this,
+                    () -> Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(
+                            "&b[LessLag] &7New web patch (&e" + riskLevel + "&7, " + proposals.size()
+                                    + " change(s)). Confirm with &b/lg confirm " + shortId)));
         }
     }
 
@@ -515,8 +526,10 @@ public class LessLag extends JavaPlugin implements Listener {
         int max = 0; // 0=SAFE, 1=BALANCED, 2=AGGRESSIVE
         for (Map<String, Object> p : proposals) {
             String tag = String.valueOf(p.getOrDefault("riskTag", "safe")).toLowerCase();
-            if (tag.equals("aggressive")) max = Math.max(max, 2);
-            else if (tag.equals("balanced")) max = Math.max(max, 1);
+            if (tag.equals("aggressive"))
+                max = Math.max(max, 2);
+            else if (tag.equals("balanced"))
+                max = Math.max(max, 1);
         }
         return max == 2 ? "AGGRESSIVE" : max == 1 ? "BALANCED" : "SAFE";
     }
@@ -525,12 +538,12 @@ public class LessLag extends JavaPlugin implements Listener {
     @SuppressWarnings("unchecked")
     private void applyPatch(String patchId, Map<String, Object> patch) {
         double msptBefore = tpsMonitor != null ? tpsMonitor.getCurrentMSPT() : 0;
-        // apply-queue uses PatchProposalLike: { targetFile, configKey, beforeValue, afterValue }
-        List<Map<String, Object>> proposals =
-                (List<Map<String, Object>>) patch.getOrDefault("proposals", List.of());
+        // apply-queue uses PatchProposalLike: { targetFile, configKey, beforeValue,
+        // afterValue }
+        List<Map<String, Object>> proposals = (List<Map<String, Object>>) patch.getOrDefault("proposals", List.of());
         for (Map<String, Object> proposal : proposals) {
-            String file  = String.valueOf(proposal.getOrDefault("targetFile",  ""));
-            String key   = String.valueOf(proposal.getOrDefault("configKey",   ""));
+            String file = String.valueOf(proposal.getOrDefault("targetFile", ""));
+            String key = String.valueOf(proposal.getOrDefault("configKey", ""));
             Object value = proposal.get("afterValue");
             if (!file.isBlank() && !key.isBlank() && value != null) {
                 getLogger().info("[LessLag Web] Applying patch: " + file + " " + key + " = " + value);
@@ -545,7 +558,7 @@ public class LessLag extends JavaPlugin implements Listener {
         saveConfig();
         double msptAfter = tpsMonitor != null ? tpsMonitor.getCurrentMSPT() : 0;
         apiClient.confirmPatch(patchId, "APPLIED", msptBefore, msptAfter)
-                 .exceptionally(ex -> null);
+                .exceptionally(ex -> null);
     }
 
     /**
@@ -584,7 +597,9 @@ public class LessLag extends JavaPlugin implements Listener {
         }
     }
 
-    public LessLagApiClient getApiClient() { return apiClient; }
+    public LessLagApiClient getApiClient() {
+        return apiClient;
+    }
 
     // ── Getters ────────────────────────────
 
@@ -646,6 +661,10 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public WorldChunkGuard getWorldChunkGuard() {
         return worldChunkGuard;
+    }
+
+    public MovementLimiter getMovementLimiter() {
+        return movementLimiter;
     }
 
     public CompatibilityManager getCompatManager() {
