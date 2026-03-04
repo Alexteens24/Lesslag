@@ -321,8 +321,9 @@ system:
     log-to-console: true
 
   # Bottleneck Analyzer (Async Main Thread Watchdog)
+  # Small note: This feature is buggy and usually cause false positives, use with caution.
   bottleneck-analyzer:
-    enabled: true
+    enabled: false
     # If the main thread takes longer than this to tick, start sampling
     threshold-ms: 100
     # How often to sample the thread while it's frozen
