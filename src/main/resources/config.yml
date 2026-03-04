@@ -398,6 +398,12 @@ compatibility:
     custom-items: true
     # Detect and avoid sweeping EvenMoreFish items
     evenmorefish: true
+    # Detect and avoid sweeping FancyNpcs NPCs
+    fancynpcs: true
+    # Detect and avoid sweeping FancyHolograms 
+    fancyholograms: true
+    # Detect and avoid sweeping DecentHolograms
+    decentholograms: true
 
 # =============================================================
 #  HEALTH REPORT (/lg health)

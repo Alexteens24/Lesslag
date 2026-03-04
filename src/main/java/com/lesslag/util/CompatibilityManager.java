@@ -204,6 +204,9 @@ public class CompatibilityManager {
     private boolean hologramsDetected = false;
     private boolean customItemsDetected = false;
     private boolean evenMoreFishDetected = false;
+    private boolean fancyNpcsDetected = false;
+    private boolean fancyHologramsDetected = false;
+    private boolean decentHologramsDetected = false;
 
     public void detectCustomMobPlugins() {
         if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
@@ -245,6 +248,24 @@ public class CompatibilityManager {
                 && Bukkit.getPluginManager().getPlugin("EvenMoreFish") != null) {
             evenMoreFishDetected = true;
             plugin.getLogger().info("[Compat] EvenMoreFish detected!");
+        }
+
+        if (plugin.getConfig().getBoolean("compatibility.plugins.fancynpcs", true)
+                && Bukkit.getPluginManager().getPlugin("FancyNpcs") != null) {
+            fancyNpcsDetected = true;
+            plugin.getLogger().info("[Compat] FancyNpcs detected!");
+        }
+
+        if (plugin.getConfig().getBoolean("compatibility.plugins.fancyholograms", true)
+                && Bukkit.getPluginManager().getPlugin("FancyHolograms") != null) {
+            fancyHologramsDetected = true;
+            plugin.getLogger().info("[Compat] FancyHolograms detected!");
+        }
+
+        if (plugin.getConfig().getBoolean("compatibility.plugins.decentholograms", true)
+                && Bukkit.getPluginManager().getPlugin("DecentHolograms") != null) {
+            decentHologramsDetected = true;
+            plugin.getLogger().info("[Compat] DecentHolograms detected!");
         }
     }
 
@@ -289,6 +310,90 @@ public class CompatibilityManager {
     }
 
     /**
+     * Check if an entity is an NPC from FancyNpcs.
+     */
+    public boolean isFancyNpc(org.bukkit.entity.Entity entity) {
+        if (!fancyNpcsDetected || entity == null)
+            return false;
+
+        try {
+            // Support both com.fancyinnovations and de.oliver packages
+            Class<?> pluginClass = null;
+            try {
+                pluginClass = Class.forName("com.fancyinnovations.fancynpcs.api.FancyNpcsPlugin");
+            } catch (ClassNotFoundException e) {
+                try {
+                    pluginClass = Class.forName("de.oliver.fancynpcs.api.FancyNpcsPlugin");
+                } catch (ClassNotFoundException ex) {
+                    return false;
+                }
+            }
+
+            Object pluginObj = pluginClass.getMethod("get").invoke(null);
+            Object npcManager = pluginClass.getMethod("getNpcManager").invoke(pluginObj);
+
+            Object npc = npcManager.getClass().getMethod("getNpc", int.class).invoke(npcManager, entity.getEntityId());
+            if (npc != null) {
+                return true;
+            }
+        } catch (Exception e) {
+            // Silently fail if API changed or unavailable
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if an entity is part of a FancyHologram.
+     */
+    public boolean isFancyHologram(org.bukkit.entity.Entity entity) {
+        if (!fancyHologramsDetected || entity == null)
+            return false;
+
+        try {
+            Class<?> pluginClass = Class.forName("de.oliver.fancyholograms.api.FancyHologramsPlugin");
+            Object pluginObj = pluginClass.getMethod("get").invoke(null);
+            Object holoManager = pluginClass.getMethod("getHologramsManager").invoke(pluginObj);
+
+            // getHolograms returns Collection<Hologram>
+            java.util.Collection<?> holograms = (java.util.Collection<?>) holoManager.getClass()
+                    .getMethod("getHolograms").invoke(holoManager);
+            for (Object holo : holograms) {
+                int id = (int) holo.getClass().getMethod("getEntityId").invoke(holo);
+                if (id == entity.getEntityId()) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Silently fail if API changed or unavailable
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if an entity is part of a DecentHologram.
+     */
+    public boolean isDecentHologram(org.bukkit.entity.Entity entity) {
+        if (!decentHologramsDetected || entity == null)
+            return false;
+
+        try {
+            // Because DecentHolograms does not expose a direct get-by-entity method,
+            // and DHAPI.getHologram takes a name string, it's difficult to verify cleanly.
+            // Normally DH only spawns packet-based entities that Bukkit won't see anyway.
+            // But if it leaks anArmorStand/Display, we assume the name check heuristic in
+            // isProtectedEntity works.
+            // Just returning false here and heavily relying on the backup names checks.
+            return false;
+        } catch (Exception e) {
+            // Silently fail if API changed or unavailable
+        }
+
+        return false;
+    }
+
+    /**
      * Unified method to check if an entity belongs to ANY supported plugin and
      * should NOT be
      * touched by LessLag (e.g. not cleared, AI not disabled, not culled).
@@ -298,7 +403,8 @@ public class CompatibilityManager {
             return false;
 
         // 1. Check legacy methods
-        if (isNPC(entity) || isCustomMob(entity)) {
+        if (isNPC(entity) || isCustomMob(entity) || isFancyNpc(entity) || isFancyHologram(entity)
+                || isDecentHologram(entity)) {
             return true;
         }
 
