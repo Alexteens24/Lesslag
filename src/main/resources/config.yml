@@ -177,6 +177,38 @@ modules:
     message: "&cFarm limit reached! Cannot breed more animals in this chunk."
 
   # -----------------------------------------------------------
+  # Block Placement Limiter (Inspired by Insights)
+  # Preventively cancels placement of lag-heavy blocks when the
+  # per-chunk count exceeds the configured limit.
+  # Bypass permission: lesslag.block-limit.bypass
+  # Fully Folia-compatible (event fires on the chunk's regional thread).
+  # -----------------------------------------------------------
+  block-placement-limiter:
+    enabled: true
+    # Action bar message shown to the player on block deny.
+    # Placeholders: %material%, %count%, %limit%
+    # Set to "" to disable player notifications.
+    message: "&cChunk limit reached! Cannot place more &e%material% &cin this chunk (%count%/%limit%)."
+    # Per-material limits (material name: max blocks allowed per chunk)
+    limits:
+      # Tile entities — counted instantly via getTileEntities() (fast)
+      HOPPER: 32
+      DISPENSER: 32
+      DROPPER: 32
+      FURNACE: 48
+      BLAST_FURNACE: 32
+      SMOKER: 32
+      CHEST: 128
+      TRAPPED_CHEST: 64
+      # Non-tile blocks — counted async + cached (zero event-thread cost)
+      PISTON: 64
+      STICKY_PISTON: 64
+      OBSERVER: 48
+      COMPARATOR: 96
+      REPEATER: 96
+      REDSTONE_LAMP: 128
+
+  # -----------------------------------------------------------
   # Density Optimizer (Farm Performance)
   # Disables AI/Collision for specific mobs in varying density.
   # -----------------------------------------------------------

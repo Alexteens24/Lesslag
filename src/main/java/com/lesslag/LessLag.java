@@ -19,6 +19,7 @@ import com.lesslag.monitor.VillagerOptimizer;
 import com.lesslag.monitor.BreedingLimiter;
 import com.lesslag.monitor.DensityOptimizer;
 import com.lesslag.monitor.MovementLimiter;
+import com.lesslag.monitor.BlockPlacementLimiter;
 import com.lesslag.util.CompatibilityManager;
 import com.lesslag.util.SchedulerAdapter;
 import com.lesslag.web.LessLagApiClient;
@@ -62,6 +63,7 @@ public class LessLag extends JavaPlugin implements Listener {
     private FrustumCuller frustumCuller;
     private WorldChunkGuard worldChunkGuard;
     private MovementLimiter movementLimiter;
+    private BlockPlacementLimiter blockPlacementLimiter;
     private MemoryLeakDetector memoryLeakDetector;
     private CompatibilityManager compatManager;
     private PremiumService premiumService;
@@ -211,6 +213,7 @@ public class LessLag extends JavaPlugin implements Listener {
         frustumCuller = new FrustumCuller(this);
         worldChunkGuard = new WorldChunkGuard(this, actionExecutor);
         movementLimiter = new MovementLimiter(this);
+        blockPlacementLimiter = new BlockPlacementLimiter(this);
         memoryLeakDetector = new MemoryLeakDetector(this);
         villagerOptimizer = new VillagerOptimizer(this);
         breedingLimiter = new BreedingLimiter(this);
@@ -226,6 +229,7 @@ public class LessLag extends JavaPlugin implements Listener {
         frustumCuller.start();
         worldChunkGuard.start();
         movementLimiter.start();
+        blockPlacementLimiter.start();
         memoryLeakDetector.start();
         villagerOptimizer.start();
         breedingLimiter.start();
@@ -251,6 +255,8 @@ public class LessLag extends JavaPlugin implements Listener {
             worldChunkGuard.stop();
         if (movementLimiter != null)
             movementLimiter.stop();
+        if (blockPlacementLimiter != null)
+            blockPlacementLimiter.stop();
         if (memoryLeakDetector != null)
             memoryLeakDetector.stop();
         if (villagerOptimizer != null)
@@ -665,6 +671,10 @@ public class LessLag extends JavaPlugin implements Listener {
 
     public MovementLimiter getMovementLimiter() {
         return movementLimiter;
+    }
+
+    public BlockPlacementLimiter getBlockPlacementLimiter() {
+        return blockPlacementLimiter;
     }
 
     public CompatibilityManager getCompatManager() {
