@@ -214,8 +214,7 @@ public class CompatibilityManager {
     private boolean modelEngineDetected = false;
     private boolean citizensDetected = false;
     private boolean cmiDetected = false;
-    private boolean holographicDisplaysDetected = false; // real ArmorStand entities
-    private boolean packetHologramsDetected = false; // DH / FancyHolograms — packet-based, no Bukkit entities
+    private boolean holographicDisplaysDetected = false;
     private boolean customItemsDetected = false;
     private boolean evenMoreFishDetected = false;
     private boolean fancyNpcsDetected = false;
@@ -250,7 +249,6 @@ public class CompatibilityManager {
             }
             if (Bukkit.getPluginManager().getPlugin("DecentHolograms") != null
                     || Bukkit.getPluginManager().getPlugin("FancyHolograms") != null) {
-                packetHologramsDetected = true;
                 plugin.getLogger()
                         .info("[Compat] Packet-based hologram plugin detected (DecentHolograms/FancyHolograms).");
             }

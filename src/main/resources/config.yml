@@ -155,6 +155,7 @@ modules:
   # -----------------------------------------------------------
   # Villager Optimizer (Happy Villagers)
   # Disables AI for trapped villagers to reduce trading hall lag.
+  # Inspired by VillagerLobotomizer & AntiVillagerLag.
   # -----------------------------------------------------------
   villager-optimizer:
     enabled: true
@@ -164,6 +165,28 @@ modules:
     ai-restore-duration: 30
     # Only optimize trapped villagers? (1x1 cells)
     optimize-trapped: true
+    # Make lobotomized villagers silent (reduces audio processing)
+    silent-when-lobotomized: true
+    # Persist lobotomized state in NBT/PDC across chunk unloads.
+    # Prevents re-scan lag spike when chunks reload.
+    persist-state: true
+    # Cancel zombie attacks on lobotomized villagers (they can't flee)
+    zombie-protection: true
+    # Automatically restock trades for lobotomized villagers on a schedule.
+    # Mimics the vanilla restock that would happen if they could reach workstations.
+    auto-restock:
+      enabled: true
+      # How often to restock, in ticks (24000 = 1 minecraft day)
+      interval-ticks: 24000
+    # Villagers whose name CONTAINS any of these strings will NEVER be lobotomized.
+    # Use for display/main villagers you always want active.
+    always-active-names:
+      - "alwaysbrain"
+      - "main"
+    # Villagers whose name CONTAINS any of these strings are ALWAYS lobotomized,
+    # even without a profession or 1x1 trap. Useful for creative trading halls.
+    always-inactive-names:
+      - "nobrain"
 
   # -----------------------------------------------------------
   # Breeding Limiter (Proactive Farm Control)
