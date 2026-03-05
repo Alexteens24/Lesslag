@@ -189,3 +189,17 @@ LessLag command responses are designed to stay cheap during runtime:
 - **Luminol**: Detected and labelled correctly (Folia-based fork with additional Paper features).
 - **Spigot / CraftBukkit**: Core monitoring and cleanup features work; Paper-specific config optimisations are skipped.
 - **Common optimization plugins**: Compatibility toggles available for Pufferfish DAB, ClearLag, and MobFarmManager to avoid double-processing.
+
+## Acknowledgements
+
+LessLag is an original plugin, but several open-source projects provided ideas and inspiration for specific modules.
+
+| Module | Inspired by | What we learned |
+|---|---|---|
+| `BlockPlacementLimiter` | [Insights](https://github.com/InsightsPlugin/Insights) | Preventive per-chunk block counting; async `ChunkSnapshot` seeding for O(1) event-thread checks |
+| `VillagerOptimizer` | [VillagerLobotomizer](https://github.com/mja00/VillagerLobotimizer), [AntiVillagerLag](https://github.com/RebelMythik/AntiVillagerLag) | Named-villager control (`nobrain`/`alwaysbrain`), PDC state persistence, auto-restock scheduling, zombie protection for AI-disabled villagers |
+| `SpawnerLimiter` | [MobLimit](https://github.com/Minebench/MobLimit) | Spawn-reason–aware entity limits with configurable radius and DUMB-mode fallback |
+| `MobFarmOptimizer` | [FarmControl](https://github.com/froobynooby/FarmControl) | Disabling random movement goals for farm mobs in dark, player-free areas |
+| `RedstoneMonitor` | [AntiRedstoneClock-Remastered](https://github.com/OneLiteFeatherNET/AntiRedstoneClock-Remastered) | Redstone clock detection and throttling strategies |
+
+All implementations were written independently for LessLag, optimised for Folia compatibility and the plugin's unified monitoring architecture. No source code was copied from the above projects.
