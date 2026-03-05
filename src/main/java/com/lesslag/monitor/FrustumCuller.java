@@ -141,11 +141,12 @@ public class FrustumCuller {
                                     eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
                                     world.getUID()));
 
-                    for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
+                    double scanRadius = 128.0;
+                    for (Entity entity : player.getNearbyEntities(scanRadius, scanRadius, scanRadius)) {
                         if (!(entity instanceof Mob)) continue;
                         Mob mob = (Mob) entity;
 
-                        if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                        if (player.getLocation().distanceSquared(mob.getLocation()) > scanRadius * scanRadius)
                             continue;
                         if (!processedMobs.add(mob.getUniqueId())) continue;
                         if (protectedTypes.contains(mob.getType().name())) continue;
@@ -228,13 +229,14 @@ public class FrustumCuller {
                                 world.getUID()));
 
                 // Iterate nearby entities
-                for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
+                double scanRadius = 128.0;
+                for (Entity entity : player.getNearbyEntities(scanRadius, scanRadius, scanRadius)) {
                     if (!(entity instanceof Mob))
                         continue;
                     Mob mob = (Mob) entity;
 
                     // Optimization: Use distanceSquared() for precise range check
-                    if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                    if (player.getLocation().distanceSquared(mob.getLocation()) > scanRadius * scanRadius)
                         continue;
 
                     if (!processedMobs.add(mob.getUniqueId()))
@@ -290,7 +292,6 @@ public class FrustumCuller {
 
             boolean visibleToAny = false;
             boolean tooClose = false;
-            boolean withinRange = false;
 
             for (PlayerView pv : views) {
                 if (!pv.worldUID.equals(mob.worldUID))
@@ -309,7 +310,6 @@ public class FrustumCuller {
 
                 if (distSq > maxRadiusSq)
                     continue;
-                withinRange = true;
 
                 double length = Math.sqrt(distSq);
                 if (length == 0) {
@@ -334,7 +334,7 @@ public class FrustumCuller {
 
             if (shouldEnable && !mob.currentlyAware) {
                 toRestore.add(mob);
-            } else if (!shouldEnable && mob.currentlyAware && withinRange) {
+            } else if (!shouldEnable && mob.currentlyAware) {
                 toCull.add(mob);
             }
 
