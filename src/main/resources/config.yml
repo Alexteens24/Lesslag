@@ -200,6 +200,55 @@ modules:
     message: "&cFarm limit reached! Cannot breed more animals in this chunk."
 
   # -----------------------------------------------------------
+  # Spawner Limiter (Inspired by MobLimit)
+  # Limits the number of a specific mob type that a spawner can produce
+  # within a configurable chunk radius. Fully Folia-compatible.
+  # -----------------------------------------------------------
+  spawner-limiter:
+    enabled: true
+    # CANCEL: prevent the spawn entirely
+    # DUMB:   allow spawn but immediately disable AI (loot drops still work)
+    action: CANCEL
+    # Chunk radius to count entities in. 0 = spawner's chunk only.
+    # 1 = 3x3 chunks (~48 block radius), 2 = 5x5 chunks (~80 block radius)
+    radius-chunks: 1
+    # Per-entity-type limits. Types not listed below use global-limit.
+    # -1 = disabled (no limit for that type)
+    global-limit: -1
+    limits:
+      ZOMBIE: 24
+      ZOMBIE_VILLAGER: 16
+      SKELETON: 24
+      STRAY: 16
+      HUSK: 16
+      SPIDER: 24
+      CAVE_SPIDER: 20
+      CREEPER: 20
+      BLAZE: 16
+      MAGMA_CUBE: 30
+      SLIME: 30
+      SILVERFISH: 20
+      ENDERMAN: 12
+
+  # -----------------------------------------------------------
+  # Mob Farm Optimizer (Inspired by FarmControl)
+  # Disables AI for hostile mobs in dark, player-free areas (mob grinders).
+  # CPU savings: stops random stroll/look goals when mobs are purely waiting.
+  # -----------------------------------------------------------
+  mob-farm-optimizer:
+    enabled: true
+    # Scan interval in ticks (300 = 15 seconds)
+    check-interval: 300
+    # Light level at or below which a mob is considered "in a dark farm"
+    # 0 = torch-free dark room, 7 = full darkness threshold
+    max-light-level: 0
+    # If any player is within this many blocks, keep mob AI active
+    player-activation-range: 24.0
+    # Restrict optimization to specific entity types.
+    # Leave empty to apply to ALL hostile mobs.
+    types: []
+
+  # -----------------------------------------------------------
   # Block Placement Limiter (Inspired by Insights)
   # Preventively cancels placement of lag-heavy blocks when the
   # per-chunk count exceeds the configured limit.
