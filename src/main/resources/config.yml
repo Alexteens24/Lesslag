@@ -1,7 +1,11 @@
 # =============================================================
 #  LessLag - Configuration
-#  Version: 1.3
+#  Version: 1.4
 # =============================================================
+
+# Internal config version — do NOT edit manually.
+# Used by ConfigUpdater to auto-migrate missing keys after plugin updates.
+config-version: 2
 
 core:
   # Messages prefix

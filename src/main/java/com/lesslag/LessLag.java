@@ -23,6 +23,7 @@ import com.lesslag.monitor.BlockPlacementLimiter;
 import com.lesslag.monitor.SpawnerLimiter;
 import com.lesslag.monitor.MobFarmOptimizer;
 import com.lesslag.util.CompatibilityManager;
+import com.lesslag.util.ConfigUpdater;
 import com.lesslag.util.SchedulerAdapter;
 import com.lesslag.web.LessLagApiClient;
 import net.kyori.adventure.text.Component;
@@ -101,6 +102,9 @@ public class LessLag extends JavaPlugin implements Listener {
 
         instance = this;
         saveDefaultConfig();
+        // Auto-migrate config.yml: merge missing keys from the bundled default
+        ConfigUpdater.update(this);
+        reloadConfig();
         saveResource("messages.yml", false);
 
         // Initialize Folia scheduler adapter (must be early)
