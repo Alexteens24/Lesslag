@@ -663,6 +663,8 @@ public class ActionExecutor {
             return true;
         if (!entity.getPassengers().isEmpty() || entity.getVehicle() != null)
             return true;
+        if (entity instanceof Vehicle)
+            return true;
         return false;
     }
 
