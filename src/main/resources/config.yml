@@ -376,17 +376,28 @@ system:
     log-to-console: true
 
   # Bottleneck Analyzer (Async Main Thread Watchdog)
-  # Small note: This feature is buggy and usually cause false positives, use with caution.
+  # Samples the main thread when a tick takes too long and identifies the culprit.
+  # Disabled by default — enable only if you need specific lag diagnosis.
   bottleneck-analyzer:
     enabled: false
-    # If the main thread takes longer than this to tick, start sampling
-    threshold-ms: 100
+    # If the main thread takes longer than this to tick, start sampling.
+    # GC pauses / OS scheduling can cause ~100ms blips — keep this above 150ms.
+    threshold-ms: 150
     # How often to sample the thread while it's frozen
     sample-interval-ms: 5
-    # Ignore tiny sample windows to reduce false positives/noise
-    min-samples: 3
-    # Minimum time between reported spikes
-    report-cooldown-ms: 1500
+    # Minimum samples required before reporting (threshold-ms / sample-interval-ms = 30 samples
+    # for a 150ms spike — requiring 10 means the spike must last at least 200ms total)
+    min-samples: 10
+    # Minimum time between reported spikes (prevents chat spam)
+    report-cooldown-ms: 30000
+    # Minimum fraction of samples that must point to the SAME method (0.0–1.0).
+    # GC pauses scatter samples randomly across many methods → no single method reaches 40%.
+    # A real bottleneck (e.g. bad plugin code) concentrates samples → one method hits 60%+.
+    # Raise this to reduce false positives; lower it if you want broader diagnostics.
+    min-concentration: 0.40
+    # Ignore spikes during the first N milliseconds after server start.
+    # JVM JIT compilation causes heavy false positives in the first ~60 seconds.
+    startup-ignore-ms: 60000
 
 # =============================================================
 #  AUTOMATION: Predictive & Thresholds

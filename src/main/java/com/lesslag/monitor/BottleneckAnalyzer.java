@@ -40,6 +40,11 @@ public class BottleneckAnalyzer {
     private final Map<String, Integer> currentSpikeSamples = new ConcurrentHashMap<>();
     private final AtomicInteger totalSamplesInCurrentSpike = new AtomicInteger(0);
     private volatile long lastReportTimeMs = 0;
+    private long startTimeMs = -1; // used for startup-ignore window
+
+    // Extra config values
+    private double minConcentration; // top method must be >= this fraction of total samples
+    private long startupIgnoreMs; // suppress alerts in first N ms after start (JIT warmup)
 
     // Runtime stats (volatile for cross-thread command reads)
     private volatile int totalSpikes = 0;
@@ -55,11 +60,15 @@ public class BottleneckAnalyzer {
     }
 
     private void loadConfig() {
-        // Defaults to 100ms threshold, 5ms sampling interval
-        this.thresholdMs = plugin.getConfig().getLong("system.bottleneck-analyzer.threshold-ms", 100L);
+        this.thresholdMs = plugin.getConfig().getLong("system.bottleneck-analyzer.threshold-ms", 150L);
         this.sampleIntervalMs = plugin.getConfig().getLong("system.bottleneck-analyzer.sample-interval-ms", 5L);
-        this.minSamples = plugin.getConfig().getInt("system.bottleneck-analyzer.min-samples", 3);
-        this.reportCooldownMs = plugin.getConfig().getLong("system.bottleneck-analyzer.report-cooldown-ms", 1500L);
+        this.minSamples = plugin.getConfig().getInt("system.bottleneck-analyzer.min-samples", 10);
+        this.reportCooldownMs = plugin.getConfig().getLong("system.bottleneck-analyzer.report-cooldown-ms", 30_000L);
+        // New: minimum fraction of samples the top method must hold (0.0–1.0).
+        // GC / JIT pauses scatter samples broadly; a real bottleneck concentrates them.
+        this.minConcentration = plugin.getConfig().getDouble("system.bottleneck-analyzer.min-concentration", 0.40);
+        // Suppress alerts during JVM JIT warmup window after server starts.
+        this.startupIgnoreMs = plugin.getConfig().getLong("system.bottleneck-analyzer.startup-ignore-ms", 60_000L);
     }
 
     /**
@@ -100,6 +109,7 @@ public class BottleneckAnalyzer {
         }
 
         lastTickTimeNano = System.nanoTime();
+        startTimeMs = System.currentTimeMillis();
         running = true;
 
         watchdogThread = new Thread(this::runWatchdog, "LessLag-Watchdog");
@@ -110,7 +120,8 @@ public class BottleneckAnalyzer {
         plugin.getLogger().info(
                 "BottleneckAnalyzer started (Threshold: " + thresholdMs + "ms, Sampling: " + sampleIntervalMs + "ms)");
 
-        // No own per-tick task — TPSMonitor calls tickPing() from its single tick lambda
+        // No own per-tick task — TPSMonitor calls tickPing() from its single tick
+        // lambda
     }
 
     public void stop() {
@@ -127,7 +138,8 @@ public class BottleneckAnalyzer {
      * Eliminates a separate runGlobalRepeating(1L, 1L) task.
      */
     public void tickPing() {
-        if (!running) return;
+        if (!running)
+            return;
         long now = System.nanoTime();
         long elapsedMs = (now - lastTickTimeNano) / 1_000_000L;
         lastTickTimeNano = now;
@@ -137,7 +149,8 @@ public class BottleneckAnalyzer {
             isSpiking = false;
             int totalSamples = totalSamplesInCurrentSpike.getAndSet(0);
             if (totalSamples > 0) {
-                processAndReportSpike(new HashMap<>(currentSpikeSamples), totalSamples, Math.max(elapsedMs, thresholdMs));
+                processAndReportSpike(new HashMap<>(currentSpikeSamples), totalSamples,
+                        Math.max(elapsedMs, thresholdMs));
                 currentSpikeSamples.clear();
             }
         }
@@ -199,7 +212,9 @@ public class BottleneckAnalyzer {
 
     /**
      * Walks down the stack trace to find the most likely culprit method.
-     * Ignores common Bukkit/Minecraft server loop methods.
+     * Skips JVM internals, standard NMS tick loops, and common benign patterns
+     * (network I/O, async callbacks, world loading) that appear frequently during
+     * normal operation but are not actionable bottlenecks.
      */
     private String extractMeaningfulMethod(StackTraceElement[] stack) {
         for (StackTraceElement element : stack) {
@@ -207,27 +222,52 @@ public class BottleneckAnalyzer {
             String methodName = element.getMethodName();
 
             // Skip JVM internals
-            if (className.startsWith("java.") || className.startsWith("javax.") || className.startsWith("sun.")) {
+            if (className.startsWith("java.") || className.startsWith("javax.") ||
+                    className.startsWith("sun.") || className.startsWith("jdk.")) {
                 continue;
             }
 
-            // Skip standard NMS/Paper tick loops unless it's the only thing there
-            if (className.startsWith("net.minecraft.server") &&
-                    (methodName.equals("tick") || methodName.equals("doTick") || methodName.equals("runServer")
-                            || methodName.equals("run"))) {
+            // Skip standard NMS tick / server loop methods
+            if (className.startsWith("net.minecraft.server") || className.startsWith("net.minecraft.")) {
+                if (methodName.equals("tick") || methodName.equals("doTick")
+                        || methodName.equals("runServer") || methodName.equals("run")
+                        || methodName.equals("executeAll") || methodName.equals("executeModerately")
+                        || methodName.equals("pollUntilIdle") || methodName.equals("processQueue")
+                        || methodName.equals("sendPacketSet") || methodName.equals("flush")
+                        || methodName.equals("sendPacket") || methodName.equals("handlePacket")) {
+                    continue;
+                }
+            }
+
+            // Skip Paper/Netty I/O and async thread infrastructure
+            if (className.startsWith("io.netty.") || className.startsWith("com.mojang.")) {
                 continue;
             }
 
-            // Format: com.plugin.Class.method
+            // Skip chunk loading — common and not actionable from here
+            if (className.contains("ChunkMap") || className.contains("ChunkStorage")
+                    || className.contains("ChunkSerializer") || className.contains("RegionFile")
+                    || methodName.equals("saveChunk") || methodName.equals("loadChunk")) {
+                continue;
+            }
+
             return className + "." + methodName;
         }
-
-        // If only generic loop/internal frames were found, skip this sample.
         return null;
     }
 
     /**
-     * Analyze aggregated samples and report to admins
+     * Analyze aggregated samples and report to admins.
+     *
+     * <p>
+     * Three gates must all pass before a report fires:
+     * <ol>
+     * <li>{@code minSamples} — enough data collected</li>
+     * <li>{@code minConcentration} — the top method dominates samples
+     * (GC/JIT scatter is rejected here)</li>
+     * <li>{@code startupIgnoreMs} — server has passed JIT warmup window</li>
+     * <li>{@code reportCooldownMs} — not spamming</li>
+     * </ol>
      */
     private void processAndReportSpike(Map<String, Integer> samples, int totalSamples, long measuredDurationMs) {
         if (totalSamples == 0 || samples.isEmpty())
@@ -235,15 +275,23 @@ public class BottleneckAnalyzer {
         if (totalSamples < minSamples)
             return;
 
+        // Gate 1: startup warmup window — JIT causes spikes in the first ~60s
+        if (startTimeMs > 0 && (System.currentTimeMillis() - startTimeMs) < startupIgnoreMs)
+            return;
+
+        // Gate 2: concentration check — if samples are scattered (GC / OS scheduling),
+        // the top method won't dominate. Only report clear single-culprit spikes.
+        Map.Entry<String, Integer> worstMethod = Collections.max(
+                samples.entrySet(), Map.Entry.comparingByValue());
+        double concentration = (worstMethod.getValue() * 1.0) / totalSamples;
+        if (concentration < minConcentration)
+            return; // scattered → skip
+
+        // Gate 3: cooldown
         long nowMs = System.currentTimeMillis();
         if (nowMs - lastReportTimeMs < reportCooldownMs)
             return;
         lastReportTimeMs = nowMs;
-
-        // Find the method taking the most time
-        Map.Entry<String, Integer> worstMethod = Collections.max(
-                samples.entrySet(),
-                Map.Entry.comparingByValue());
 
         double percentage = (worstMethod.getValue() * 100.0) / totalSamples;
         long durationMs = measuredDurationMs;
@@ -296,10 +344,27 @@ public class BottleneckAnalyzer {
 
     // ── Getters (volatile-safe for command reads) ──
 
-    public int getTotalSpikes()            { return totalSpikes; }
-    public long getWorstSpikeDurationMs()  { return worstSpikeDurationMs; }
-    public String getWorstSpikeCulprit()   { return worstSpikeCulprit; }
-    public String getLastSpikeCulprit()    { return lastSpikeCulprit; }
-    public long getLastSpikeTimeMs()       { return lastSpikeTimeMs; }
-    public boolean isRunning()             { return running; }
+    public int getTotalSpikes() {
+        return totalSpikes;
+    }
+
+    public long getWorstSpikeDurationMs() {
+        return worstSpikeDurationMs;
+    }
+
+    public String getWorstSpikeCulprit() {
+        return worstSpikeCulprit;
+    }
+
+    public String getLastSpikeCulprit() {
+        return lastSpikeCulprit;
+    }
+
+    public long getLastSpikeTimeMs() {
+        return lastSpikeTimeMs;
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
 }
