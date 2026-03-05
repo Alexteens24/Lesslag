@@ -377,9 +377,9 @@ system:
 
   # Bottleneck Analyzer (Async Main Thread Watchdog)
   # Samples the main thread when a tick takes too long and identifies the culprit.
-  # Disabled by default — enable only if you need specific lag diagnosis.
+  # This feature is buggy and usually cause false positives, use with caution.
   bottleneck-analyzer:
-    enabled: false
+    enabled: true
     # If the main thread takes longer than this to tick, start sampling.
     # GC pauses / OS scheduling can cause ~100ms blips — keep this above 150ms.
     threshold-ms: 150
