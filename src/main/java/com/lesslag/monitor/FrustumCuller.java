@@ -124,45 +124,86 @@ public class FrustumCuller {
         // Thread-safe collections for concurrent per-player writes
         java.util.concurrent.ConcurrentHashMap<UUID, List<PlayerView>> worldViewData = new java.util.concurrent.ConcurrentHashMap<>();
         java.util.concurrent.ConcurrentLinkedQueue<MobSnapshot> mobs = new java.util.concurrent.ConcurrentLinkedQueue<>();
-        java.util.concurrent.ConcurrentHashMap.KeySetView<UUID, Boolean> processedMobs = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        java.util.concurrent.ConcurrentHashMap.KeySetView<UUID, Boolean> processedMobs = java.util.concurrent.ConcurrentHashMap
+                .newKeySet();
         AtomicInteger remaining = new AtomicInteger(players.size());
 
         for (Player player : players) {
             SchedulerAdapter.runAtEntity(plugin, player, () -> {
                 try {
-                    if (!player.isOnline()) return;
+                    if (!player.isOnline())
+                        return;
 
                     World world = player.getWorld();
                     Location eye = player.getEyeLocation();
 
-                    worldViewData.computeIfAbsent(world.getUID(), k -> java.util.Collections.synchronizedList(new ArrayList<>()))
+                    worldViewData
+                            .computeIfAbsent(world.getUID(),
+                                    k -> java.util.Collections.synchronizedList(new ArrayList<>()))
                             .add(new PlayerView(
                                     eye.getX(), eye.getY(), eye.getZ(),
                                     eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
                                     world.getUID()));
 
                     for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
-                        if (!(entity instanceof Mob)) continue;
+                        if (!(entity instanceof Mob))
+                            continue;
                         Mob mob = (Mob) entity;
 
                         if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
                             continue;
-                        if (!processedMobs.add(mob.getUniqueId())) continue;
-                        if (protectedTypes.contains(mob.getType().name())) continue;
-                        if (LessLag.hasCustomName(mob)) continue;
-                        if (plugin.getCompatManager().isProtectedEntity(mob)) continue;
-                        if (mob.hasMetadata("LessLag.DensitySuppressed")) continue;
-                        if (mob.hasMetadata("LessLag.VillagerOptimized")) continue;
-                        if (mob instanceof org.bukkit.entity.Tameable
-                                && ((org.bukkit.entity.Tameable) mob).isTamed()) continue;
+                        if (!processedMobs.add(mob.getUniqueId()))
+                            continue;
+
+                        boolean shouldSkip = false;
+                        boolean forceRestore = false;
+
+                        if (protectedTypes.contains(mob.getType().name())) {
+                            shouldSkip = true;
+                            forceRestore = true;
+                        } else if (LessLag.hasCustomName(mob)) {
+                            shouldSkip = true;
+                            forceRestore = true;
+                        } else if (plugin.getCompatManager().isProtectedEntity(mob)) {
+                            shouldSkip = true;
+                            forceRestore = true;
+                        } else if (mob instanceof org.bukkit.entity.Tameable
+                                && ((org.bukkit.entity.Tameable) mob).isTamed()) {
+                            shouldSkip = true;
+                            forceRestore = true;
+                        } else if (mob instanceof org.bukkit.entity.Steerable
+                                && ((org.bukkit.entity.Steerable) mob).hasSaddle()) {
+                            shouldSkip = true;
+                            forceRestore = true;
+                        } else if (mob instanceof org.bukkit.entity.Llama
+                                && ((org.bukkit.entity.Llama) mob).getInventory().getDecor() != null) {
+                            shouldSkip = true;
+                            forceRestore = true;
+                        } else if (mob.hasMetadata("LessLag.DensitySuppressed")) {
+                            shouldSkip = true;
+                        } else if (mob.hasMetadata("LessLag.VillagerOptimized")) {
+                            shouldSkip = true;
+                        } else if (mob.hasMetadata("LessLag.FarmDumb")) {
+                            shouldSkip = true;
+                        }
 
                         Location loc = mob.getLocation();
                         boolean currentlyAware = plugin.isMobAwareSafe(mob);
 
+                        if (shouldSkip) {
+                            if (forceRestore && !currentlyAware) {
+                                mobs.add(new MobSnapshot(
+                                        mob.getUniqueId(), world.getUID(),
+                                        loc.getX(), loc.getY(), loc.getZ(),
+                                        currentlyAware, true));
+                            }
+                            continue;
+                        }
+
                         mobs.add(new MobSnapshot(
                                 mob.getUniqueId(), world.getUID(),
                                 loc.getX(), loc.getY(), loc.getZ(),
-                                currentlyAware));
+                                currentlyAware, false));
                     }
                 } finally {
                     if (remaining.decrementAndGet() == 0) {
@@ -182,6 +223,8 @@ public class FrustumCuller {
         private final java.util.function.Consumer<SnapshotResult> callback;
         private final List<Player> allPlayers;
         private int playerIndex = 0;
+        private java.util.Iterator<Entity> currentEntities = null;
+        private Player currentPlayer = null;
 
         private final Map<UUID, List<PlayerView>> worldViewData = new HashMap<>();
         private final List<MobSnapshot> mobs = new ArrayList<>();
@@ -205,7 +248,7 @@ public class FrustumCuller {
             }
             long stopTime = System.nanoTime() + MAX_NANOS_PER_TICK;
 
-            while (playerIndex < allPlayers.size()) {
+            while (playerIndex < allPlayers.size() || currentEntities != null) {
                 if (System.nanoTime() > stopTime) {
                     if (!plugin.isEnabled()) {
                         return;
@@ -214,53 +257,95 @@ public class FrustumCuller {
                     return;
                 }
 
-                Player player = allPlayers.get(playerIndex++);
-                if (!player.isOnline())
-                    continue;
+                if (currentEntities == null) {
+                    currentPlayer = allPlayers.get(playerIndex++);
+                    if (!currentPlayer.isOnline())
+                        continue;
 
-                World world = player.getWorld();
-                Location eye = player.getEyeLocation();
+                    World world = currentPlayer.getWorld();
+                    Location eye = currentPlayer.getEyeLocation();
 
-                worldViewData.computeIfAbsent(world.getUID(), k -> new ArrayList<>())
-                        .add(new PlayerView(
-                                eye.getX(), eye.getY(), eye.getZ(),
-                                eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
-                                world.getUID()));
+                    worldViewData.computeIfAbsent(world.getUID(), k -> new ArrayList<>())
+                            .add(new PlayerView(
+                                    eye.getX(), eye.getY(), eye.getZ(),
+                                    eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
+                                    world.getUID()));
 
-                // Iterate nearby entities
-                for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
+                    // Collect entities for this player
+                    currentEntities = currentPlayer.getNearbyEntities(maxRadius, maxRadius, maxRadius).iterator();
+                }
+
+                int processedThisBatch = 0;
+                while (currentEntities.hasNext()) {
+                    Entity entity = currentEntities.next();
                     if (!(entity instanceof Mob))
                         continue;
                     Mob mob = (Mob) entity;
 
                     // Optimization: Use distanceSquared() for precise range check
-                    if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                    if (currentPlayer.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
                         continue;
 
                     if (!processedMobs.add(mob.getUniqueId()))
                         continue;
 
-                    if (protectedTypes.contains(mob.getType().name()))
-                        continue;
-                    if (LessLag.hasCustomName(mob))
-                        continue;
-                    if (plugin.getCompatManager().isProtectedEntity(mob))
-                        continue;
-                    if (mob.hasMetadata("LessLag.DensitySuppressed"))
-                        continue;
-                    if (mob.hasMetadata("LessLag.VillagerOptimized"))
-                        continue;
-                    if (mob instanceof org.bukkit.entity.Tameable
-                            && ((org.bukkit.entity.Tameable) mob).isTamed())
-                        continue;
+                    boolean shouldSkip = false;
+                    boolean forceRestore = false;
+
+                    if (protectedTypes.contains(mob.getType().name())) {
+                        shouldSkip = true;
+                        forceRestore = true;
+                    } else if (LessLag.hasCustomName(mob)) {
+                        shouldSkip = true;
+                        forceRestore = true;
+                    } else if (plugin.getCompatManager().isProtectedEntity(mob)) {
+                        shouldSkip = true;
+                        forceRestore = true;
+                    } else if (mob instanceof org.bukkit.entity.Tameable
+                            && ((org.bukkit.entity.Tameable) mob).isTamed()) {
+                        shouldSkip = true;
+                        forceRestore = true;
+                    } else if (mob instanceof org.bukkit.entity.Steerable
+                            && ((org.bukkit.entity.Steerable) mob).hasSaddle()) {
+                        shouldSkip = true;
+                        forceRestore = true;
+                    } else if (mob instanceof org.bukkit.entity.Llama
+                            && ((org.bukkit.entity.Llama) mob).getInventory().getDecor() != null) {
+                        shouldSkip = true;
+                        forceRestore = true;
+                    } else if (mob.hasMetadata("LessLag.DensitySuppressed")) {
+                        shouldSkip = true;
+                    } else if (mob.hasMetadata("LessLag.VillagerOptimized")) {
+                        shouldSkip = true;
+                    } else if (mob.hasMetadata("LessLag.FarmDumb")) {
+                        shouldSkip = true;
+                    }
 
                     Location loc = mob.getLocation();
                     boolean currentlyAware = plugin.isMobAwareSafe(mob);
 
+                    if (shouldSkip) {
+                        if (forceRestore && !currentlyAware) {
+                            mobs.add(new MobSnapshot(
+                                    mob.getUniqueId(), currentPlayer.getWorld().getUID(),
+                                    loc.getX(), loc.getY(), loc.getZ(),
+                                    currentlyAware, true));
+                        }
+                        continue;
+                    }
+
                     mobs.add(new MobSnapshot(
-                            mob.getUniqueId(), world.getUID(),
+                            mob.getUniqueId(), currentPlayer.getWorld().getUID(),
                             loc.getX(), loc.getY(), loc.getZ(),
-                            currentlyAware));
+                            currentlyAware, false));
+
+                    if (++processedThisBatch > 50) {
+                        break;
+                    }
+                }
+
+                if (!currentEntities.hasNext()) {
+                    currentEntities = null;
                 }
             }
 
@@ -284,6 +369,14 @@ public class FrustumCuller {
         List<MobSnapshot> toRestore = new ArrayList<>();
 
         for (MobSnapshot mob : snapshot.mobs) {
+            if (mob.mustRestore) {
+                if (!mob.currentlyAware) {
+                    toRestore.add(mob);
+                }
+                lastProcessed.incrementAndGet();
+                continue;
+            }
+
             List<PlayerView> views = snapshot.worldViews.get(mob.worldUID);
             if (views == null)
                 continue;
@@ -383,7 +476,8 @@ public class FrustumCuller {
             // On Folia: dispatch per-entity to owning region thread via chunk location
             for (MobSnapshot mob : currentBatch) {
                 World world = Bukkit.getWorld(mob.worldUID);
-                if (world == null) continue;
+                if (world == null)
+                    continue;
                 int chunkX = (int) mob.x >> 4;
                 int chunkZ = (int) mob.z >> 4;
                 final UUID mobId = mob.uuid;
@@ -449,14 +543,17 @@ public class FrustumCuller {
         final UUID worldUID;
         final double x, y, z;
         final boolean currentlyAware;
+        final boolean mustRestore;
 
-        MobSnapshot(UUID uuid, UUID worldUID, double x, double y, double z, boolean currentlyAware) {
+        MobSnapshot(UUID uuid, UUID worldUID, double x, double y, double z, boolean currentlyAware,
+                boolean mustRestore) {
             this.uuid = uuid;
             this.worldUID = worldUID;
             this.x = x;
             this.y = y;
             this.z = z;
             this.currentlyAware = currentlyAware;
+            this.mustRestore = mustRestore;
         }
     }
 

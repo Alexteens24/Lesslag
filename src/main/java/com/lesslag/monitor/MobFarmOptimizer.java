@@ -174,10 +174,15 @@ public class MobFarmOptimizer implements Listener {
 
     private void processChunk(Chunk chunk) {
         for (Entity entity : chunk.getEntities()) {
-            if (!isCandidate(entity))
+            if (!(entity instanceof LivingEntity))
                 continue;
-
             LivingEntity mob = (LivingEntity) entity;
+
+            if (!isCandidate(entity)) {
+                if (isDumbed(mob))
+                    restore(mob);
+                continue;
+            }
             Location loc = mob.getLocation();
 
             // Skip if a player is nearby (mob should stay active)

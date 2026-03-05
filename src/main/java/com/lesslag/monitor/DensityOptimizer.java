@@ -21,10 +21,11 @@ public class DensityOptimizer {
     private SchedulerAdapter.TaskHandle task;
 
     // ── Incremental scan state ──
-    // Instead of scanning all chunks in one tick, we spread the work across multiple ticks.
-    private int scanCursor = 0;            // Current position in the chunk list
-    private Chunk[] pendingChunks = null;   // Snapshot of loaded chunks for current scan pass
-    private int pendingWorldIndex = 0;     // Current world index for multi-world iteration
+    // Instead of scanning all chunks in one tick, we spread the work across
+    // multiple ticks.
+    private int scanCursor = 0; // Current position in the chunk list
+    private Chunk[] pendingChunks = null; // Snapshot of loaded chunks for current scan pass
+    private int pendingWorldIndex = 0; // Current world index for multi-world iteration
 
     // ── Runtime stats (volatile for cross-thread reads from commands) ──
     private volatile int totalMobsOptimized = 0;
@@ -81,9 +82,12 @@ public class DensityOptimizer {
         startScanPass();
     }
 
-    /** Begin a new incremental scan pass. Called from start() and after idle delay. */
+    /**
+     * Begin a new incremental scan pass. Called from start() and after idle delay.
+     */
     private void startScanPass() {
-        if (task != null) task.cancel();
+        if (task != null)
+            task.cancel();
         pendingChunks = null;
         pendingWorldIndex = 0;
         scanCursor = 0;
@@ -116,17 +120,24 @@ public class DensityOptimizer {
                     pendingChunks = null;
                     lastPassOptimized = currentPassOptimized;
                     lastPassChunks = currentPassChunks;
-                    if (task != null) { task.cancel(); task = null; }
+                    if (task != null) {
+                        task.cancel();
+                        task = null;
+                    }
                     SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
                     return;
                 }
                 pendingWorldIndex = 0;
             }
 
-            if (worlds.isEmpty()) return;
+            if (worlds.isEmpty())
+                return;
             if (pendingWorldIndex >= worlds.size()) {
                 pendingChunks = null;
-                if (task != null) { task.cancel(); task = null; }
+                if (task != null) {
+                    task.cancel();
+                    task = null;
+                }
                 SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
                 return;
             }
@@ -171,8 +182,14 @@ public class DensityOptimizer {
             Mob mob = (Mob) entity;
 
             if (limits.containsKey(mob.getType())) {
-                if (shouldBypass(mob))
+                if (shouldBypass(mob)) {
+                    if (!plugin.isMobAwareSafe(mob)) {
+                        plugin.setMobAwareSafe(mob, true);
+                        mob.setCollidable(true);
+                        mob.removeMetadata("LessLag.DensitySuppressed", plugin);
+                    }
                     continue;
+                }
                 mobsByType.computeIfAbsent(mob.getType(), k -> new ArrayList<>()).add(mob);
             }
         }
@@ -248,7 +265,8 @@ public class DensityOptimizer {
         // classic runtimes and skip region dispatch on Folia to avoid shutdown spam.
         if (!plugin.isEnabled()) {
             if (SchedulerAdapter.isFolia()) {
-                plugin.getLogger().fine("Skipping DensityOptimizer restore scheduling during disable on Folia runtime.");
+                plugin.getLogger()
+                        .fine("Skipping DensityOptimizer restore scheduling during disable on Folia runtime.");
                 return;
             }
             restoreDirect();
@@ -277,7 +295,8 @@ public class DensityOptimizer {
     }
 
     private void restoreChunk(Chunk chunk) {
-        if (!chunk.isLoaded()) return;
+        if (!chunk.isLoaded())
+            return;
         for (Entity entity : chunk.getEntities()) {
             if (entity instanceof Mob) {
                 Mob mob = (Mob) entity;
@@ -292,10 +311,27 @@ public class DensityOptimizer {
 
     // ── Getters (volatile-safe for command reads) ──
 
-    public int getTotalMobsOptimized() { return totalMobsOptimized; }
-    public int getTotalChunksScanned() { return totalChunksScanned; }
-    public int getLastPassOptimized()  { return lastPassOptimized; }
-    public int getLastPassChunks()     { return lastPassChunks; }
-    public boolean isEnabled()         { return enabled; }
-    public Map<EntityType, Integer> getLimits() { return Collections.unmodifiableMap(limits); }
+    public int getTotalMobsOptimized() {
+        return totalMobsOptimized;
+    }
+
+    public int getTotalChunksScanned() {
+        return totalChunksScanned;
+    }
+
+    public int getLastPassOptimized() {
+        return lastPassOptimized;
+    }
+
+    public int getLastPassChunks() {
+        return lastPassChunks;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public Map<EntityType, Integer> getLimits() {
+        return Collections.unmodifiableMap(limits);
+    }
 }
