@@ -25,6 +25,7 @@ export function ImportExportModal() {
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -40,8 +41,6 @@ export function ImportExportModal() {
     });
 
   if (!showImportModal) return null;
-
-  const [importError, setImportError] = useState<string | null>(null);
 
   /**
    * Parse one or more dropped/selected files into a ConfigMap.
