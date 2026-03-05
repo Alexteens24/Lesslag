@@ -1,57 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLessLagStore } from '@/store/lesslag-store';
-import { HardwareTierMeta } from '@lesslag/shared-rules';
-import type { HardwareTier } from '@lesslag/shared-rules';
+import { HardwareTierMeta, classifyHardware } from '@lesslag/shared-rules';
+import type { HardwareTier, HardwareClassification } from '@lesslag/shared-rules';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+
+interface CpuSearchResult {
+  model: string;
+  sc: number;
+  mc: number | null;
+  cores: number | null;
+  clockGhz: number | null;
+  tier: 'LOW' | 'MID' | 'HIGH';
+  similarity: number;
+}
 
 const STEPS = ['CPU & RAM', 'Server Software', 'World Info'] as const;
 
-const CPU_MODELS = [
-  'AMD EPYC 7002 (Rome) VPS',
-  'AMD EPYC 7003 (Milan) VPS',
-  'AMD EPYC 9004 (Genoa) VPS',
-  'AMD Ryzen 3000 (Zen 2) VPS',
-  'AMD Ryzen 5000 (Zen 3) VPS',
-  'AMD Ryzen 7000 (Zen 4) VPS',
-  'AMD EPYC VPS (shared vCPU)',
-  'Intel Xeon VPS (shared vCPU)',
-  'AMD Ryzen VPS (dedicated vCPU)',
-  'Intel Xeon E-2200 (Coffee Lake) VPS',
-  'Intel Xeon E-2300 (Rocket Lake) VPS',
-  'Intel Xeon Scalable Gen 2 (Cascade Lake) VPS',
-  'Intel Xeon Scalable Gen 3 (Ice Lake) VPS',
-  'Intel Xeon Scalable Gen 4 (Sapphire Rapids) VPS',
-  'Intel Xeon Gold 5200/6200 (Gen 2)',
-  'Intel Xeon Gold 5300/6300 (Gen 3)',
-  'Intel Xeon Gold 5400/6400 (Gen 4)',
-  'Intel Xeon Silver 4200/4300/4400',
-  'Intel Xeon Platinum 8200/8300/8400',
-  'Intel Core i5-10400 / 11400',
-  'Intel Core i5-12400 / 13400 / 14400',
-  'Intel Core i7-10700 / 11700',
-  'Intel Core i7-12700 / 13700 / 14700',
-  'Intel Core i9-10900 / 11900',
-  'Intel Core i9-12900 / 13900 / 14900',
-  'AMD Ryzen 5 3600 / 5600 / 7600',
-  'AMD Ryzen 7 3700X / 5800X / 7700',
-  'AMD Ryzen 9 3900X / 5900X / 7900',
-  'AMD Ryzen 9 3950X / 5950X / 7950X',
-  'Intel Core i5',
-  'Intel Core i7',
-  'Intel Core i9',
-  'AMD Ryzen 5',
-  'AMD Ryzen 7',
-  'AMD Ryzen 9',
-  'Intel Xeon D-1700 / D-2700',
-  'AMD Threadripper PRO 5000',
-  'Intel N100 / N305 (low power host)',
-  'Intel Atom C3000 (low power server)',
-  'Xeon E-2300',
-  'EPYC 7003',
-  'Apple M1/M2/M3',
-  'Other',
-] as const;
 
 const VPS_PRESETS = [
   {
@@ -109,30 +76,66 @@ interface HardwareWizardProps {
 
 export function HardwareWizard({ onCompleteHardwareBaseline }: HardwareWizardProps) {
   const [step, setStep] = useState(0);
-  const { hardware, platform, setHardware, setPlatform, setTier, playerCount, setPlayerCount } = useLessLagStore();
+  const { hardware, platform, setHardware, setPlatform, setTier, playerCount, setPlayerCount, benchmarkScore, setBenchmarkResult } = useLessLagStore();
+
+  // CPU live search state
+  const [cpuQuery, setCpuQuery] = useState(hardware.cpuModel ?? '');
+  const [cpuResults, setCpuResults] = useState<CpuSearchResult[]>([]);
+  const [cpuSearching, setCpuSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const q = cpuQuery.trim();
+    if (q.length < 2) { setCpuResults([]); return; }
+    if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    searchDebounce.current = setTimeout(async () => {
+      setCpuSearching(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/benchmarks/search?q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCpuResults(data.results ?? []);
+          setShowDropdown(true);
+        }
+      } catch { /* silently ignore */ }
+      finally { setCpuSearching(false); }
+    }, 280);
+    return () => { if (searchDebounce.current) clearTimeout(searchDebounce.current); };
+  }, [cpuQuery]);
+
+  const selectCpu = (r: CpuSearchResult) => {
+    setCpuQuery(r.model);
+    setHardware({ cpuModel: r.model, ...(r.cores != null ? { availableProcessors: r.cores } : {}) });
+    setBenchmarkResult(r.sc, r.tier as HardwareTier);
+    setShowDropdown(false);
+    setCpuResults([]);
+  };
+
+  const tierBadge = (tier: string) => {
+    const map: Record<string, string> = { HIGH: 'bg-green-500/20 text-green-400', MID: 'bg-yellow-500/20 text-yellow-400', LOW: 'bg-red-500/20 text-red-400' };
+    return map[tier] ?? 'bg-gray-500/20 text-gray-400';
+  };
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
 
-  const autoDetectTier = () => {
-    const cores = hardware.availableProcessors;
-    const ram = hardware.maxHeapMB;
+  const getClassification = (): HardwareClassification =>
+    classifyHardware(
+      hardware,
+      benchmarkScore ?? undefined,
+      hardware.averageMspt > 0 ? hardware.averageMspt : undefined,
+    );
 
-    if (cores >= 6 && ram >= 10240) {
-      setTier('HIGH');
-    } else if (cores >= 4 && ram >= 6144) {
-      setTier('MID');
-    } else {
-      setTier('LOW');
-    }
+  const autoDetectTier = () => {
+    const cls = getClassification();
+    setTier(cls.tier);
   };
 
-  const detectedTier: HardwareTier =
-    hardware.availableProcessors >= 6 && hardware.maxHeapMB >= 10240
-      ? 'HIGH'
-      : hardware.availableProcessors >= 4 && hardware.maxHeapMB >= 6144
-        ? 'MID'
-        : 'LOW';
+  // Live classification for display
+  const classification = getClassification();
+  const detectedTier: HardwareTier = classification.tier;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -142,13 +145,12 @@ export function HardwareWizard({ onCompleteHardwareBaseline }: HardwareWizardPro
           <div key={label} className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setStep(i)}
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all sm:h-8 sm:w-8 ${
-                i === step
-                  ? 'bg-[var(--accent)] text-white'
-                  : i < step
-                    ? 'bg-[var(--success)] text-white'
-                    : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
-              }`}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all sm:h-8 sm:w-8 ${i === step
+                ? 'bg-[var(--accent)] text-white'
+                : i < step
+                  ? 'bg-[var(--success)] text-white'
+                  : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
+                }`}
             >
               {i < step ? '✓' : i + 1}
             </button>
@@ -191,15 +193,51 @@ export function HardwareWizard({ onCompleteHardwareBaseline }: HardwareWizardPro
 
             <div>
               <label className="mb-1 block text-sm text-[var(--text-muted)]">CPU Model</label>
-              <select
-                value={hardware.cpuModel}
-                onChange={(e) => setHardware({ cpuModel: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              >
-                {CPU_MODELS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+              <div className="relative" ref={dropdownRef}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={cpuQuery}
+                    onChange={(e) => { setCpuQuery(e.target.value); setHardware({ cpuModel: e.target.value }); }}
+                    onFocus={() => cpuResults.length > 0 && setShowDropdown(true)}
+                    placeholder="Search CPU (e.g. EPYC 9354, i9-14900K, Ryzen 9 7950X)…"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 pr-8 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                  />
+                  {cpuSearching && (
+                    <span className="absolute right-2.5 top-2.5 text-xs text-[var(--text-muted)] animate-pulse">⟳</span>
+                  )}
+                  {benchmarkScore != null && !cpuSearching && (
+                    <span className="absolute right-2.5 top-2 text-[10px] font-bold text-[var(--accent)]">⚡{benchmarkScore}</span>
+                  )}
+                </div>
+                {showDropdown && cpuResults.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-xl overflow-hidden">
+                    {cpuResults.map((r) => (
+                      <button
+                        key={r.model}
+                        onMouseDown={(e) => { e.preventDefault(); selectCpu(r); }}
+                        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-[var(--bg-elevated)] transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-[var(--text-primary)]">{r.model}</div>
+                          <div className="text-xs text-[var(--text-muted)]">
+                            {r.clockGhz != null ? `${r.clockGhz} GHz` : ''}
+                            {r.cores != null ? ` · ${r.cores} cores` : ''}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-xs font-mono font-bold text-[var(--text-secondary)]">SC {r.sc}</span>
+                          {r.mc != null && (
+                            <span className="text-[10px] text-[var(--text-muted)]">MC {r.mc}</span>
+                          )}
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tierBadge(r.tier)}`}>{r.tier}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Geekbench 6 Single-Core scores — MC = Multi-Core</p>
             </div>
 
             <div>
@@ -280,11 +318,10 @@ export function HardwareWizard({ onCompleteHardwareBaseline }: HardwareWizardPro
                         isLuminol: f.id === 'luminol',
                       })
                     }
-                    className={`rounded-lg border p-3 text-left transition-all ${
-                      platform.fork === f.id
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                        : 'border-[var(--border)] hover:border-[var(--text-muted)]'
-                    }`}
+                    className={`rounded-lg border p-3 text-left transition-all ${platform.fork === f.id
+                      ? 'border-[var(--accent)] bg-[var(--accent)]/10'
+                      : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                      }`}
                   >
                     <div className="text-sm font-medium text-[var(--text-primary)]">{f.label}</div>
                     <div className="text-xs text-[var(--text-muted)]">{f.description}</div>
@@ -344,29 +381,78 @@ export function HardwareWizard({ onCompleteHardwareBaseline }: HardwareWizardPro
               />
             </div>
 
-            {/* Auto-detected tier summary */}
-            <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
-              <div className="text-xs text-[var(--text-muted)] uppercase mb-2">Detected Hardware Tier</div>
+            {/* Hardware score breakdown */}
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Hardware Score</div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${classification.confidence === 'HIGH' ? 'bg-green-500/20 text-green-400' :
+                  classification.confidence === 'MED' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-gray-500/20 text-gray-400'
+                  }`}>
+                  {classification.confidence === 'HIGH' ? '🎯 Benchmark data' :
+                    classification.confidence === 'MED' ? '🔍 CPU model match' : '📊 Specs only'}
+                </span>
+              </div>
+
+              {/* Score bar */}
+              <div>
+                <div className="flex justify-between mb-1">
                   <span className="text-lg font-bold text-[var(--text-primary)]">
                     {HardwareTierMeta[detectedTier].displayName}
                   </span>
-                  <p className="text-xs text-[var(--text-muted)] mt-1">
-                    {hardware.availableProcessors} vCPU/thread(s), {(hardware.maxHeapMB / 1024).toFixed(1)} GB RAM, {platform.fork}
-                  </p>
+                  <span className="text-lg font-bold text-[var(--accent)]">{classification.score}/100</span>
                 </div>
-                <button
-                  onClick={() => {
-                    autoDetectTier();
-                    onCompleteHardwareBaseline?.();
-                  }}
-                  className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--accent-hover)] transition-colors sm:px-4 sm:text-sm"
-                >
-                  Apply Hardware Baseline
-                </button>
+                <div className="h-2 rounded-full bg-[var(--bg-primary)] overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${detectedTier === 'HIGH' ? 'bg-green-500' :
+                      detectedTier === 'MID' ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                    style={{ width: `${classification.score}%` }}
+                  />
+                </div>
               </div>
+
+              {/* Score breakdown */}
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                {[
+                  { label: 'Benchmark', val: classification.breakdown.benchmarkScore, max: 40 },
+                  { label: 'CPU Topology', val: classification.breakdown.topologyScore, max: 20 },
+                  { label: 'Core Count', val: classification.breakdown.coreScore, max: 15 },
+                  { label: 'RAM / Heap', val: classification.breakdown.ramScore, max: 15 },
+                  { label: 'Live MSPT', val: classification.breakdown.msptBonus, max: 10, signed: true },
+                ].map(({ label, val, max, signed }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className="text-[var(--text-muted)] w-20 shrink-0">{label}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-primary)] overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${val < 0 ? 'bg-red-500' : 'bg-[var(--accent)]'}`}
+                        style={{ width: `${Math.max(0, Math.abs(val) / Math.abs(max) * 100)}%` }}
+                      />
+                    </div>
+                    <span className={`w-8 text-right tabular-nums ${val < 0 ? 'text-red-400' : 'text-[var(--text-secondary)]'}`}>
+                      {signed && val > 0 ? '+' : ''}{val}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {classification.reason && (
+                <p className="text-xs text-[var(--text-muted)] border-t border-[var(--border)] pt-2 leading-relaxed">
+                  💡 {classification.reason}
+                </p>
+              )}
+
+              <button
+                onClick={() => {
+                  autoDetectTier();
+                  onCompleteHardwareBaseline?.();
+                }}
+                className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
+              >
+                Apply {HardwareTierMeta[detectedTier].displayName} Baseline
+              </button>
             </div>
+
           </div>
         )}
       </div>

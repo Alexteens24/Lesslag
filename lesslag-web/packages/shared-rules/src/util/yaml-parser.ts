@@ -67,7 +67,7 @@ export function parseSimpleYaml(text: string): Record<string, string | number | 
       if (commentIdx >= 0) cleanVal = cleanVal.slice(0, commentIdx).trim();
       // Strip quotes
       if ((cleanVal.startsWith("'") && cleanVal.endsWith("'")) ||
-          (cleanVal.startsWith('"') && cleanVal.endsWith('"'))) {
+        (cleanVal.startsWith('"') && cleanVal.endsWith('"'))) {
         cleanVal = cleanVal.slice(1, -1);
       }
       result[prefix] = coerce(cleanVal);
@@ -86,6 +86,89 @@ export function serializeProperties(config: Record<string, string | number | boo
   return Object.entries(config)
     .map(([k, v]) => `${k}=${v}`)
     .join('\n');
+}
+
+/**
+ * Serialize a flat dot-key map to proper nested YAML.
+ *
+ * Input:  { "entities.spawning.per-player-mob-spawns": true, "misc.redstone-implementation": "ALTERNATE_CURRENT" }
+ * Output:
+ *   entities:
+ *     spawning:
+ *       per-player-mob-spawns: true
+ *   misc:
+ *     redstone-implementation: ALTERNATE_CURRENT
+ *
+ * This is the correct reverse of `parseSimpleYaml()`.
+ */
+export function serializeYaml(config: Record<string, string | number | boolean>): string {
+  // Build nested object tree from flat dot-keys
+  const tree: Record<string, unknown> = {};
+  for (const [dotKey, value] of Object.entries(config)) {
+    const parts = dotKey.split('.');
+    let node: Record<string, unknown> = tree;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      if (node[part] == null || typeof node[part] !== 'object') {
+        node[part] = {};
+      }
+      node = node[part] as Record<string, unknown>;
+    }
+    node[parts[parts.length - 1]] = value;
+  }
+
+  // Recursively render the tree to YAML
+  return renderYamlNode(tree, 0);
+}
+
+function needsQuotes(val: string): boolean {
+  // Quote values that contain YAML special chars or could be misinterpreted
+  return (
+    val.includes(':') ||
+    val.includes('#') ||
+    val.startsWith('{') ||
+    val.startsWith('[') ||
+    val.startsWith('*') ||
+    val.startsWith('&') ||
+    val.startsWith('!') ||
+    val.startsWith('>') ||
+    val.startsWith('|') ||
+    val.startsWith('%') ||
+    val === '' ||
+    val === 'true' ||
+    val === 'false' ||
+    val === 'null' ||
+    !isNaN(Number(val))
+  );
+}
+
+function renderYamlValue(val: unknown): string {
+  if (typeof val === 'boolean') return String(val);
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'string') {
+    if (needsQuotes(val)) return `"${val.replace(/"/g, '\\"')}"`;
+    return val;
+  }
+  return String(val);
+}
+
+function renderYamlNode(node: Record<string, unknown>, depth: number): string {
+  const indent = '  '.repeat(depth);
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(node)) {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      lines.push(`${indent}${key}:`);
+      lines.push(renderYamlNode(value as Record<string, unknown>, depth + 1));
+    } else if (Array.isArray(value)) {
+      lines.push(`${indent}${key}:`);
+      for (const item of value) {
+        lines.push(`${indent}  - ${renderYamlValue(item)}`);
+      }
+    } else {
+      lines.push(`${indent}${key}: ${renderYamlValue(value)}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 /**

@@ -15,7 +15,7 @@ import type {
   StartupCommandResult,
   ServerConfigChecklist,
 } from '@lesslag/shared-rules';
-import { evaluate, generatePreset, generateDiffs, generateLessLagConfigJson, parseConfig, type ConfigDiff } from '@lesslag/shared-rules';
+import { evaluate, generatePreset, generateDiffs, generateLessLagConfigJson, parseConfig, serializeYaml, serializeProperties, type ConfigDiff } from '@lesslag/shared-rules';
 import { buildStartupCommand } from '@/lib/startup-command';
 
 interface Snapshot {
@@ -134,7 +134,7 @@ interface LessLagState {
   restoreSnapshot: (id: string) => void;
   deleteSnapshot: (id: string) => void;
 
-  importConfigs: (files: Record<string, string>) => void;
+  importConfigs: (files: Record<string, Record<string, unknown> | string>) => void;
   exportConfigs: () => Record<string, string>;
 
   // ─── Payload actions ───
@@ -701,7 +701,13 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
   importConfigs: (files) => {
     const newConfigs: ConfigMap = {};
     for (const [filename, content] of Object.entries(files)) {
-      newConfigs[filename] = parseConfig(content, filename);
+      if (typeof content === 'string') {
+        // Raw file content — parse it
+        newConfigs[filename] = parseConfig(content, filename);
+      } else if (typeof content === 'object' && content !== null) {
+        // Already parsed object
+        newConfigs[filename] = content as Record<string, unknown>;
+      }
     }
     set((s) => ({ configs: { ...s.configs, ...newConfigs } }));
   },
@@ -709,12 +715,14 @@ export const useLessLagStore = create<LessLagState>((set, get) => ({
     const s = get();
     const result: Record<string, string> = {};
     for (const [file, config] of Object.entries(s.configs)) {
-      result[file] = Object.entries(config ?? {})
-        .map(([k, v]) => {
-          if (file.endsWith('.properties')) return `${k}=${v}`;
-          return `${k}: ${v}`;
-        })
-        .join('\n');
+      const flat = Object.fromEntries(
+        Object.entries(config ?? {}).map(([k, v]) => [k, v as string | number | boolean]),
+      );
+      if (file.endsWith('.properties')) {
+        result[file] = serializeProperties(flat);
+      } else {
+        result[file] = serializeYaml(flat);
+      }
     }
     return result;
   },

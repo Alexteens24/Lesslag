@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useLessLagStore } from '@/store/lesslag-store';
+import { parseConfig } from '@lesslag/shared-rules';
 
 type ExportTab = 'config' | 'checklist' | 'startup';
 
@@ -40,22 +41,98 @@ export function ImportExportModal() {
 
   if (!showImportModal) return null;
 
+  const [importError, setImportError] = useState<string | null>(null);
+
+  /**
+   * Parse one or more dropped/selected files into a ConfigMap.
+   * Supports:
+   *  - `lesslag-config.json` (or any .json) — full ConfigMap export
+   *  - `.properties` and `.yml`/`.yaml` — individual config files
+   */
+  const processFiles = async (fileList: FileList) => {
+    const fileArray = Array.from(fileList);
+    if (fileArray.length === 0) return;
+    setImportError(null);
+
+    const readText = (f: File): Promise<string> =>
+      new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = (e) => res(e.target?.result as string);
+        r.onerror = () => rej(new Error(`Failed to read ${f.name}`));
+        r.readAsText(f);
+      });
+
+    try {
+      const newConfigs: Record<string, Record<string, unknown>> = {};
+
+      for (const file of fileArray) {
+        const text = await readText(file);
+        const name = file.name;
+
+        if (name.endsWith('.json')) {
+          // Full JSON export — expect { [filename]: { [key]: value } }
+          const parsed = JSON.parse(text);
+          if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error(`${name}: expected an object mapping filenames to configs`);
+          }
+          // Check if it's a flat config map or a lesslag-config.json — handle both
+          const keys = Object.keys(parsed);
+          const looksLikeConfigMap = keys.some(k =>
+            k.endsWith('.properties') || k.endsWith('.yml') || k.endsWith('.yaml') || k === 'bukkit.yml'
+          );
+          if (looksLikeConfigMap) {
+            Object.assign(newConfigs, parsed);
+          } else {
+            // Might be a lesslag-config.json style — try to import as 'config.yml' section
+            Object.assign(newConfigs, parsed);
+          }
+        } else if (name.endsWith('.properties') || name.endsWith('.yml') || name.endsWith('.yaml')) {
+          // Direct config file — parse and store under filename
+          const parsed = parseConfig(text, name);
+          newConfigs[name] = parsed;
+        } else {
+          throw new Error(`Unsupported file type: ${name} (expected .json, .properties, or .yml)`);
+        }
+      }
+
+      importConfigs(newConfigs as unknown as Record<string, Record<string, unknown>>);
+      setShowImportModal(false);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setImportError(msg);
+    }
+  };
+
   const handleFileUpload = (files: FileList | null) => {
     if (!files) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setImportText(e.target?.result as string);
-    reader.readAsText(files[0]);
+    processFiles(files);
   };
 
   const handleImport = () => {
     if (!importText.trim()) return;
-    try {
-      const parsed = JSON.parse(importText);
-      importConfigs(parsed);
-      setShowImportModal(false);
-      setImportText('');
-    } catch {
-      alert('Invalid JSON. Please paste valid config JSON.');
+    // Try to detect format from pasted text
+    const trimmed = importText.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        importConfigs(parsed);
+        setShowImportModal(false);
+        setImportText('');
+        setImportError(null);
+      } catch {
+        setImportError('Invalid JSON. Please paste valid config JSON or drop a file.');
+      }
+    } else {
+      // Treat as server.properties content
+      try {
+        const parsed = parseConfig(trimmed, 'server.properties');
+        importConfigs({ 'server.properties': parsed as Record<string, string> });
+        setShowImportModal(false);
+        setImportText('');
+        setImportError(null);
+      } catch {
+        setImportError('Could not parse pasted content.');
+      }
     }
   };
 
@@ -94,11 +171,10 @@ export function ImportExportModal() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                activeTab === tab
-                  ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${activeTab === tab
+                ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
             >
               {tab === 'import' ? '📥 Import' : '📤 Export'}
             </button>
@@ -111,20 +187,36 @@ export function ImportExportModal() {
             /* ─── Import tab ─────────────────────────────── */
             <div className="space-y-4">
               <div
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
-                  dragOver
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-                    : 'border-[var(--border)] hover:border-[var(--text-muted)]'
-                }`}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${dragOver
+                  ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+                  : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                  }`}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <span className="text-2xl">📄</span>
-                <span className="mt-2 text-sm text-[var(--text-muted)]">Drop a JSON file or click to browse</span>
-                <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={(e) => handleFileUpload(e.target.files)} />
+                <span className="mt-2 text-sm text-[var(--text-muted)] text-center">
+                  Drop config files here or click to browse
+                </span>
+                <span className="mt-1 text-xs text-[var(--text-muted)] opacity-60">
+                  Accepts: .json · .properties · .yml / .yaml (multi-file)
+                </span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,.properties,.yml,.yaml"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                />
               </div>
+              {importError && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                  ⚠️ {importError}
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-xs text-[var(--text-muted)]">Or paste JSON:</label>
                 <textarea
@@ -153,11 +245,10 @@ export function ImportExportModal() {
                   <button
                     key={id}
                     onClick={() => setExportTab(id)}
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      exportTab === id
-                        ? 'bg-[var(--accent)] text-white'
-                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-elevated)]'
-                    }`}
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${exportTab === id
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-elevated)]'
+                      }`}
                   >
                     {label}
                   </button>
@@ -344,11 +435,10 @@ export function ImportExportModal() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                          startupCommand.gcType === 'ZGC'
-                            ? 'bg-violet-500/15 text-violet-400'
-                            : 'bg-blue-500/15 text-blue-400'
-                        }`}
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${startupCommand.gcType === 'ZGC'
+                          ? 'bg-violet-500/15 text-violet-400'
+                          : 'bg-blue-500/15 text-blue-400'
+                          }`}
                       >
                         {startupCommand.gcType}
                       </span>

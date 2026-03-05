@@ -2,7 +2,7 @@
 export type {
   RuleResult,
   PatchProposal,
-} from './types/rule-result';
+} from './types/rule-result.js';
 
 export type {
   PresetProfile,
@@ -16,7 +16,7 @@ export type {
   LessLagConfigJson,
   StartupCommandResult,
   ServerConfigChecklist,
-} from './types/config';
+} from './types/config.js';
 
 // Enums & constants
 export {
@@ -32,7 +32,7 @@ export {
   GameProfileMeta,
   HardwareTierMeta,
   AggressivenessLevelMeta,
-} from './types/enums';
+} from './types/enums.js';
 
 export type {
   GameProfile,
@@ -44,14 +44,15 @@ export type {
   SessionStatus,
   ServerFork,
   TargetFile,
-} from './types/enums';
+} from './types/enums.js';
 
 // Builders
-export { buildRuleResult, buildPatch } from './types/rule-result';
+export { buildRuleResult, buildPatch } from './types/rule-result.js';
 
 // Engine
-export { generatePreset, applyLoadModifier } from './engine/preset-generator';
-export { evaluate } from './engine/evaluator';
+export { generatePreset, applyLoadModifier } from './engine/preset-generator.js';
+export { evaluate, registerRule } from './engine/evaluator.js';
+export type { RuleGroupFn } from './engine/evaluator.js';
 export {
   generateDiffs,
   groupDiffsByFile,
@@ -59,8 +60,12 @@ export {
   renderFullDiff,
   applyDiffsToConfig,
   generateLessLagConfigJson,
-} from './engine/diff-generator';
-export type { ConfigDiff } from './engine/diff-generator';
+} from './engine/diff-generator.js';
+export type { ConfigDiff } from './engine/diff-generator.js';
+
+// Hardware classifier
+export { classifyHardware, tierFromSpecs } from './engine/hardware-classifier.js';
+export type { HardwareClassification, HardwareScoreBreakdown } from './engine/hardware-classifier.js';
 
 // Utilities
 export {
@@ -68,8 +73,9 @@ export {
   parseSimpleYaml,
   parseConfig,
   serializeProperties,
+  serializeYaml,
   detectFormat,
-} from './util/yaml-parser';
+} from './util/yaml-parser.js';
 
 // Version
-export { RULES_VERSION } from './version';
+export { RULES_VERSION } from './version.js';

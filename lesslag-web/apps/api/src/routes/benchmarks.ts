@@ -7,7 +7,10 @@ import benchmarkData from '../../../../packages/shared-rules/src/data/geekbench-
 interface BenchmarkEntry {
     model: string;
     normalized: string;
-    score: number;
+    sc: number;
+    mc: number | null;
+    cores: number | null;
+    clockGhz: number | null;
     tier: string;
 }
 
@@ -61,7 +64,10 @@ benchmarksRoute.get('/benchmarks/search', (c) => {
 
     const scored = benchmarks.map((entry) => ({
         model: entry.model,
-        score: entry.score,
+        sc: entry.sc,
+        mc: entry.mc ?? null,
+        cores: entry.cores ?? null,
+        clockGhz: entry.clockGhz ?? null,
         tier: entry.tier,
         similarity: jaccardSimilarity(queryTrigrams, buildTrigrams(entry.normalized)),
     }));
