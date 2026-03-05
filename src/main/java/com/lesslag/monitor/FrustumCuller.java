@@ -149,21 +149,27 @@ public class FrustumCuller {
                         if (player.getLocation().distanceSquared(mob.getLocation()) > scanRadius * scanRadius)
                             continue;
                         if (!processedMobs.add(mob.getUniqueId())) continue;
-                        if (protectedTypes.contains(mob.getType().name())) continue;
-                        if (LessLag.hasCustomName(mob)) continue;
-                        if (plugin.getCompatManager().isProtectedEntity(mob)) continue;
+
+                        // Modules that manage their own AI state
                         if (mob.hasMetadata("LessLag.DensitySuppressed")) continue;
                         if (mob.hasMetadata("LessLag.VillagerOptimized")) continue;
-                        if (mob instanceof org.bukkit.entity.Tameable
-                                && ((org.bukkit.entity.Tameable) mob).isTamed()) continue;
 
-                        Location loc = mob.getLocation();
+                        boolean isProtected = false;
+                        if (protectedTypes.contains(mob.getType().name())) isProtected = true;
+                        else if (LessLag.hasCustomName(mob)) isProtected = true;
+                        else if (plugin.getCompatManager().isProtectedEntity(mob)) isProtected = true;
+                        else if (mob instanceof org.bukkit.entity.Tameable && ((org.bukkit.entity.Tameable) mob).isTamed()) isProtected = true;
+                        else if (mob.isInWater()) isProtected = true; // Prevent drowning
+
                         boolean currentlyAware = plugin.isMobAwareSafe(mob);
 
+                        if (isProtected && currentlyAware) continue;
+
+                        Location loc = mob.getLocation();
                         mobs.add(new MobSnapshot(
                                 mob.getUniqueId(), world.getUID(),
                                 loc.getX(), loc.getY(), loc.getZ(),
-                                currentlyAware));
+                                currentlyAware, isProtected));
                     }
                 } finally {
                     if (remaining.decrementAndGet() == 0) {
@@ -242,27 +248,26 @@ public class FrustumCuller {
                     if (!processedMobs.add(mob.getUniqueId()))
                         continue;
 
-                    if (protectedTypes.contains(mob.getType().name()))
-                        continue;
-                    if (LessLag.hasCustomName(mob))
-                        continue;
-                    if (plugin.getCompatManager().isProtectedEntity(mob))
-                        continue;
-                    if (mob.hasMetadata("LessLag.DensitySuppressed"))
-                        continue;
-                    if (mob.hasMetadata("LessLag.VillagerOptimized"))
-                        continue;
-                    if (mob instanceof org.bukkit.entity.Tameable
-                            && ((org.bukkit.entity.Tameable) mob).isTamed())
-                        continue;
+                    // Modules that manage their own AI state
+                    if (mob.hasMetadata("LessLag.DensitySuppressed")) continue;
+                    if (mob.hasMetadata("LessLag.VillagerOptimized")) continue;
 
-                    Location loc = mob.getLocation();
+                    boolean isProtected = false;
+                    if (protectedTypes.contains(mob.getType().name())) isProtected = true;
+                    else if (LessLag.hasCustomName(mob)) isProtected = true;
+                    else if (plugin.getCompatManager().isProtectedEntity(mob)) isProtected = true;
+                    else if (mob instanceof org.bukkit.entity.Tameable && ((org.bukkit.entity.Tameable) mob).isTamed()) isProtected = true;
+                    else if (mob.isInWater()) isProtected = true; // Prevent drowning
+
                     boolean currentlyAware = plugin.isMobAwareSafe(mob);
 
+                    if (isProtected && currentlyAware) continue;
+
+                    Location loc = mob.getLocation();
                     mobs.add(new MobSnapshot(
                             mob.getUniqueId(), world.getUID(),
                             loc.getX(), loc.getY(), loc.getZ(),
-                            currentlyAware));
+                            currentlyAware, isProtected));
                 }
             }
 
@@ -286,6 +291,14 @@ public class FrustumCuller {
         List<MobSnapshot> toRestore = new ArrayList<>();
 
         for (MobSnapshot mob : snapshot.mobs) {
+            if (mob.forceRestore) {
+                if (!mob.currentlyAware) {
+                    toRestore.add(mob);
+                }
+                lastProcessed.incrementAndGet();
+                continue;
+            }
+
             List<PlayerView> views = snapshot.worldViews.get(mob.worldUID);
             if (views == null)
                 continue;
@@ -449,14 +462,16 @@ public class FrustumCuller {
         final UUID worldUID;
         final double x, y, z;
         final boolean currentlyAware;
+        final boolean forceRestore;
 
-        MobSnapshot(UUID uuid, UUID worldUID, double x, double y, double z, boolean currentlyAware) {
+        MobSnapshot(UUID uuid, UUID worldUID, double x, double y, double z, boolean currentlyAware, boolean forceRestore) {
             this.uuid = uuid;
             this.worldUID = worldUID;
             this.x = x;
             this.y = y;
             this.z = z;
             this.currentlyAware = currentlyAware;
+            this.forceRestore = forceRestore;
         }
     }
 
