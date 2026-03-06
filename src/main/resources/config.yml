@@ -646,13 +646,3 @@ notifications:
 #  Auto-detects hardware, platform, plugins and recommends
 #  an optimal configuration profile for your server.
 # =============================================================
-setup-advisor:
-  # Enable the /lg setup wizard
-  enabled: true
-  # Maximum concurrent advisor sessions
-  max-sessions: 5
-  # Directory for config snapshots (relative to plugin data folder)
-  backup-dir: "setup-backups"
-  # Maximum number of backup snapshots to retain
-  max-backups: 10
-

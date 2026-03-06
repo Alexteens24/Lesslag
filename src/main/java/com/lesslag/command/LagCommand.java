@@ -3,7 +3,6 @@ package com.lesslag.command;
 import com.lesslag.LessLag;
 import com.lesslag.action.ActionExecutor;
 import com.lesslag.action.ThresholdConfig;
-import com.lesslag.setup.SetupCommandHandler;
 import com.lesslag.web.ApplyConfigCommand;
 import com.lesslag.web.LessLagApiClient;
 import com.lesslag.web.VerifyConfigCommand;
@@ -31,7 +30,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 
-
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
@@ -44,16 +42,12 @@ public class LagCommand implements CommandExecutor {
 
     private final LessLag plugin;
     private FileConfiguration messagesConfig;
-    private SetupCommandHandler setupCommandHandler;
 
     public LagCommand(LessLag plugin) {
         this.plugin = plugin;
         File msgFile = new File(plugin.getDataFolder(), "messages.yml");
         if (msgFile.exists()) {
             messagesConfig = YamlConfiguration.loadConfiguration(msgFile);
-        }
-        if (plugin.getSetupAdvisor() != null) {
-            setupCommandHandler = new SetupCommandHandler(plugin, plugin.getSetupAdvisor());
         }
     }
 
@@ -148,11 +142,7 @@ public class LagCommand implements CommandExecutor {
                 doRestore(sender);
                 break;
             case "setup":
-                if (setupCommandHandler != null) {
-                    setupCommandHandler.handle(sender, args);
-                } else {
-                    send(sender, "&cSetup Advisor is disabled in config.");
-                }
+                send(sender, "&cThe setup wizard has been moved to the web dashboard! Please use &e/lg web link&c.");
                 break;
             case "web":
                 handleWeb(sender, args);
@@ -211,7 +201,6 @@ public class LagCommand implements CommandExecutor {
         send(sender, "  &e/lg clear       &8- &7Clear entities &8[items|mobs|hostile|all]");
         send(sender, "  &e/lg ai          &8- &7AI control &8[disable|restore|status]");
         send(sender, "  &e/lg restore     &8- &7Restore all defaults");
-        send(sender, "  &e/lg setup       &8- &7Setup Advisor wizard");
         send(sender, "  &e/lg web link    &8- &7Generate pre-filled web configurator link");
         send(sender, "  &e/lg apply       &8- &7Apply lesslag-config.json from web");
         send(sender, "  &e/lg verify      &8- &7Verify server config expectations");
@@ -349,7 +338,7 @@ public class LagCommand implements CommandExecutor {
         double msptScore = Math.max(0, Math.min(30, (1.0 - Math.max(0, tps.getCurrentMSPT() - 30) / 20.0) * 30));
         // Memory component: 0-30 points
         Runtime rt = Runtime.getRuntime();
-        double memUsed = (double)(rt.totalMemory() - rt.freeMemory()) / rt.maxMemory();
+        double memUsed = (double) (rt.totalMemory() - rt.freeMemory()) / rt.maxMemory();
         double memScore = Math.max(0, Math.min(30, (1.0 - memUsed) * 30));
         return (int) Math.round(tpsScore + msptScore + memScore);
     }
@@ -368,8 +357,10 @@ public class LagCommand implements CommandExecutor {
         long hours = TimeUnit.MILLISECONDS.toHours(ms);
         long minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60;
         long seconds = TimeUnit.MILLISECONDS.toSeconds(ms) % 60;
-        if (hours > 0) return hours + "h " + minutes + "m";
-        if (minutes > 0) return minutes + "m " + seconds + "s";
+        if (hours > 0)
+            return hours + "h " + minutes + "m";
+        if (minutes > 0)
+            return minutes + "m " + seconds + "s";
         return seconds + "s";
     }
 
@@ -915,12 +906,14 @@ public class LagCommand implements CommandExecutor {
             send(sender, "    &7Worst spike: &c" + ba.getWorstSpikeDurationMs() + "ms");
             if (!ba.getWorstSpikeCulprit().isEmpty()) {
                 String culprit = ba.getWorstSpikeCulprit();
-                if (culprit.length() > 50) culprit = "..." + culprit.substring(culprit.length() - 47);
+                if (culprit.length() > 50)
+                    culprit = "..." + culprit.substring(culprit.length() - 47);
                 send(sender, "    &7Worst culprit: &e" + culprit);
             }
             if (!ba.getLastSpikeCulprit().isEmpty()) {
                 String last = ba.getLastSpikeCulprit();
-                if (last.length() > 50) last = "..." + last.substring(last.length() - 47);
+                if (last.length() > 50)
+                    last = "..." + last.substring(last.length() - 47);
                 send(sender, "    &7Last culprit: &e" + last);
                 long ago = (System.currentTimeMillis() - ba.getLastSpikeTimeMs()) / 1000;
                 send(sender, "    &7Last spike: &f" + ago + "s ago");
@@ -1275,7 +1268,8 @@ public class LagCommand implements CommandExecutor {
         }
 
         if (args.length >= 2 && args[1].equalsIgnoreCase("link")) {
-            // Delegate to WebLinkCommand — encodes hardware payload in URL, no API call needed
+            // Delegate to WebLinkCommand — encodes hardware payload in URL, no API call
+            // needed
             new WebLinkCommand(plugin).execute(sender);
             return;
         }
