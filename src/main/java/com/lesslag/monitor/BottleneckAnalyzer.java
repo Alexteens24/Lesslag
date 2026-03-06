@@ -212,48 +212,117 @@ public class BottleneckAnalyzer {
 
     /**
      * Walks down the stack trace to find the most likely culprit method.
-     * Skips JVM internals, standard NMS tick loops, and common benign patterns
-     * (network I/O, async callbacks, world loading) that appear frequently during
-     * normal operation but are not actionable bottlenecks.
+     * First pass: Prioritize methods belonging to plugins (non-core / non-library).
+     * Second pass: If purely a server/vanilla issue, return the deepest actionable
+     * method.
      */
     private String extractMeaningfulMethod(StackTraceElement[] stack) {
+        // First pass: find a clear third-party / plugin method that is not a core
+        // library/server package.
+        for (StackTraceElement element : stack) {
+            String className = element.getClassName();
+            if (!isCoreServerOrLibrary(className)) {
+                return className + "." + element.getMethodName();
+            }
+        }
+
+        // Second pass: No obvious plugin found. Find the deepest method that isn't
+        // completely generic/benign.
         for (StackTraceElement element : stack) {
             String className = element.getClassName();
             String methodName = element.getMethodName();
 
-            // Skip JVM internals
+            // Skip standard JVM/Libraries
             if (className.startsWith("java.") || className.startsWith("javax.") ||
-                    className.startsWith("sun.") || className.startsWith("jdk.")) {
+                    className.startsWith("sun.") || className.startsWith("jdk.") ||
+                    className.startsWith("io.netty.") || className.startsWith("com.mojang.") ||
+                    className.startsWith("it.unimi.") || className.startsWith("com.google.") ||
+                    className.startsWith("org.apache.") || className.startsWith("org.yaml.") ||
+                    className.startsWith("org.slf4j.") || className.startsWith("jline.") ||
+                    className.startsWith("org.jline.") || className.startsWith("net.minecrell.") ||
+                    className.startsWith("org.sqlite.") || className.startsWith("com.mysql.") ||
+                    className.startsWith("com.zaxxer.hikari.")) {
                 continue;
             }
 
-            // Skip standard NMS tick / server loop methods
-            if (className.startsWith("net.minecraft.server") || className.startsWith("net.minecraft.")) {
-                if (methodName.equals("tick") || methodName.equals("doTick")
-                        || methodName.equals("runServer") || methodName.equals("run")
-                        || methodName.equals("executeAll") || methodName.equals("executeModerately")
-                        || methodName.equals("pollUntilIdle") || methodName.equals("processQueue")
-                        || methodName.equals("sendPacketSet") || methodName.equals("flush")
-                        || methodName.equals("sendPacket") || methodName.equals("handlePacket")) {
+            // Skip standard server wait/poll/tick/loop infrastructure that don't give
+            // insight
+            if (className.startsWith("net.minecraft.") || className.startsWith("org.bukkit.") ||
+                    className.startsWith("com.destroystokyo.paper.") || className.startsWith("io.papermc.")) {
+
+                // If it's the main server loop, it's not helpful
+                if (className.contains("MinecraftServer") || className.contains("ServerLevel")
+                        || className.contains("DedicatedServer")) {
+                    if (methodName.equals("tick") || methodName.equals("doTick") || methodName.equals("tickServer")
+                            || methodName.equals("tickChildren")
+                            || methodName.equals("runServer") || methodName.equals("run")
+                            || methodName.equals("executeModerately")
+                            || methodName.equals("pollUntilIdle")) {
+                        continue;
+                    }
+                }
+
+                // Skip basic network/pipeline generic tasks
+                if (className.contains("PlayerConnection") || className.contains("NetworkManager")) {
+                    if (methodName.equals("tick") || methodName.equals("sendPacket")
+                            || methodName.equals("handlePacket") || methodName.equals("flush")) {
+                        continue;
+                    }
+                }
+
+                // Skip generic waits/locks
+                if (methodName.equals("await") || methodName.equals("lock")
+                        || methodName.equals("park") || methodName.equals("sleep")
+                        || methodName.toLowerCase().contains("wait")) {
                     continue;
                 }
             }
 
-            // Skip Paper/Netty I/O and async thread infrastructure
-            if (className.startsWith("io.netty.") || className.startsWith("com.mojang.")) {
-                continue;
-            }
-
-            // Skip chunk loading — common and not actionable from here
-            if (className.contains("ChunkMap") || className.contains("ChunkStorage")
+            // Skip chunk loading / saving / standard NMS operations that aren't usually
+            // actionable
+            if ((className.contains("ChunkMap") || className.contains("ChunkStorage")
                     || className.contains("ChunkSerializer") || className.contains("RegionFile")
-                    || methodName.equals("saveChunk") || methodName.equals("loadChunk")) {
+                    || className.contains("PaperChunk") || className.contains("PlayerChunk"))
+                    && (methodName.equals("saveChunk") || methodName.equals("loadChunk")
+                            || methodName.equals("getChunkAt") || methodName.equals("load")
+                            || methodName.equals("save") || methodName.equals("processQueue"))) {
                 continue;
             }
 
             return className + "." + methodName;
         }
+
+        // Extreme fallback (if everything was filtered, return the top of the stack)
+        if (stack.length > 0) {
+            return stack[0].getClassName() + "." + stack[0].getMethodName();
+        }
+
         return null;
+    }
+
+    private boolean isCoreServerOrLibrary(String className) {
+        return className.startsWith("net.minecraft.")
+                || className.startsWith("org.spigotmc.")
+                || className.startsWith("org.bukkit.")
+                || className.startsWith("com.destroystokyo.paper.")
+                || className.startsWith("io.papermc.")
+                || className.startsWith("java.")
+                || className.startsWith("javax.")
+                || className.startsWith("sun.")
+                || className.startsWith("jdk.")
+                || className.startsWith("com.mojang.")
+                || className.startsWith("io.netty.")
+                || className.startsWith("it.unimi.")
+                || className.startsWith("com.google.")
+                || className.startsWith("org.apache.")
+                || className.startsWith("org.yaml.")
+                || className.startsWith("org.slf4j.")
+                || className.startsWith("jline.")
+                || className.startsWith("org.jline.")
+                || className.startsWith("net.minecrell.")
+                || className.startsWith("com.mysql.")
+                || className.startsWith("org.sqlite.")
+                || className.startsWith("com.zaxxer.hikari.");
     }
 
     /**
