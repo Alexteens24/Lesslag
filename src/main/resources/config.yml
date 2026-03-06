@@ -640,6 +640,8 @@ notifications:
   sound: false
   # Cooldown in seconds for repetitive admin warnings
   cooldown: 10
+  # Broadcast to all players when an action (like clearing items) finishes
+  broadcast-actions: false
 
 # =============================================================
 #  SETUP ADVISOR

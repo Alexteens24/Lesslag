@@ -199,10 +199,20 @@ public class ActionExecutor {
             }
             case "reduce-view-distance": {
                 reduceViewDistance();
+                if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                    String defaultMsg = "&aReduced view distance to save performance.";
+                    String broadcastMsg = getMsg("messages.broadcast-view-distance-reduced", defaultMsg);
+                    NotificationHelper.broadcastAsync(broadcastMsg);
+                }
                 break;
             }
             case "reduce-simulation-distance": {
                 reduceSimulationDistance();
+                if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                    String defaultMsg = "&aReduced simulation distance to save performance.";
+                    String broadcastMsg = getMsg("messages.broadcast-simulation-distance-reduced", defaultMsg);
+                    NotificationHelper.broadcastAsync(broadcastMsg);
+                }
                 break;
             }
             case "disable-mob-ai": {
@@ -226,8 +236,15 @@ public class ActionExecutor {
             }
             case "unload-world-chunks": {
                 int unloaded = unloadWorldChunks();
-                if (unloaded > 0)
+                if (unloaded > 0) {
                     plugin.getLogger().info("[Action] Unloaded " + unloaded + " excess chunks across all worlds");
+                    if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                        String defaultMsg = "&aUnloaded &e" + unloaded + " &aexcess chunks.";
+                        String broadcastMsg = getMsg("messages.broadcast-chunks-unloaded", defaultMsg)
+                                .replace("%count%", String.valueOf(unloaded));
+                        NotificationHelper.broadcastAsync(broadcastMsg);
+                    }
+                }
                 break;
             }
             case "notify-admin": {
@@ -250,9 +267,11 @@ public class ActionExecutor {
     /**
      * Helper method to process entities with a filter
      */
-    private void processEntities(java.util.function.Predicate<Entity> filter) {
+    private void processEntities(java.util.function.Predicate<Entity> filter, String actionName,
+            String broadcastMessageKey) {
         WorkloadDistributor distributor = plugin.getWorkloadDistributor();
         int batchSize = 20;
+        java.util.concurrent.atomic.AtomicInteger removedCount = new java.util.concurrent.atomic.AtomicInteger(0);
 
         for (World world : Bukkit.getWorlds()) {
             Chunk[] chunks = world.getLoadedChunks();
@@ -261,11 +280,14 @@ public class ActionExecutor {
                 // On Folia: dispatch per-chunk to owning region thread
                 for (Chunk chunk : chunks) {
                     distributor.addChunkWorkload(chunk, () -> {
-                        if (!chunk.isLoaded()) return;
+                        if (!chunk.isLoaded())
+                            return;
                         for (Entity entity : chunk.getEntities()) {
                             if (filter.test(entity)) {
-                                if (!entity.isValid()) continue;
+                                if (!entity.isValid())
+                                    continue;
                                 entity.remove();
+                                removedCount.incrementAndGet();
                             }
                         }
                     });
@@ -280,11 +302,14 @@ public class ActionExecutor {
                         final List<Chunk> currentBatch = new ArrayList<>(batch);
                         distributor.addWorkload(() -> {
                             for (Chunk c : currentBatch) {
-                                if (!c.isLoaded()) continue;
+                                if (!c.isLoaded())
+                                    continue;
                                 for (Entity entity : c.getEntities()) {
                                     if (filter.test(entity)) {
-                                        if (!entity.isValid()) continue;
+                                        if (!entity.isValid())
+                                            continue;
                                         entity.remove();
+                                        removedCount.incrementAndGet();
                                     }
                                 }
                             }
@@ -297,11 +322,14 @@ public class ActionExecutor {
                     final List<Chunk> currentBatch = new ArrayList<>(batch);
                     distributor.addWorkload(() -> {
                         for (Chunk c : currentBatch) {
-                            if (!c.isLoaded()) continue;
+                            if (!c.isLoaded())
+                                continue;
                             for (Entity entity : c.getEntities()) {
                                 if (filter.test(entity)) {
-                                    if (!entity.isValid()) continue;
+                                    if (!entity.isValid())
+                                        continue;
                                     entity.remove();
+                                    removedCount.incrementAndGet();
                                 }
                             }
                         }
@@ -309,34 +337,62 @@ public class ActionExecutor {
                 }
             }
         }
+
+        // Add a final workload to log and broadcast the result after all chunks are
+        // processed
+        Runnable completionTask = () -> {
+            int count = removedCount.get();
+            if (count > 0) {
+                String consoleMsg = "[Action] " + actionName + " completed. Removed " + count + " entities.";
+                plugin.getLogger().info(consoleMsg);
+
+                if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                    String defaultMsg = "&aRemoved &e" + count + " &a" + actionName.toLowerCase() + ".";
+                    String broadcastMsg = getMsg(broadcastMessageKey, defaultMsg).replace("%count%",
+                            String.valueOf(count));
+                    NotificationHelper.broadcast(broadcastMsg);
+                }
+            }
+        };
+
+        if (SchedulerAdapter.isFolia()) {
+            // Give Folia some time to process the region chunks before summarizing
+            SchedulerAdapter.runGlobalDelayed(plugin, completionTask, 20L);
+        } else {
+            // On Paper/Spigot, add as a high-priority workload to run after the currently
+            // batched chunks
+            distributor.addWorkload(completionTask, WorkloadDistributor.WorkloadPriority.HIGH);
+        }
     }
 
     /**
      * Clear all dropped items on the ground
      */
     public void clearGroundItems() {
-        processEntities(entity -> entity instanceof Item);
+        processEntities(entity -> entity instanceof Item, "Ground Items", "messages.broadcast-items-cleared");
     }
 
     /**
      * Clear all XP orbs on the ground
      */
     public void clearXPOrbs() {
-        processEntities(entity -> entity instanceof ExperienceOrb);
+        processEntities(entity -> entity instanceof ExperienceOrb, "XP Orbs", "messages.broadcast-xp-cleared");
     }
 
     /**
      * Clear excess non-whitelisted, unnamed, untamed living entities
      */
     public void clearExcessMobs() {
-        processEntities(entity -> entity instanceof LivingEntity && shouldRemoveEntity(entity));
+        processEntities(entity -> entity instanceof LivingEntity && shouldRemoveEntity(entity), "Excess Mobs",
+                "messages.broadcast-mobs-cleared");
     }
 
     /**
      * Kill all hostile mobs without custom names
      */
     public void killHostileMobs() {
-        processEntities(entity -> entity instanceof Monster && !isProtected(entity));
+        processEntities(entity -> entity instanceof Monster && !isProtected(entity), "Hostile Mobs",
+                "messages.broadcast-hostile-killed");
     }
 
     /**
@@ -351,6 +407,7 @@ public class ActionExecutor {
         int radius = plugin.getConfig().getInt("modules.mob-ai.active-radius", 48);
         int chunkRadius = (radius >> 4) + 1;
         WorkloadDistributor distributor = plugin.getWorkloadDistributor();
+        java.util.concurrent.atomic.AtomicInteger disabledCount = new java.util.concurrent.atomic.AtomicInteger(0);
 
         for (World world : Bukkit.getWorlds()) {
             // Capture player chunks on main thread to avoid async issues
@@ -383,12 +440,33 @@ public class ActionExecutor {
                                 continue;
 
                             if (plugin.isMobAwareSafe(mob)) {
-                                plugin.setMobAwareSafe(mob, false);
+                                if (plugin.setMobAwareSafe(mob, false)) {
+                                    disabledCount.incrementAndGet();
+                                }
                             }
                         }
                     }
                 });
             }
+        }
+
+        Runnable completionTask = () -> {
+            int count = disabledCount.get();
+            if (count > 0) {
+                plugin.getLogger().info("[Action] Mob AI disable completed. Disabled AI for " + count + " mobs.");
+                if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                    String defaultMsg = "&aDisabled AI for &e" + count + " &amobs.";
+                    String broadcastMsg = getMsg("messages.broadcast-ai-disabled", defaultMsg).replace("%count%",
+                            String.valueOf(count));
+                    NotificationHelper.broadcast(broadcastMsg);
+                }
+            }
+        };
+
+        if (SchedulerAdapter.isFolia()) {
+            SchedulerAdapter.runGlobalDelayed(plugin, completionTask, 20L);
+        } else {
+            distributor.addWorkload(completionTask, WorkloadDistributor.WorkloadPriority.HIGH);
         }
     }
 
@@ -420,7 +498,14 @@ public class ActionExecutor {
             }
             // Log completion after a short delay
             SchedulerAdapter.runGlobalDelayed(plugin, () -> {
-                plugin.getLogger().info("[Action] Mob AI restoration completed. Restored " + restoredCount.get() + " mobs.");
+                int count = restoredCount.get();
+                plugin.getLogger().info("[Action] Mob AI restoration completed. Restored " + count + " mobs.");
+                if (count > 0 && plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                    String defaultMsg = "&aRestored AI for &e" + count + " &amobs.";
+                    String broadcastMsg = getMsg("messages.broadcast-ai-restored", defaultMsg).replace("%count%",
+                            String.valueOf(count));
+                    NotificationHelper.broadcast(broadcastMsg);
+                }
             }, 20L);
         } else {
             // On Paper/Spigot: batch via WorkloadDistributor for tick-spreading
@@ -450,8 +535,14 @@ public class ActionExecutor {
             }
 
             distributor.addWorkload(() -> {
-                plugin.getLogger()
-                        .info("[Action] Mob AI restoration batches completed. Restored " + restoredCount.get() + " mobs.");
+                int count = restoredCount.get();
+                plugin.getLogger().info("[Action] Mob AI restoration batches completed. Restored " + count + " mobs.");
+                if (count > 0 && plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                    String defaultMsg = "&aRestored AI for &e" + count + " &amobs.";
+                    String broadcastMsg = getMsg("messages.broadcast-ai-restored", defaultMsg).replace("%count%",
+                            String.valueOf(count));
+                    NotificationHelper.broadcast(broadcastMsg);
+                }
             }, WorkloadDistributor.WorkloadPriority.HIGH);
         }
     }
@@ -847,7 +938,8 @@ public class ActionExecutor {
                         if (SchedulerAdapter.isFolia()) {
                             // On Folia: dispatch per-entity to owning region thread via chunk location
                             World world = Bukkit.getWorld(worldId);
-                            if (world == null) continue;
+                            if (world == null)
+                                continue;
                             for (EntitySnapshot es : list) {
                                 int chunkX = es.loc.getBlockX() >> 4;
                                 int chunkZ = es.loc.getBlockZ() >> 4;
@@ -892,6 +984,12 @@ public class ActionExecutor {
                     }
 
                     plugin.getLogger().info("[EntityLimit] Scheduled removal of " + totalScheduled + " entities.");
+                    if (totalScheduled > 0 && plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
+                        String defaultMsg = "&aRemoved &e" + totalScheduled + " &aexcess entities for server limits.";
+                        String broadcastMsg = getMsg("messages.broadcast-entity-limits", defaultMsg).replace("%count%",
+                                String.valueOf(totalScheduled));
+                        NotificationHelper.broadcastAsync(broadcastMsg);
+                    }
                 });
             }
         });

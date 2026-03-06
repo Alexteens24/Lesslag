@@ -19,7 +19,8 @@ public final class NotificationHelper {
      */
     public static void notifyAdmins(String message) {
         LessLag plugin = LessLag.getInstance();
-        if (plugin == null || !plugin.isEnabled()) return;
+        if (plugin == null || !plugin.isEnabled())
+            return;
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission("lesslag.notify")) {
                 LessLag.sendMessage(player, plugin.getPrefix() + message);
@@ -34,7 +35,8 @@ public final class NotificationHelper {
      */
     public static void notifyAdminsAsync(String message) {
         LessLag plugin = LessLag.getInstance();
-        if (plugin == null || !plugin.isEnabled()) return;
+        if (plugin == null || !plugin.isEnabled())
+            return;
         if (Bukkit.isPrimaryThread()) {
             notifyAdmins(message);
         } else {
@@ -42,7 +44,8 @@ public final class NotificationHelper {
                 // Re-check inside the lambda: plugin may have been disabled
                 // between the time the task was queued and when it runs.
                 LessLag p = LessLag.getInstance();
-                if (p != null && p.isEnabled()) notifyAdmins(message);
+                if (p != null && p.isEnabled())
+                    notifyAdmins(message);
             });
         }
     }
@@ -53,11 +56,44 @@ public final class NotificationHelper {
      */
     public static void notifyAdminsRaw(String message) {
         LessLag plugin = LessLag.getInstance();
-        if (plugin == null || !plugin.isEnabled()) return;
+        if (plugin == null || !plugin.isEnabled())
+            return;
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission("lesslag.notify")) {
                 LessLag.sendMessage(player, message);
             }
+        }
+    }
+
+    /**
+     * Send a message to all online players.
+     * MUST be called from the main thread.
+     */
+    public static void broadcast(String message) {
+        LessLag plugin = LessLag.getInstance();
+        if (plugin == null || !plugin.isEnabled())
+            return;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            LessLag.sendMessage(player, plugin.getPrefix() + message);
+        }
+    }
+
+    /**
+     * Send a message to all players from any thread.
+     * Dispatches to main thread automatically if needed.
+     */
+    public static void broadcastAsync(String message) {
+        LessLag plugin = LessLag.getInstance();
+        if (plugin == null || !plugin.isEnabled())
+            return;
+        if (Bukkit.isPrimaryThread()) {
+            broadcast(message);
+        } else {
+            SchedulerAdapter.runGlobal(plugin, () -> {
+                LessLag p = LessLag.getInstance();
+                if (p != null && p.isEnabled())
+                    broadcast(message);
+            });
         }
     }
 }
