@@ -77,11 +77,15 @@ public class VillagerOptimizer implements Listener {
     private final Map<UUID, ActiveVillagerInfo> activeVillagers = new ConcurrentHashMap<>();
     private final AtomicInteger optimizedVillagers = new AtomicInteger(0);
 
-    // ── Incremental scan state ──
+    // ── Incremental scan state (Chunks - for Folia) ──
     private Chunk[] scanChunks = null;
     private int scanCursor = 0;
     private int scanWorldIndex = 0;
     private static final int VILLAGER_CHUNKS_PER_TICK = 20;
+
+    // ── Incremental scan state (Entities - for Bukkit/Spigot/Paper) ──
+    private List<Villager> scanVillagers = null;
+    private static final int VILLAGERS_PER_TICK = 50;
 
     private static class ActiveVillagerInfo {
         final long expiry;
@@ -149,6 +153,7 @@ public class VillagerOptimizer implements Listener {
         if (scanTask != null)
             scanTask.cancel();
         scanChunks = null;
+        scanVillagers = null;
         scanWorldIndex = 0;
         scanCursor = 0;
         scanTask = SchedulerAdapter.runGlobalRepeating(plugin, this::scanIncremental, 1L, 1L);
@@ -206,6 +211,14 @@ public class VillagerOptimizer implements Listener {
     // ══════════════════════════════════════════════════
 
     private void scanIncremental() {
+        if (SchedulerAdapter.isFolia()) {
+            scanIncrementalChunks();
+        } else {
+            scanIncrementalVillagers();
+        }
+    }
+
+    private void scanIncrementalChunks() {
         if (scanChunks == null || scanCursor >= scanChunks.length) {
             List<World> worlds = Bukkit.getWorlds();
             if (scanChunks != null && scanWorldIndex + 1 < worlds.size()) {
@@ -254,55 +267,98 @@ public class VillagerOptimizer implements Listener {
         scanCursor = end;
     }
 
+    private void scanIncrementalVillagers() {
+        if (scanVillagers == null || scanCursor >= scanVillagers.size()) {
+            List<World> worlds = Bukkit.getWorlds();
+            if (scanVillagers != null && scanWorldIndex + 1 < worlds.size()) {
+                scanWorldIndex++;
+            } else {
+                if (scanVillagers != null) {
+                    scanVillagers = null;
+                    if (scanTask != null) {
+                        scanTask.cancel();
+                        scanTask = null;
+                    }
+                    SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
+                    return;
+                }
+                scanWorldIndex = 0;
+            }
+            if (worlds.isEmpty())
+                return;
+            if (scanWorldIndex >= worlds.size()) {
+                scanVillagers = null;
+                if (scanTask != null) {
+                    scanTask.cancel();
+                    scanTask = null;
+                }
+                SchedulerAdapter.runGlobalDelayed(plugin, this::startScanPass, checkInterval);
+                return;
+            }
+            scanVillagers = new ArrayList<>(worlds.get(scanWorldIndex).getEntitiesByClass(Villager.class));
+            scanCursor = 0;
+        }
+
+        int end = Math.min(scanCursor + VILLAGERS_PER_TICK, scanVillagers.size());
+        for (int i = scanCursor; i < end; i++) {
+            Villager villager = scanVillagers.get(i);
+            processVillager(villager);
+        }
+        scanCursor = end;
+    }
+
     private void processVillagerChunk(Chunk chunk) {
         for (Entity entity : chunk.getEntities()) {
             if (entity.getType() != EntityType.VILLAGER)
                 continue;
 
-            Villager villager = (Villager) entity;
-            if (activeVillagers.containsKey(villager.getUniqueId()))
-                continue;
-            if (!villager.isValid())
-                continue;
+            processVillager((Villager) entity);
+        }
+    }
 
-            // Throttle re-checks for already-optimized villagers
-            long now = System.nanoTime();
-            if (isLobotomized(villager) && villager.hasMetadata("LessLag.LastTrappedCheck")) {
-                long last = villager.getMetadata("LessLag.LastTrappedCheck").get(0).asLong();
-                if (now - last < 120_000_000_000L)
-                    continue;
-            }
+    private void processVillager(Villager villager) {
+        if (activeVillagers.containsKey(villager.getUniqueId()))
+            return;
+        if (!villager.isValid())
+            return;
 
-            if (plugin.getCompatManager().isProtectedEntity(villager))
-                continue;
+        // Throttle re-checks for already-optimized villagers
+        long now = System.nanoTime();
+        if (isLobotomized(villager) && villager.hasMetadata("LessLag.LastTrappedCheck")) {
+            long last = villager.getMetadata("LessLag.LastTrappedCheck").get(0).asLong();
+            if (now - last < 120_000_000_000L)
+                return;
+        }
 
-            // ── Named villager control ──
-            NameTag nameTag = getNameTag(villager);
-            if (nameTag == NameTag.ALWAYS_ACTIVE) {
-                // Force restore if currently lobotomized
-                if (isLobotomized(villager))
-                    restore(villager);
-                continue;
-            }
+        if (plugin.getCompatManager().isProtectedEntity(villager))
+            return;
 
-            boolean forceInactive = (nameTag == NameTag.ALWAYS_INACTIVE);
-
-            // ── Profession guard (skip unless forced) ──
-            if (!forceInactive && !hasLearnedProfession(villager))
-                continue;
-
-            boolean shouldOptimize = forceInactive || !optimizeTrappedOnly || isTrapped(villager);
-
-            if (shouldOptimize) {
-                if (plugin.isMobAwareSafe(villager)) {
-                    lobotomize(villager);
-                }
-                villager.setMetadata("LessLag.LastTrappedCheck",
-                        new org.bukkit.metadata.FixedMetadataValue(plugin, now));
-            } else if (!plugin.isMobAwareSafe(villager)) {
-                // No longer trapped — restore
+        // ── Named villager control ──
+        NameTag nameTag = getNameTag(villager);
+        if (nameTag == NameTag.ALWAYS_ACTIVE) {
+            // Force restore if currently lobotomized
+            if (isLobotomized(villager))
                 restore(villager);
+            return;
+        }
+
+        boolean forceInactive = (nameTag == NameTag.ALWAYS_INACTIVE);
+
+        // ── Profession guard (skip unless forced) ──
+        if (!forceInactive && !hasLearnedProfession(villager))
+            return;
+
+        boolean shouldOptimize = forceInactive || !optimizeTrappedOnly || isTrapped(villager);
+
+        if (shouldOptimize) {
+            if (plugin.isMobAwareSafe(villager)) {
+                lobotomize(villager);
             }
+            villager.setMetadata("LessLag.LastTrappedCheck",
+                    new org.bukkit.metadata.FixedMetadataValue(plugin, now));
+        } else if (!plugin.isMobAwareSafe(villager)) {
+            // No longer trapped — restore
+            restore(villager);
         }
     }
 
@@ -398,13 +454,15 @@ public class VillagerOptimizer implements Listener {
     private void autoRestockLobotomizedVillagers() {
         boolean folia = SchedulerAdapter.isFolia();
         for (World world : Bukkit.getWorlds()) {
-            for (Chunk chunk : world.getLoadedChunks()) {
-                if (folia) {
+            if (folia) {
+                for (Chunk chunk : world.getLoadedChunks()) {
                     final Chunk c = chunk;
                     SchedulerAdapter.runAtChunk(plugin, c.getWorld(), c.getX(), c.getZ(),
                             () -> restockChunk(c));
-                } else {
-                    restockChunk(chunk);
+                }
+            } else {
+                for (Villager v : world.getEntitiesByClass(Villager.class)) {
+                    restockVillager(v);
                 }
             }
         }
@@ -414,13 +472,16 @@ public class VillagerOptimizer implements Listener {
         for (Entity e : chunk.getEntities()) {
             if (!(e instanceof Villager))
                 continue;
-            Villager v = (Villager) e;
-            if (!isLobotomized(v))
-                continue;
-            if (activeVillagers.containsKey(v.getUniqueId()))
-                continue;
-            restockTrades(v);
+            restockVillager((Villager) e);
         }
+    }
+
+    private void restockVillager(Villager v) {
+        if (!isLobotomized(v))
+            return;
+        if (activeVillagers.containsKey(v.getUniqueId()))
+            return;
+        restockTrades(v);
     }
 
     private void restockTrades(Villager v) {
