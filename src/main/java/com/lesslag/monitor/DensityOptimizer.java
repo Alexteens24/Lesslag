@@ -257,6 +257,18 @@ public class DensityOptimizer {
             return true;
         if (bypassLeashed && mob.isLeashed())
             return true;
+
+        // Protect villagers with professions from density optimization
+        if (mob instanceof org.bukkit.entity.Villager) {
+            org.bukkit.entity.Villager v = (org.bukkit.entity.Villager) mob;
+            org.bukkit.entity.Villager.Profession p = v.getProfession();
+            if (p != org.bukkit.entity.Villager.Profession.NONE && p != org.bukkit.entity.Villager.Profession.NITWIT) {
+                if (!v.getRecipes().isEmpty()) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 

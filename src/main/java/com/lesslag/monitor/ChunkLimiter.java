@@ -90,23 +90,29 @@ public class ChunkLimiter {
             for (World world : Bukkit.getWorlds()) {
                 Chunk[] loadedChunks = world.getLoadedChunks();
                 for (Chunk chunk : loadedChunks) {
-                    if (!plugin.isEnabled()) return;
+                    if (!plugin.isEnabled())
+                        return;
                     final Chunk c = chunk;
                     SchedulerAdapter.runAtChunk(plugin, c.getWorld(), c.getX(), c.getZ(), () -> {
-                        if (!c.isLoaded()) return;
+                        if (!c.isLoaded())
+                            return;
                         Entity[] entities = c.getEntities();
-                        if (entities.length <= maxPerChunk) return;
+                        if (entities.length <= maxPerChunk)
+                            return;
                         processHotChunk(c, entities, whitelist, context);
                     });
                 }
             }
-            // Schedule report on global thread after a short delay to let region tasks complete
-            if (!plugin.isEnabled()) return;
+            // Schedule report on global thread after a short delay to let region tasks
+            // complete
+            if (!plugin.isEnabled())
+                return;
             SchedulerAdapter.runGlobalDelayed(plugin, () -> finishScan(context), 20L);
         } else {
             // On Paper/Spigot: use WorkloadDistributor for tick-spreading
             plugin.getWorkloadDistributor().addWorkload(() -> {
-                if (!plugin.isEnabled()) return;
+                if (!plugin.isEnabled())
+                    return;
                 List<World> worlds = Bukkit.getWorlds();
                 if (!worlds.isEmpty()) {
                     scheduleWorldScan(worlds, 0, whitelist, context);
@@ -259,6 +265,18 @@ public class ChunkLimiter {
             return true;
         if (entity instanceof ArmorStand)
             return true;
+
+        // Protect villagers with professions
+        if (entity instanceof org.bukkit.entity.Villager) {
+            org.bukkit.entity.Villager v = (org.bukkit.entity.Villager) entity;
+            org.bukkit.entity.Villager.Profession p = v.getProfession();
+            if (p != org.bukkit.entity.Villager.Profession.NONE && p != org.bukkit.entity.Villager.Profession.NITWIT) {
+                if (!v.getRecipes().isEmpty()) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 

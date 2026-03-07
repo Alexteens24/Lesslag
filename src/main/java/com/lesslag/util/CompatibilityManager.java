@@ -220,6 +220,14 @@ public class CompatibilityManager {
     private boolean fancyNpcsDetected = false;
     private boolean fancyHologramsDetected = false;
 
+    // Reflection Caches
+    private java.lang.reflect.Method modelEngineGetModeledEntity = null;
+    private Object fancyNpcManager = null;
+    private java.lang.reflect.Method fancyNpcGetNpc = null;
+    private Object fancyHoloManager = null;
+    private java.lang.reflect.Method fancyHoloGetHolograms = null;
+    private java.lang.reflect.Method fancyHoloGetEntityId = null;
+
     private void detectCustomMobPlugins() {
         if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
             mythicMobsDetected = true;
@@ -228,6 +236,11 @@ public class CompatibilityManager {
 
         if (Bukkit.getPluginManager().getPlugin("ModelEngine") != null) {
             modelEngineDetected = true;
+            try {
+                Class<?> apiClass = Class.forName("com.ticxo.modelengine.api.ModelEngineAPI");
+                modelEngineGetModeledEntity = apiClass.getMethod("getModeledEntity", java.util.UUID.class);
+            } catch (Exception ignored) {
+            }
             plugin.getLogger().info("[Compat] ModelEngine detected!");
         }
 
@@ -270,12 +283,31 @@ public class CompatibilityManager {
         if (plugin.getConfig().getBoolean("compatibility.plugins.fancynpcs", true)
                 && Bukkit.getPluginManager().getPlugin("FancyNpcs") != null) {
             fancyNpcsDetected = true;
+            try {
+                Class<?> pluginClass;
+                try {
+                    pluginClass = Class.forName("com.fancyinnovations.fancynpcs.api.FancyNpcsPlugin");
+                } catch (ClassNotFoundException e) {
+                    pluginClass = Class.forName("de.oliver.fancynpcs.api.FancyNpcsPlugin");
+                }
+                Object pluginObj = pluginClass.getMethod("get").invoke(null);
+                fancyNpcManager = pluginClass.getMethod("getNpcManager").invoke(pluginObj);
+                fancyNpcGetNpc = fancyNpcManager.getClass().getMethod("getNpc", UUID.class);
+            } catch (Exception ignored) {
+            }
             plugin.getLogger().info("[Compat] FancyNpcs detected!");
         }
 
         if (plugin.getConfig().getBoolean("compatibility.plugins.fancyholograms", true)
                 && Bukkit.getPluginManager().getPlugin("FancyHolograms") != null) {
             fancyHologramsDetected = true;
+            try {
+                Class<?> pluginClass = Class.forName("de.oliver.fancyholograms.api.FancyHologramsPlugin");
+                Object pluginObj = pluginClass.getMethod("get").invoke(null);
+                fancyHoloManager = pluginClass.getMethod("getHologramsManager").invoke(pluginObj);
+                fancyHoloGetHolograms = fancyHoloManager.getClass().getMethod("getHolograms");
+            } catch (Exception ignored) {
+            }
             plugin.getLogger().info("[Compat] FancyHolograms detected!");
         }
 
@@ -298,13 +330,9 @@ public class CompatibilityManager {
             }
         }
 
-        if (modelEngineDetected) {
+        if (modelEngineDetected && modelEngineGetModeledEntity != null) {
             try {
-                // Reflection to avoid hard dependency on unavailable artifact
-                Class<?> apiClass = Class.forName("com.ticxo.modelengine.api.ModelEngineAPI");
-                java.lang.reflect.Method getModeledEntity = apiClass.getMethod("getModeledEntity",
-                        java.util.UUID.class);
-                Object modeledEntity = getModeledEntity.invoke(null, entity.getUniqueId());
+                Object modeledEntity = modelEngineGetModeledEntity.invoke(null, entity.getUniqueId());
                 if (modeledEntity != null) {
                     return true;
                 }
@@ -329,28 +357,11 @@ public class CompatibilityManager {
      * Check if an entity is an NPC from FancyNpcs.
      */
     public boolean isFancyNpc(org.bukkit.entity.Entity entity) {
-        if (!fancyNpcsDetected || entity == null)
+        if (!fancyNpcsDetected || entity == null || fancyNpcManager == null || fancyNpcGetNpc == null)
             return false;
 
         try {
-            // Support both com.fancyinnovations and de.oliver packages
-            Class<?> pluginClass = null;
-            try {
-                pluginClass = Class.forName("com.fancyinnovations.fancynpcs.api.FancyNpcsPlugin");
-            } catch (ClassNotFoundException e) {
-                try {
-                    pluginClass = Class.forName("de.oliver.fancynpcs.api.FancyNpcsPlugin");
-                } catch (ClassNotFoundException ex) {
-                    return false;
-                }
-            }
-
-            Object pluginObj = pluginClass.getMethod("get").invoke(null);
-            Object npcManager = pluginClass.getMethod("getNpcManager").invoke(pluginObj);
-
-            // FancyNpcs stores NPCs by UUID; look up via entity's UUID
-            UUID entityId = entity.getUniqueId();
-            Object npc = npcManager.getClass().getMethod("getNpc", UUID.class).invoke(npcManager, entityId);
+            Object npc = fancyNpcGetNpc.invoke(fancyNpcManager, entity.getUniqueId());
             if (npc != null) {
                 return true;
             }
@@ -365,19 +376,17 @@ public class CompatibilityManager {
      * Check if an entity is part of a FancyHologram.
      */
     public boolean isFancyHologram(org.bukkit.entity.Entity entity) {
-        if (!fancyHologramsDetected || entity == null)
+        if (!fancyHologramsDetected || entity == null || fancyHoloManager == null || fancyHoloGetHolograms == null)
             return false;
 
         try {
-            Class<?> pluginClass = Class.forName("de.oliver.fancyholograms.api.FancyHologramsPlugin");
-            Object pluginObj = pluginClass.getMethod("get").invoke(null);
-            Object holoManager = pluginClass.getMethod("getHologramsManager").invoke(pluginObj);
-
-            // getHolograms returns Collection<Hologram>
-            java.util.Collection<?> holograms = (java.util.Collection<?>) holoManager.getClass()
-                    .getMethod("getHolograms").invoke(holoManager);
+            java.util.Collection<?> holograms = (java.util.Collection<?>) fancyHoloGetHolograms
+                    .invoke(fancyHoloManager);
             for (Object holo : holograms) {
-                int id = (int) holo.getClass().getMethod("getEntityId").invoke(holo);
+                if (fancyHoloGetEntityId == null) {
+                    fancyHoloGetEntityId = holo.getClass().getMethod("getEntityId");
+                }
+                int id = (int) fancyHoloGetEntityId.invoke(holo);
                 if (id == entity.getEntityId()) {
                     return true;
                 }
