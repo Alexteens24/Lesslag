@@ -22,7 +22,7 @@ import java.util.logging.Logger;
 /** Runtime scheduler bridge for Folia and non-Folia servers. */
 public class SchedulerAdapter {
 
-    private static final MethodHandles.Lookup LOOKUP = MethodHandles.publicLookup();
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     private static final Map<Plugin, SchedulerAdapter> ADAPTERS = Collections.synchronizedMap(new WeakHashMap<>());
 
