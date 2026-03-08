@@ -26,6 +26,7 @@ public class CompatibilityManager {
     private boolean pufferfishDetected = false;
     private boolean dabEnabled = false;
     private boolean leafDetected = false;
+    private boolean lagfixerDetected = false;
     private boolean clearlagDetected = false;
     private boolean mobFarmManagerDetected = false;
 
@@ -57,6 +58,7 @@ public class CompatibilityManager {
 
         detectPufferfish(true);
         detectLeaf(true);
+        detectLagfixer(true);
         detectClearlag(true);
         detectMobFarmManager(true);
         detectCustomMobPlugins();
@@ -156,6 +158,52 @@ public class CompatibilityManager {
             if (plugin.getConfig().getBoolean("modules.mob-ai.enabled", true)) {
                 plugin.getConfig().set("modules.mob-ai.enabled", false);
                 autoDisabled.add("Mob AI Optimization (Frustum Culling) disabled (Leaf uses Async Pathfinding)");
+                configChanged = true;
+            }
+
+            if (configChanged) {
+                plugin.saveConfig();
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    // LagFixer Detection
+    // ══════════════════════════════════════════════════
+
+    private void detectLagfixer(boolean autoAdjust) {
+        boolean check = plugin.getConfig().getBoolean("compatibility.plugins.lagfixer", true);
+        if (!check)
+            return;
+
+        lagfixerDetected = Bukkit.getPluginManager().getPlugin("LagFixer") != null;
+
+        if (!lagfixerDetected)
+            return;
+
+        plugin.getLogger().info("[Compat] LagFixer detected! (Overlaps with multiple modules)");
+
+        if (autoAdjust) {
+            boolean configChanged = false;
+
+            if (plugin.getConfig().getBoolean("modules.mob-ai.enabled", true)) {
+                plugin.getConfig().set("modules.mob-ai.enabled", false);
+                autoDisabled.add("Mob AI Optimization disabled (LagFixer uses MobAiReducer)");
+                configChanged = true;
+            }
+            if (plugin.getConfig().getBoolean("modules.entities.chunk-limiter.enabled", true)) {
+                plugin.getConfig().set("modules.entities.chunk-limiter.enabled", false);
+                autoDisabled.add("Chunk Limiter disabled (LagFixer uses EntityLimiter)");
+                configChanged = true;
+            }
+            if (plugin.getConfig().getBoolean("modules.redstone.enabled", true)) {
+                plugin.getConfig().set("modules.redstone.enabled", false);
+                autoDisabled.add("Redstone Limiter disabled (LagFixer uses RedstoneLimiter)");
+                configChanged = true;
+            }
+            if (plugin.getConfig().getBoolean("modules.movement-limiter.enabled", true)) {
+                plugin.getConfig().set("modules.movement-limiter.enabled", false);
+                autoDisabled.add("Movement Limiter disabled (LagFixer uses AbilityLimiter)");
                 configChanged = true;
             }
 
@@ -503,6 +551,10 @@ public class CompatibilityManager {
 
     public boolean isLeafDetected() {
         return leafDetected;
+    }
+
+    public boolean isLagfixerDetected() {
+        return lagfixerDetected;
     }
 
     public boolean isDABEnabled() {

@@ -544,6 +544,8 @@ compatibility:
     decentholograms: true
     # Detect Leaf server and adjust AI modules
     leaf: true
+    # Detect LagFixer and adjust overlapping modules
+    lagfixer: true
 
 # =============================================================
 #  HEALTH REPORT (/lg health)
