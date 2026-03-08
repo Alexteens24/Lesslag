@@ -25,6 +25,7 @@ public class CompatibilityManager {
     // Detection results
     private boolean pufferfishDetected = false;
     private boolean dabEnabled = false;
+    private boolean leafDetected = false;
     private boolean clearlagDetected = false;
     private boolean mobFarmManagerDetected = false;
 
@@ -55,6 +56,7 @@ public class CompatibilityManager {
         // Actually, config comment says "Automatically detect and adjust".
 
         detectPufferfish(true);
+        detectLeaf(true);
         detectClearlag(true);
         detectMobFarmManager(true);
         detectCustomMobPlugins();
@@ -129,6 +131,37 @@ public class CompatibilityManager {
         } catch (Exception e) {
             plugin.getLogger().fine("[Compat] Could not read pufferfish.yml: " + e.getMessage());
             return true; // Assume enabled if we can't read
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    // Leaf Detection
+    // ══════════════════════════════════════════════════
+
+    private void detectLeaf(boolean autoAdjust) {
+        boolean check = plugin.getConfig().getBoolean("compatibility.plugins.leaf", true);
+        if (!check)
+            return;
+
+        leafDetected = detectServerFork("Leaf");
+
+        if (!leafDetected)
+            return;
+
+        plugin.getLogger().info("[Compat] Leaf detected! (Features async pathfinding/AI optimizations)");
+
+        if (autoAdjust) {
+            boolean configChanged = false;
+
+            if (plugin.getConfig().getBoolean("modules.mob-ai.enabled", true)) {
+                plugin.getConfig().set("modules.mob-ai.enabled", false);
+                autoDisabled.add("Mob AI Optimization (Frustum Culling) disabled (Leaf uses Async Pathfinding)");
+                configChanged = true;
+            }
+
+            if (configChanged) {
+                plugin.saveConfig();
+            }
         }
     }
 
@@ -466,6 +499,10 @@ public class CompatibilityManager {
 
     public boolean isPufferfishDetected() {
         return pufferfishDetected;
+    }
+
+    public boolean isLeafDetected() {
+        return leafDetected;
     }
 
     public boolean isDABEnabled() {

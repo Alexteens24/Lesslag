@@ -542,6 +542,8 @@ compatibility:
     fancyholograms: true
     # Detect and avoid sweeping DecentHolograms
     decentholograms: true
+    # Detect Leaf server and adjust AI modules
+    leaf: true
 
 # =============================================================
 #  HEALTH REPORT (/lg health)
