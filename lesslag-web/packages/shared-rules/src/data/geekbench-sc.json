@@ -2,7 +2,7 @@
   {
     "model": "AMD Ryzen 9 9950X3D",
     "normalized": "amd ryzen 9 9950x3d",
-    "sc": 3395,
+    "sc": 3396,
     "mc": null,
     "cores": 16,
     "clockGhz": 4.3,
@@ -38,7 +38,7 @@
   {
     "model": "AMD Ryzen 7 9800X3D",
     "normalized": "amd ryzen 7 9800x3d",
-    "sc": 3338,
+    "sc": 3337,
     "mc": null,
     "cores": 8,
     "clockGhz": 4.7,
@@ -110,7 +110,7 @@
   {
     "model": "AMD Ryzen Threadripper 9970X",
     "normalized": "amd ryzen threadripper 9970x",
-    "sc": 3169,
+    "sc": 3168,
     "mc": null,
     "cores": 32,
     "clockGhz": 4,
@@ -119,7 +119,7 @@
   {
     "model": "AMD Ryzen Threadripper 9960X",
     "normalized": "amd ryzen threadripper 9960x",
-    "sc": 3158,
+    "sc": 3163,
     "mc": null,
     "cores": 24,
     "clockGhz": 4.2,
@@ -164,7 +164,7 @@
   {
     "model": "Intel Core Ultra 7 265KF",
     "normalized": "intel core ultra 7 265kf",
-    "sc": 3056,
+    "sc": 3057,
     "mc": null,
     "cores": 20,
     "clockGhz": 3.9,
@@ -263,7 +263,7 @@
   {
     "model": "Intel Core i7-14700K",
     "normalized": "intel core i7-14700k",
-    "sc": 2923,
+    "sc": 2922,
     "mc": null,
     "cores": 20,
     "clockGhz": 3.4,
@@ -326,7 +326,7 @@
   {
     "model": "AMD Ryzen 9 7900X3D",
     "normalized": "amd ryzen 9 7900x3d",
-    "sc": 2870,
+    "sc": 2871,
     "mc": null,
     "cores": 12,
     "clockGhz": 4.4,
@@ -378,21 +378,21 @@
     "tier": "HIGH"
   },
   {
-    "model": "Intel Core Ultra 9 275HX",
-    "normalized": "intel core ultra 9 275hx",
-    "sc": 2831,
-    "mc": null,
-    "cores": 24,
-    "clockGhz": 2.7,
-    "tier": "HIGH"
-  },
-  {
     "model": "Intel Core i5-14600K",
     "normalized": "intel core i5-14600k",
     "sc": 2830,
     "mc": null,
     "cores": 14,
     "clockGhz": 3.5,
+    "tier": "HIGH"
+  },
+  {
+    "model": "Intel Core Ultra 9 275HX",
+    "normalized": "intel core ultra 9 275hx",
+    "sc": 2830,
+    "mc": null,
+    "cores": 24,
+    "clockGhz": 2.7,
     "tier": "HIGH"
   },
   {
@@ -432,15 +432,6 @@
     "tier": "HIGH"
   },
   {
-    "model": "AMD Ryzen AI Max+ 395",
-    "normalized": "amd ryzen ai max+ 395",
-    "sc": 2764,
-    "mc": null,
-    "cores": 16,
-    "clockGhz": 3,
-    "tier": "HIGH"
-  },
-  {
     "model": "AMD Ryzen Threadripper PRO 7945WX",
     "normalized": "amd ryzen threadripper pro 7945wx",
     "sc": 2763,
@@ -465,6 +456,15 @@
     "mc": null,
     "cores": 16,
     "clockGhz": 2.3,
+    "tier": "HIGH"
+  },
+  {
+    "model": "AMD Ryzen AI Max+ 395",
+    "normalized": "amd ryzen ai max+ 395",
+    "sc": 2762,
+    "mc": null,
+    "cores": 16,
+    "clockGhz": 3,
     "tier": "HIGH"
   },
   {
@@ -542,7 +542,7 @@
   {
     "model": "Intel Core i7-14700",
     "normalized": "intel core i7-14700",
-    "sc": 2716,
+    "sc": 2715,
     "mc": null,
     "cores": 20,
     "clockGhz": 2.1,
@@ -551,7 +551,7 @@
   {
     "model": "Intel Core i9-12900KS",
     "normalized": "intel core i9-12900ks",
-    "sc": 2710,
+    "sc": 2709,
     "mc": null,
     "cores": 16,
     "clockGhz": 3.4,
@@ -596,7 +596,7 @@
   {
     "model": "Intel Core i5-13600K",
     "normalized": "intel core i5-13600k",
-    "sc": 2680,
+    "sc": 2679,
     "mc": null,
     "cores": 14,
     "clockGhz": 3.5,
@@ -650,7 +650,7 @@
   {
     "model": "AMD Ryzen AI 9 HX 375",
     "normalized": "amd ryzen ai 9 hx 375",
-    "sc": 2635,
+    "sc": 2637,
     "mc": null,
     "cores": 12,
     "clockGhz": 2,
@@ -686,7 +686,7 @@
   {
     "model": "AMD Ryzen 7 7745HX",
     "normalized": "amd ryzen 7 7745hx",
-    "sc": 2623,
+    "sc": 2620,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.6,
@@ -695,7 +695,7 @@
   {
     "model": "Intel Core Ultra 9 285H",
     "normalized": "intel core ultra 9 285h",
-    "sc": 2604,
+    "sc": 2605,
     "mc": null,
     "cores": 16,
     "clockGhz": 2.9,
@@ -713,7 +713,7 @@
   {
     "model": "Intel Core i9-12900K",
     "normalized": "intel core i9-12900k",
-    "sc": 2596,
+    "sc": 2595,
     "mc": null,
     "cores": 16,
     "clockGhz": 3.2,
@@ -767,7 +767,7 @@
   {
     "model": "Intel Core i5-12600KF",
     "normalized": "intel core i5-12600kf",
-    "sc": 2518,
+    "sc": 2519,
     "mc": null,
     "cores": 10,
     "clockGhz": 3.7,
@@ -776,7 +776,7 @@
   {
     "model": "Intel Core i5-13600",
     "normalized": "intel core i5-13600",
-    "sc": 2516,
+    "sc": 2515,
     "mc": null,
     "cores": 14,
     "clockGhz": 2.7,
@@ -785,7 +785,7 @@
   {
     "model": "Intel Core i7-12700KF",
     "normalized": "intel core i7-12700kf",
-    "sc": 2515,
+    "sc": 2514,
     "mc": null,
     "cores": 12,
     "clockGhz": 3.6,
@@ -812,7 +812,7 @@
   {
     "model": "Intel Core i7-14700HX",
     "normalized": "intel core i7-14700hx",
-    "sc": 2503,
+    "sc": 2504,
     "mc": null,
     "cores": 20,
     "clockGhz": 2.1,
@@ -821,7 +821,7 @@
   {
     "model": "Intel Core Ultra 7 255H",
     "normalized": "intel core ultra 7 255h",
-    "sc": 2498,
+    "sc": 2497,
     "mc": null,
     "cores": 16,
     "clockGhz": 2,
@@ -839,7 +839,7 @@
   {
     "model": "AMD Ryzen AI 7 350",
     "normalized": "amd ryzen ai 7 350",
-    "sc": 2483,
+    "sc": 2484,
     "mc": null,
     "cores": 8,
     "clockGhz": 2,
@@ -857,7 +857,7 @@
   {
     "model": "Intel Core i7-13700T",
     "normalized": "intel core i7-13700t",
-    "sc": 2480,
+    "sc": 2481,
     "mc": null,
     "cores": 16,
     "clockGhz": 1.4,
@@ -875,7 +875,7 @@
   {
     "model": "AMD Ryzen 9 7940HS",
     "normalized": "amd ryzen 9 7940hs",
-    "sc": 2445,
+    "sc": 2444,
     "mc": null,
     "cores": 8,
     "clockGhz": 4,
@@ -902,7 +902,7 @@
   {
     "model": "Intel Core Ultra 7 268V",
     "normalized": "intel core ultra 7 268v",
-    "sc": 2439,
+    "sc": 2438,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.2,
@@ -929,7 +929,7 @@
   {
     "model": "Intel Core i7-14650HX",
     "normalized": "intel core i7-14650hx",
-    "sc": 2416,
+    "sc": 2415,
     "mc": null,
     "cores": 16,
     "clockGhz": 2.2,
@@ -938,7 +938,7 @@
   {
     "model": "Intel Core Ultra 7 258V",
     "normalized": "intel core ultra 7 258v",
-    "sc": 2415,
+    "sc": 2414,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.2,
@@ -947,7 +947,7 @@
   {
     "model": "Intel Core Ultra 7 256V",
     "normalized": "intel core ultra 7 256v",
-    "sc": 2412,
+    "sc": 2413,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.2,
@@ -956,7 +956,7 @@
   {
     "model": "Intel Core Ultra 5 225H",
     "normalized": "intel core ultra 5 225h",
-    "sc": 2412,
+    "sc": 2411,
     "mc": null,
     "cores": 14,
     "clockGhz": 1.7,
@@ -1017,27 +1017,27 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen AI 5 340 w/ Radeon 840M",
-    "normalized": "amd ryzen ai 5 340 w/ radeon 840m",
-    "sc": 2373,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i5-14500T",
     "normalized": "intel core i5-14500t",
-    "sc": 2372,
+    "sc": 2374,
     "mc": null,
     "cores": 14,
     "clockGhz": 1.7,
     "tier": "MID"
   },
   {
+    "model": "AMD Ryzen AI 5 340 w/ Radeon 840M",
+    "normalized": "amd ryzen ai 5 340 w/ radeon 840m",
+    "sc": 2374,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2,
+    "tier": "MID"
+  },
+  {
     "model": "AMD Ryzen 9 8945HS",
     "normalized": "amd ryzen 9 8945hs",
-    "sc": 2360,
+    "sc": 2359,
     "mc": null,
     "cores": 8,
     "clockGhz": 4,
@@ -1064,25 +1064,25 @@
   {
     "model": "AMD Ryzen 7 8845HS",
     "normalized": "amd ryzen 7 8845hs",
-    "sc": 2332,
+    "sc": 2331,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.8,
     "tier": "MID"
   },
   {
-    "model": "Intel Core i5-14400F",
-    "normalized": "intel core i5-14400f",
-    "sc": 2321,
+    "model": "Intel Core i5-14400",
+    "normalized": "intel core i5-14400",
+    "sc": 2322,
     "mc": null,
     "cores": 10,
     "clockGhz": 2.5,
     "tier": "MID"
   },
   {
-    "model": "Intel Core i5-14400",
-    "normalized": "intel core i5-14400",
-    "sc": 2321,
+    "model": "Intel Core i5-14400F",
+    "normalized": "intel core i5-14400f",
+    "sc": 2319,
     "mc": null,
     "cores": 10,
     "clockGhz": 2.5,
@@ -1109,7 +1109,7 @@
   {
     "model": "AMD Ryzen 5 7640HS",
     "normalized": "amd ryzen 5 7640hs",
-    "sc": 2309,
+    "sc": 2310,
     "mc": null,
     "cores": 6,
     "clockGhz": 4.3,
@@ -1118,7 +1118,7 @@
   {
     "model": "AMD Ryzen 9 PRO 7940HS",
     "normalized": "amd ryzen 9 pro 7940hs",
-    "sc": 2309,
+    "sc": 2310,
     "mc": null,
     "cores": 8,
     "clockGhz": 4,
@@ -1197,21 +1197,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 7 7840U",
-    "normalized": "amd ryzen 7 7840u",
-    "sc": 2265,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.3,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i3-13100F",
     "normalized": "intel core i3-13100f",
-    "sc": 2264,
+    "sc": 2265,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.4,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 7840U",
+    "normalized": "amd ryzen 7 7840u",
+    "sc": 2264,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 3.3,
     "tier": "MID"
   },
   {
@@ -1271,7 +1271,7 @@
   {
     "model": "Intel Core i9-11900F",
     "normalized": "intel core i9-11900f",
-    "sc": 2234,
+    "sc": 2233,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.5,
@@ -1280,7 +1280,7 @@
   {
     "model": "AMD Ryzen 7 PRO 7840HS",
     "normalized": "amd ryzen 7 pro 7840hs",
-    "sc": 2233,
+    "sc": 2232,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.8,
@@ -1307,7 +1307,7 @@
   {
     "model": "Intel Core Ultra 5 226V",
     "normalized": "intel core ultra 5 226v",
-    "sc": 2229,
+    "sc": 2227,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.1,
@@ -1388,7 +1388,7 @@
   {
     "model": "AMD Ryzen 9 5950X",
     "normalized": "amd ryzen 9 5950x",
-    "sc": 2208,
+    "sc": 2207,
     "mc": null,
     "cores": 16,
     "clockGhz": 3.4,
@@ -1458,21 +1458,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 7 8840U",
-    "normalized": "amd ryzen 7 8840u",
-    "sc": 2181,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.3,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i9-11900T",
     "normalized": "intel core i9-11900t",
     "sc": 2180,
     "mc": null,
     "cores": 8,
     "clockGhz": 1.5,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 8840U",
+    "normalized": "amd ryzen 7 8840u",
+    "sc": 2180,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 3.3,
     "tier": "MID"
   },
   {
@@ -1485,18 +1485,9 @@
     "tier": "MID"
   },
   {
-    "model": "AMD EPYC 9174F",
-    "normalized": "amd epyc 9174f",
-    "sc": 2174,
-    "mc": null,
-    "cores": 16,
-    "clockGhz": 4.1,
-    "tier": "MID"
-  },
-  {
     "model": "AMD Ryzen 5 220",
     "normalized": "amd ryzen 5 220",
-    "sc": 2169,
+    "sc": 2167,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.2,
@@ -1514,7 +1505,7 @@
   {
     "model": "Intel Core i5-13400T",
     "normalized": "intel core i5-13400t",
-    "sc": 2162,
+    "sc": 2166,
     "mc": null,
     "cores": 10,
     "clockGhz": 1.3,
@@ -1532,7 +1523,7 @@
   {
     "model": "Intel Core i5-12500T",
     "normalized": "intel core i5-12500t",
-    "sc": 2153,
+    "sc": 2151,
     "mc": null,
     "cores": 6,
     "clockGhz": 2,
@@ -1638,21 +1629,21 @@
     "tier": "MID"
   },
   {
+    "model": "AMD Ryzen 9 5900",
+    "normalized": "amd ryzen 9 5900",
+    "sc": 2117,
+    "mc": null,
+    "cores": 12,
+    "clockGhz": 3,
+    "tier": "MID"
+  },
+  {
     "model": "AMD Ryzen 7 5800X3D",
     "normalized": "amd ryzen 7 5800x3d",
     "sc": 2117,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.4,
-    "tier": "MID"
-  },
-  {
-    "model": "AMD Ryzen 9 5900",
-    "normalized": "amd ryzen 9 5900",
-    "sc": 2116,
-    "mc": null,
-    "cores": 12,
-    "clockGhz": 3,
     "tier": "MID"
   },
   {
@@ -1712,7 +1703,7 @@
   {
     "model": "Intel Core 5 120U",
     "normalized": "intel core 5 120u",
-    "sc": 2098,
+    "sc": 2097,
     "mc": null,
     "cores": 10,
     "clockGhz": 1.4,
@@ -1730,7 +1721,7 @@
   {
     "model": "Intel Core 7 150U",
     "normalized": "intel core 7 150u",
-    "sc": 2091,
+    "sc": 2090,
     "mc": null,
     "cores": 10,
     "clockGhz": 1.8,
@@ -1773,21 +1764,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 5 PRO 7540U",
-    "normalized": "amd ryzen 5 pro 7540u",
-    "sc": 2069,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 3.2,
-    "tier": "MID"
-  },
-  {
     "model": "AMD Ryzen 7 8840HS",
     "normalized": "amd ryzen 7 8840hs",
     "sc": 2068,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.3,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 PRO 7540U",
+    "normalized": "amd ryzen 5 pro 7540u",
+    "sc": 2067,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3.2,
     "tier": "MID"
   },
   {
@@ -1854,12 +1845,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 5 PRO 215",
-    "normalized": "amd ryzen 5 pro 215",
-    "sc": 2038,
+    "model": "AMD Ryzen 7 PRO 250",
+    "normalized": "amd ryzen 7 pro 250",
+    "sc": 2041,
     "mc": null,
-    "cores": 6,
-    "clockGhz": 3.2,
+    "cores": 8,
+    "clockGhz": 3.3,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 9174F",
+    "normalized": "amd epyc 9174f",
+    "sc": 2036,
+    "mc": null,
+    "cores": 16,
+    "clockGhz": 4.1,
     "tier": "MID"
   },
   {
@@ -1872,21 +1872,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 7 PRO 250",
-    "normalized": "amd ryzen 7 pro 250",
-    "sc": 2035,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.3,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i5-12400T",
     "normalized": "intel core i5-12400t",
     "sc": 2033,
     "mc": null,
     "cores": 6,
     "clockGhz": 1.8,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 PRO 215",
+    "normalized": "amd ryzen 5 pro 215",
+    "sc": 2033,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3.2,
     "tier": "MID"
   },
   {
@@ -1901,7 +1901,7 @@
   {
     "model": "AMD Ryzen Threadripper PRO 5975WX",
     "normalized": "amd ryzen threadripper pro 5975wx",
-    "sc": 2023,
+    "sc": 2021,
     "mc": null,
     "cores": 32,
     "clockGhz": 3.6,
@@ -1937,7 +1937,7 @@
   {
     "model": "AMD Ryzen 7 5700G",
     "normalized": "amd ryzen 7 5700g",
-    "sc": 2013,
+    "sc": 2014,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.8,
@@ -1998,15 +1998,6 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Xeon W-11855M",
-    "normalized": "intel xeon w-11855m",
-    "sc": 1989,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 3.2,
-    "tier": "MID"
-  },
-  {
     "model": "AMD Ryzen 9 PRO 6950H",
     "normalized": "amd ryzen 9 pro 6950h",
     "sc": 1989,
@@ -2022,6 +2013,15 @@
     "mc": null,
     "cores": 20,
     "clockGhz": 2.6,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon W-11855M",
+    "normalized": "intel xeon w-11855m",
+    "sc": 1986,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3.2,
     "tier": "MID"
   },
   {
@@ -2097,21 +2097,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 7 PRO 5750G",
-    "normalized": "amd ryzen 7 pro 5750g",
-    "sc": 1974,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.8,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i5-12500TE",
     "normalized": "intel core i5-12500te",
     "sc": 1974,
     "mc": null,
     "cores": 6,
     "clockGhz": 1.9,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 PRO 5750G",
+    "normalized": "amd ryzen 7 pro 5750g",
+    "sc": 1970,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 3.8,
     "tier": "MID"
   },
   {
@@ -2133,12 +2133,12 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Pentium Gold G7400",
-    "normalized": "intel pentium gold g7400",
-    "sc": 1960,
+    "model": "Intel Core i5-11400",
+    "normalized": "intel core i5-11400",
+    "sc": 1959,
     "mc": null,
-    "cores": 2,
-    "clockGhz": 3.7,
+    "cores": 6,
+    "clockGhz": 2.6,
     "tier": "MID"
   },
   {
@@ -2151,12 +2151,12 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i5-11400",
-    "normalized": "intel core i5-11400",
+    "model": "Intel Pentium Gold G7400",
+    "normalized": "intel pentium gold g7400",
     "sc": 1958,
     "mc": null,
-    "cores": 6,
-    "clockGhz": 2.6,
+    "cores": 2,
+    "clockGhz": 3.7,
     "tier": "MID"
   },
   {
@@ -2286,15 +2286,6 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i7-1260U",
-    "normalized": "intel core i7-1260u",
-    "sc": 1912,
-    "mc": null,
-    "cores": 10,
-    "clockGhz": 1.1,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i7-11850H",
     "normalized": "intel core i7-11850h",
     "sc": 1912,
@@ -2331,6 +2322,15 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i7-1260U",
+    "normalized": "intel core i7-1260u",
+    "sc": 1908,
+    "mc": null,
+    "cores": 10,
+    "clockGhz": 1.1,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon w3-2435",
     "normalized": "intel xeon w3-2435",
     "sc": 1908,
@@ -2351,7 +2351,7 @@
   {
     "model": "AMD Ryzen 7 7735HS",
     "normalized": "amd ryzen 7 7735hs",
-    "sc": 1901,
+    "sc": 1900,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.2,
@@ -2369,7 +2369,7 @@
   {
     "model": "Intel Core i7-11800H",
     "normalized": "intel core i7-11800h",
-    "sc": 1897,
+    "sc": 1896,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.3,
@@ -2423,7 +2423,7 @@
   {
     "model": "AMD Ryzen 5 5500",
     "normalized": "amd ryzen 5 5500",
-    "sc": 1872,
+    "sc": 1871,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.6,
@@ -2441,7 +2441,7 @@
   {
     "model": "Intel Core i7-11700T",
     "normalized": "intel core i7-11700t",
-    "sc": 1862,
+    "sc": 1864,
     "mc": null,
     "cores": 8,
     "clockGhz": 1.4,
@@ -2468,7 +2468,7 @@
   {
     "model": "AMD Ryzen 5 PRO 6650H",
     "normalized": "amd ryzen 5 pro 6650h",
-    "sc": 1857,
+    "sc": 1855,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.3,
@@ -2502,18 +2502,9 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Xeon w7-3455",
-    "normalized": "intel xeon w7-3455",
-    "sc": 1845,
-    "mc": null,
-    "cores": 24,
-    "clockGhz": 2.5,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core Ultra 5 125U",
     "normalized": "intel core ultra 5 125u",
-    "sc": 1845,
+    "sc": 1846,
     "mc": null,
     "cores": 12,
     "clockGhz": 1.3,
@@ -2522,10 +2513,19 @@
   {
     "model": "AMD Ryzen 7 6800H",
     "normalized": "amd ryzen 7 6800h",
-    "sc": 1844,
+    "sc": 1845,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.2,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon w7-3455",
+    "normalized": "intel xeon w7-3455",
+    "sc": 1845,
+    "mc": null,
+    "cores": 24,
+    "clockGhz": 2.5,
     "tier": "MID"
   },
   {
@@ -2549,7 +2549,7 @@
   {
     "model": "Intel Core i5-11320H",
     "normalized": "intel core i5-11320h",
-    "sc": 1828,
+    "sc": 1829,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.2,
@@ -2567,7 +2567,7 @@
   {
     "model": "Intel Core i5-11400H",
     "normalized": "intel core i5-11400h",
-    "sc": 1825,
+    "sc": 1824,
     "mc": null,
     "cores": 6,
     "clockGhz": 2.7,
@@ -2601,21 +2601,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 3 PRO 5350G",
-    "normalized": "amd ryzen 3 pro 5350g",
-    "sc": 1812,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 4,
-    "tier": "MID"
-  },
-  {
     "model": "AMD Ryzen 7 6800HS",
     "normalized": "amd ryzen 7 6800hs",
-    "sc": 1810,
+    "sc": 1809,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.2,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 3 PRO 5350G",
+    "normalized": "amd ryzen 3 pro 5350g",
+    "sc": 1809,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 4,
     "tier": "MID"
   },
   {
@@ -2657,7 +2657,7 @@
   {
     "model": "Intel Core i7-1195G7",
     "normalized": "intel core i7-1195g7",
-    "sc": 1790,
+    "sc": 1791,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.9,
@@ -2679,15 +2679,6 @@
     "mc": null,
     "cores": 10,
     "clockGhz": 3.7,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i5-11500H",
-    "normalized": "intel core i5-11500h",
-    "sc": 1784,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2.9,
     "tier": "MID"
   },
   {
@@ -2718,6 +2709,15 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i5-11500H",
+    "normalized": "intel core i5-11500h",
+    "sc": 1774,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2.9,
+    "tier": "MID"
+  },
+  {
     "model": "AMD EPYC 9124",
     "normalized": "amd epyc 9124",
     "sc": 1774,
@@ -2738,7 +2738,7 @@
   {
     "model": "Intel Core i7-11370H",
     "normalized": "intel core i7-11370h",
-    "sc": 1772,
+    "sc": 1771,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.3,
@@ -2763,21 +2763,21 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i9-10850K",
+    "normalized": "intel core i9-10850k",
+    "sc": 1759,
+    "mc": null,
+    "cores": 10,
+    "clockGhz": 3.6,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon Silver 4416+",
     "normalized": "intel xeon silver 4416+",
     "sc": 1759,
     "mc": null,
     "cores": 20,
     "clockGhz": 2,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i9-10850K",
-    "normalized": "intel core i9-10850k",
-    "sc": 1758,
-    "mc": null,
-    "cores": 10,
-    "clockGhz": 3.6,
     "tier": "MID"
   },
   {
@@ -2810,7 +2810,7 @@
   {
     "model": "AMD Ryzen 7 PRO 6850U",
     "normalized": "amd ryzen 7 pro 6850u",
-    "sc": 1747,
+    "sc": 1748,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.7,
@@ -2925,21 +2925,21 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i5-1155G7",
-    "normalized": "intel core i5-1155g7",
-    "sc": 1720,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.5,
-    "tier": "MID"
-  },
-  {
     "model": "AMD Ryzen 7 5825U",
     "normalized": "amd ryzen 7 5825u",
     "sc": 1719,
     "mc": null,
     "cores": 8,
     "clockGhz": 2,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-1155G7",
+    "normalized": "intel core i5-1155g7",
+    "sc": 1719,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.5,
     "tier": "MID"
   },
   {
@@ -2990,10 +2990,19 @@
   {
     "model": "AMD Ryzen 7 6800U",
     "normalized": "amd ryzen 7 6800u",
-    "sc": 1712,
+    "sc": 1713,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.7,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD EPYC 9534",
+    "normalized": "amd epyc 9534",
+    "sc": 1713,
+    "mc": null,
+    "cores": 64,
+    "clockGhz": 2.4,
     "tier": "MID"
   },
   {
@@ -3051,21 +3060,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 7 3800X",
-    "normalized": "amd ryzen 7 3800x",
-    "sc": 1704,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.9,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Xeon W-1290P",
     "normalized": "intel xeon w-1290p",
     "sc": 1704,
     "mc": null,
     "cores": 10,
     "clockGhz": 3.7,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 7 3800X",
+    "normalized": "amd ryzen 7 3800x",
+    "sc": 1703,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 3.9,
     "tier": "MID"
   },
   {
@@ -3125,7 +3134,7 @@
   {
     "model": "Intel Xeon W-1290E",
     "normalized": "intel xeon w-1290e",
-    "sc": 1695,
+    "sc": 1691,
     "mc": null,
     "cores": 10,
     "clockGhz": 3.5,
@@ -3240,21 +3249,21 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i5-11300H",
+    "normalized": "intel core i5-11300h",
+    "sc": 1674,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.1,
+    "tier": "MID"
+  },
+  {
     "model": "AMD Ryzen 7 3700X",
     "normalized": "amd ryzen 7 3700x",
     "sc": 1673,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.6,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i5-11300H",
-    "normalized": "intel core i5-11300h",
-    "sc": 1673,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.1,
     "tier": "MID"
   },
   {
@@ -3276,6 +3285,15 @@
     "tier": "MID"
   },
   {
+    "model": "AMD Ryzen Threadripper PRO 3945WX",
+    "normalized": "amd ryzen threadripper pro 3945wx",
+    "sc": 1668,
+    "mc": null,
+    "cores": 12,
+    "clockGhz": 4,
+    "tier": "MID"
+  },
+  {
     "model": "AMD Ryzen 5 3600X",
     "normalized": "amd ryzen 5 3600x",
     "sc": 1665,
@@ -3285,18 +3303,9 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen Threadripper PRO 3945WX",
-    "normalized": "amd ryzen threadripper pro 3945wx",
-    "sc": 1665,
-    "mc": null,
-    "cores": 12,
-    "clockGhz": 4,
-    "tier": "MID"
-  },
-  {
     "model": "AMD Ryzen 7 PRO 5850U",
     "normalized": "amd ryzen 7 pro 5850u",
-    "sc": 1664,
+    "sc": 1663,
     "mc": null,
     "cores": 8,
     "clockGhz": 1.9,
@@ -3350,7 +3359,7 @@
   {
     "model": "Intel Core i7-1250U",
     "normalized": "intel core i7-1250u",
-    "sc": 1658,
+    "sc": 1659,
     "mc": null,
     "cores": 10,
     "clockGhz": 1.1,
@@ -3368,19 +3377,10 @@
   {
     "model": "Intel Core i5-1145G7",
     "normalized": "intel core i5-1145g7",
-    "sc": 1652,
+    "sc": 1651,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.6,
-    "tier": "MID"
-  },
-  {
-    "model": "AMD EPYC 9534",
-    "normalized": "amd epyc 9534",
-    "sc": 1646,
-    "mc": null,
-    "cores": 64,
-    "clockGhz": 2.4,
     "tier": "MID"
   },
   {
@@ -3557,7 +3557,7 @@
   {
     "model": "Intel Core i9-9900",
     "normalized": "intel core i9-9900",
-    "sc": 1617,
+    "sc": 1618,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.1,
@@ -3566,7 +3566,7 @@
   {
     "model": "AMD Ryzen 5 3600",
     "normalized": "amd ryzen 5 3600",
-    "sc": 1613,
+    "sc": 1614,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.6,
@@ -3690,21 +3690,30 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i5-1135G7",
-    "normalized": "intel core i5-1135g7",
-    "sc": 1592,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.4,
-    "tier": "MID"
-  },
-  {
     "model": "AMD Ryzen 5 5600H",
     "normalized": "amd ryzen 5 5600h",
     "sc": 1592,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.3,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-1135G7",
+    "normalized": "intel core i5-1135g7",
+    "sc": 1591,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.4,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon E-2274G",
+    "normalized": "intel xeon e-2274g",
+    "sc": 1587,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 4,
     "tier": "MID"
   },
   {
@@ -3726,21 +3735,21 @@
     "tier": "MID"
   },
   {
+    "model": "AMD Ryzen 5 5625U",
+    "normalized": "amd ryzen 5 5625u",
+    "sc": 1586,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2.3,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Core i7-9700F",
     "normalized": "intel core i7-9700f",
     "sc": 1585,
     "mc": null,
     "cores": 8,
     "clockGhz": 3,
-    "tier": "MID"
-  },
-  {
-    "model": "AMD Ryzen 5 5625U",
-    "normalized": "amd ryzen 5 5625u",
-    "sc": 1585,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2.3,
     "tier": "MID"
   },
   {
@@ -3771,15 +3780,6 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 5 PRO 5650U",
-    "normalized": "amd ryzen 5 pro 5650u",
-    "sc": 1583,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2.3,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i9-10980XE",
     "normalized": "intel core i9-10980xe",
     "sc": 1582,
@@ -3789,21 +3789,21 @@
     "tier": "MID"
   },
   {
+    "model": "AMD Ryzen 5 PRO 5650U",
+    "normalized": "amd ryzen 5 pro 5650u",
+    "sc": 1582,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2.3,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon E-2236",
     "normalized": "intel xeon e-2236",
     "sc": 1581,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.4,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Xeon E-2274G",
-    "normalized": "intel xeon e-2274g",
-    "sc": 1580,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 4,
     "tier": "MID"
   },
   {
@@ -3818,7 +3818,7 @@
   {
     "model": "Intel Core i3-1115G4",
     "normalized": "intel core i3-1115g4",
-    "sc": 1577,
+    "sc": 1576,
     "mc": null,
     "cores": 2,
     "clockGhz": 3,
@@ -3861,15 +3861,6 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen Threadripper PRO 3995WX",
-    "normalized": "amd ryzen threadripper pro 3995wx",
-    "sc": 1571,
-    "mc": null,
-    "cores": 64,
-    "clockGhz": 2.7,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i3-10320",
     "normalized": "intel core i3-10320",
     "sc": 1571,
@@ -3894,6 +3885,15 @@
     "mc": null,
     "cores": 8,
     "clockGhz": 3,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen Threadripper PRO 3995WX",
+    "normalized": "amd ryzen threadripper pro 3995wx",
+    "sc": 1570,
+    "mc": null,
+    "cores": 64,
+    "clockGhz": 2.7,
     "tier": "MID"
   },
   {
@@ -3998,7 +3998,7 @@
   {
     "model": "Intel Core i5-10505",
     "normalized": "intel core i5-10505",
-    "sc": 1554,
+    "sc": 1555,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.2,
@@ -4068,6 +4068,15 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i7-8700",
+    "normalized": "intel core i7-8700",
+    "sc": 1536,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3.2,
+    "tier": "MID"
+  },
+  {
     "model": "AMD EPYC 7773X",
     "normalized": "amd epyc 7773x",
     "sc": 1536,
@@ -4083,15 +4092,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 3.8,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i7-8700",
-    "normalized": "intel core i7-8700",
-    "sc": 1535,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 3.2,
     "tier": "MID"
   },
   {
@@ -4142,7 +4142,7 @@
   {
     "model": "AMD Ryzen 5 5500H",
     "normalized": "amd ryzen 5 5500h",
-    "sc": 1527,
+    "sc": 1528,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.3,
@@ -4155,6 +4155,15 @@
     "mc": null,
     "cores": 16,
     "clockGhz": 3.1,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon W-1250",
+    "normalized": "intel xeon w-1250",
+    "sc": 1523,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3.3,
     "tier": "MID"
   },
   {
@@ -4191,24 +4200,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 2.8,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Xeon W-10885M",
-    "normalized": "intel xeon w-10885m",
-    "sc": 1521,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 2.4,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Xeon W-1250",
-    "normalized": "intel xeon w-1250",
-    "sc": 1521,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 3.3,
     "tier": "MID"
   },
   {
@@ -4263,6 +4254,15 @@
     "mc": null,
     "cores": 6,
     "clockGhz": 3.6,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Xeon W-10885M",
+    "normalized": "intel xeon w-10885m",
+    "sc": 1516,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 2.4,
     "tier": "MID"
   },
   {
@@ -4482,21 +4482,21 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i9-10885H",
-    "normalized": "intel core i9-10885h",
-    "sc": 1483,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 2.4,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i9-10900T",
     "normalized": "intel core i9-10900t",
     "sc": 1483,
     "mc": null,
     "cores": 10,
     "clockGhz": 1.9,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i3-10105F",
+    "normalized": "intel core i3-10105f",
+    "sc": 1482,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.7,
     "tier": "MID"
   },
   {
@@ -4527,12 +4527,12 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i3-10105F",
-    "normalized": "intel core i3-10105f",
+    "model": "Intel Core i9-10885H",
+    "normalized": "intel core i9-10885h",
     "sc": 1481,
     "mc": null,
-    "cores": 4,
-    "clockGhz": 3.7,
+    "cores": 8,
+    "clockGhz": 2.4,
     "tier": "MID"
   },
   {
@@ -4626,21 +4626,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 3 PRO 4350G",
-    "normalized": "amd ryzen 3 pro 4350g",
-    "sc": 1467,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.8,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Xeon E-2234",
     "normalized": "intel xeon e-2234",
     "sc": 1466,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.6,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 3 PRO 4350G",
+    "normalized": "amd ryzen 3 pro 4350g",
+    "sc": 1465,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.8,
     "tier": "MID"
   },
   {
@@ -4653,21 +4653,21 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i5-8600",
+    "normalized": "intel core i5-8600",
+    "sc": 1462,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3.1,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon Gold 6430",
     "normalized": "intel xeon gold 6430",
     "sc": 1462,
     "mc": null,
     "cores": 32,
     "clockGhz": 2.1,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i5-8600",
-    "normalized": "intel core i5-8600",
-    "sc": 1461,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 3.1,
     "tier": "MID"
   },
   {
@@ -4689,9 +4689,18 @@
     "tier": "MID"
   },
   {
+    "model": "AMD Ryzen 3 5400U",
+    "normalized": "amd ryzen 3 5400u",
+    "sc": 1455,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.6,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Core i7-10850H",
     "normalized": "intel core i7-10850h",
-    "sc": 1455,
+    "sc": 1454,
     "mc": null,
     "cores": 6,
     "clockGhz": 2.7,
@@ -4722,15 +4731,6 @@
     "mc": null,
     "cores": 6,
     "clockGhz": 2.9,
-    "tier": "MID"
-  },
-  {
-    "model": "AMD Ryzen 3 5400U",
-    "normalized": "amd ryzen 3 5400u",
-    "sc": 1452,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.6,
     "tier": "MID"
   },
   {
@@ -4851,30 +4851,21 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i9-9980XE",
-    "normalized": "intel core i9-9980xe",
-    "sc": 1434,
-    "mc": null,
-    "cores": 18,
-    "clockGhz": 3,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i5-6600K",
     "normalized": "intel core i5-6600k",
-    "sc": 1433,
+    "sc": 1434,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.5,
     "tier": "MID"
   },
   {
-    "model": "Intel Core i9-7900X",
-    "normalized": "intel core i9-7900x",
-    "sc": 1432,
+    "model": "Intel Core i9-9980XE",
+    "normalized": "intel core i9-9980xe",
+    "sc": 1433,
     "mc": null,
-    "cores": 10,
-    "clockGhz": 3.3,
+    "cores": 18,
+    "clockGhz": 3,
     "tier": "MID"
   },
   {
@@ -4892,6 +4883,15 @@
     "sc": 1431,
     "mc": null,
     "cores": 4,
+    "clockGhz": 3.3,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i9-7900X",
+    "normalized": "intel core i9-7900x",
+    "sc": 1431,
+    "mc": null,
+    "cores": 10,
     "clockGhz": 3.3,
     "tier": "MID"
   },
@@ -4916,7 +4916,7 @@
   {
     "model": "Intel Xeon E-2186M",
     "normalized": "intel xeon e-2186m",
-    "sc": 1426,
+    "sc": 1427,
     "mc": null,
     "cores": 6,
     "clockGhz": 2.9,
@@ -4941,21 +4941,21 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i9-9900X",
+    "normalized": "intel core i9-9900x",
+    "sc": 1422,
+    "mc": null,
+    "cores": 10,
+    "clockGhz": 3.5,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon Gold 5315Y",
     "normalized": "intel xeon gold 5315y",
     "sc": 1422,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.2,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i9-9900X",
-    "normalized": "intel core i9-9900x",
-    "sc": 1421,
-    "mc": null,
-    "cores": 10,
-    "clockGhz": 3.5,
     "tier": "MID"
   },
   {
@@ -4968,21 +4968,21 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i7-7820X",
-    "normalized": "intel core i7-7820x",
-    "sc": 1417,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.6,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i9-9980HK",
     "normalized": "intel core i9-9980hk",
     "sc": 1417,
     "mc": null,
     "cores": 8,
     "clockGhz": 2.4,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i7-7820X",
+    "normalized": "intel core i7-7820x",
+    "sc": 1416,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 3.6,
     "tier": "MID"
   },
   {
@@ -5085,6 +5085,15 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i3-9100",
+    "normalized": "intel core i3-9100",
+    "sc": 1397,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.6,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon E3-1245 v6",
     "normalized": "intel xeon e3-1245 v6",
     "sc": 1397,
@@ -5094,30 +5103,12 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i5-10400H",
-    "normalized": "intel core i5-10400h",
-    "sc": 1397,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.6,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i5-8500",
     "normalized": "intel core i5-8500",
     "sc": 1396,
     "mc": null,
     "cores": 6,
     "clockGhz": 3,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i3-9100",
-    "normalized": "intel core i3-9100",
-    "sc": 1396,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.6,
     "tier": "MID"
   },
   {
@@ -5141,10 +5132,19 @@
   {
     "model": "Intel Core i5-9400",
     "normalized": "intel core i5-9400",
-    "sc": 1394,
+    "sc": 1395,
     "mc": null,
     "cores": 6,
     "clockGhz": 2.9,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i5-10400H",
+    "normalized": "intel core i5-10400h",
+    "sc": 1395,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.6,
     "tier": "MID"
   },
   {
@@ -5154,15 +5154,6 @@
     "mc": null,
     "cores": 24,
     "clockGhz": 2.9,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i7-9700T",
-    "normalized": "intel core i7-9700t",
-    "sc": 1393,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 2,
     "tier": "MID"
   },
   {
@@ -5193,6 +5184,15 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i7-9700T",
+    "normalized": "intel core i7-9700t",
+    "sc": 1389,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 2,
+    "tier": "MID"
+  },
+  {
     "model": "AMD Ryzen 7 5700U",
     "normalized": "amd ryzen 7 5700u",
     "sc": 1389,
@@ -5202,30 +5202,30 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Xeon Silver 4310T",
-    "normalized": "intel xeon silver 4310t",
+    "model": "Intel Core i9-7920X",
+    "normalized": "intel core i9-7920x",
     "sc": 1388,
     "mc": null,
-    "cores": 10,
-    "clockGhz": 2.3,
+    "cores": 12,
+    "clockGhz": 2.9,
     "tier": "MID"
   },
   {
     "model": "Intel Core i7-9850H",
     "normalized": "intel core i7-9850h",
-    "sc": 1387,
+    "sc": 1388,
     "mc": null,
     "cores": 6,
     "clockGhz": 2.6,
     "tier": "MID"
   },
   {
-    "model": "Intel Core i9-7920X",
-    "normalized": "intel core i9-7920x",
-    "sc": 1386,
+    "model": "Intel Xeon Silver 4310T",
+    "normalized": "intel xeon silver 4310t",
+    "sc": 1388,
     "mc": null,
-    "cores": 12,
-    "clockGhz": 2.9,
+    "cores": 10,
+    "clockGhz": 2.3,
     "tier": "MID"
   },
   {
@@ -5393,7 +5393,7 @@
   {
     "model": "AMD Ryzen 7 4700U",
     "normalized": "amd ryzen 7 4700u",
-    "sc": 1363,
+    "sc": 1362,
     "mc": null,
     "cores": 8,
     "clockGhz": 2,
@@ -5436,12 +5436,12 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Xeon W-2125",
-    "normalized": "intel xeon w-2125",
+    "model": "Intel Core i7-9750HF",
+    "normalized": "intel core i7-9750hf",
     "sc": 1357,
     "mc": null,
-    "cores": 4,
-    "clockGhz": 4,
+    "cores": 6,
+    "clockGhz": 2.6,
     "tier": "MID"
   },
   {
@@ -5454,12 +5454,12 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i7-9750HF",
-    "normalized": "intel core i7-9750hf",
-    "sc": 1356,
+    "model": "Intel Xeon W-2125",
+    "normalized": "intel xeon w-2125",
+    "sc": 1355,
     "mc": null,
-    "cores": 6,
-    "clockGhz": 2.6,
+    "cores": 4,
+    "clockGhz": 4,
     "tier": "MID"
   },
   {
@@ -5501,7 +5501,7 @@
   {
     "model": "Intel Core i5-10200H",
     "normalized": "intel core i5-10200h",
-    "sc": 1348,
+    "sc": 1347,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.4,
@@ -5510,7 +5510,7 @@
   {
     "model": "AMD Ryzen 7 PRO 4750U",
     "normalized": "amd ryzen 7 pro 4750u",
-    "sc": 1346,
+    "sc": 1345,
     "mc": null,
     "cores": 8,
     "clockGhz": 1.7,
@@ -5526,6 +5526,15 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i7-8850H",
+    "normalized": "intel core i7-8850h",
+    "sc": 1344,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2.6,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Core i7-7800X",
     "normalized": "intel core i7-7800x",
     "sc": 1343,
@@ -5535,21 +5544,21 @@
     "tier": "MID"
   },
   {
-    "model": "Intel Core i7-8850H",
-    "normalized": "intel core i7-8850h",
-    "sc": 1343,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2.6,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i3-7300",
     "normalized": "intel core i3-7300",
     "sc": 1340,
     "mc": null,
     "cores": 2,
     "clockGhz": 4,
+    "tier": "MID"
+  },
+  {
+    "model": "Intel Core i9-7960X",
+    "normalized": "intel core i9-7960x",
+    "sc": 1337,
+    "mc": null,
+    "cores": 16,
+    "clockGhz": 2.8,
     "tier": "MID"
   },
   {
@@ -5568,15 +5577,6 @@
     "mc": null,
     "cores": 6,
     "clockGhz": 2.4,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i9-7960X",
-    "normalized": "intel core i9-7960x",
-    "sc": 1334,
-    "mc": null,
-    "cores": 16,
-    "clockGhz": 2.8,
     "tier": "MID"
   },
   {
@@ -5636,7 +5636,7 @@
   {
     "model": "Intel Pentium Gold 7505",
     "normalized": "intel pentium gold 7505",
-    "sc": 1325,
+    "sc": 1326,
     "mc": null,
     "cores": 2,
     "clockGhz": 2,
@@ -5697,21 +5697,21 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i5-9600T",
+    "normalized": "intel core i5-9600t",
+    "sc": 1320,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2.3,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon E3-1230 v6",
     "normalized": "intel xeon e3-1230 v6",
     "sc": 1319,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.5,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i5-9600T",
-    "normalized": "intel core i5-9600t",
-    "sc": 1316,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2.3,
     "tier": "MID"
   },
   {
@@ -5733,21 +5733,21 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 5 PRO 4650U",
-    "normalized": "amd ryzen 5 pro 4650u",
-    "sc": 1314,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2.1,
-    "tier": "MID"
-  },
-  {
     "model": "Intel Core i3-6320",
     "normalized": "intel core i3-6320",
     "sc": 1314,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.9,
+    "tier": "MID"
+  },
+  {
+    "model": "AMD Ryzen 5 PRO 4650U",
+    "normalized": "amd ryzen 5 pro 4650u",
+    "sc": 1313,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2.1,
     "tier": "MID"
   },
   {
@@ -5805,6 +5805,15 @@
     "tier": "MID"
   },
   {
+    "model": "AMD Ryzen 5 4600HS",
+    "normalized": "amd ryzen 5 4600hs",
+    "sc": 1308,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Xeon E3-1245 v5",
     "normalized": "intel xeon e3-1245 v5",
     "sc": 1307,
@@ -5832,21 +5841,12 @@
     "tier": "MID"
   },
   {
-    "model": "AMD Ryzen 5 4600HS",
-    "normalized": "amd ryzen 5 4600hs",
-    "sc": 1304,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 3,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Core i7-5960X",
-    "normalized": "intel core i7-5960x",
+    "model": "Intel Xeon W-2140B",
+    "normalized": "intel xeon w-2140b",
     "sc": 1302,
     "mc": null,
     "cores": 8,
-    "clockGhz": 3,
+    "clockGhz": 3.2,
     "tier": "MID"
   },
   {
@@ -5859,21 +5859,21 @@
     "tier": "MID"
   },
   {
+    "model": "Intel Core i7-5960X",
+    "normalized": "intel core i7-5960x",
+    "sc": 1301,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 3,
+    "tier": "MID"
+  },
+  {
     "model": "Intel Core i7-7567U",
     "normalized": "intel core i7-7567u",
     "sc": 1301,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.5,
-    "tier": "MID"
-  },
-  {
-    "model": "Intel Xeon W-2140B",
-    "normalized": "intel xeon w-2140b",
-    "sc": 1301,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.2,
     "tier": "MID"
   },
   {
@@ -6048,6 +6048,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i7-4770K",
+    "normalized": "intel core i7-4770k",
+    "sc": 1282,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.5,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i7-6900K",
     "normalized": "intel core i7-6900k",
     "sc": 1282,
@@ -6063,15 +6072,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 2.9,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i7-4770K",
-    "normalized": "intel core i7-4770k",
-    "sc": 1281,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.5,
     "tier": "LOW"
   },
   {
@@ -6111,6 +6111,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i7-1060NG7",
+    "normalized": "intel core i7-1060ng7",
+    "sc": 1277,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 1.2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i3-6300",
     "normalized": "intel core i3-6300",
     "sc": 1271,
@@ -6122,7 +6131,7 @@
   {
     "model": "Intel Core i5-8300H",
     "normalized": "intel core i5-8300h",
-    "sc": 1267,
+    "sc": 1268,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.3,
@@ -6180,15 +6189,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 3,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i7-1060NG7",
-    "normalized": "intel core i7-1060ng7",
-    "sc": 1265,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 1.2,
     "tier": "LOW"
   },
   {
@@ -6300,21 +6300,21 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i5-9500T",
+    "normalized": "intel core i5-9500t",
+    "sc": 1251,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 2.2,
+    "tier": "LOW"
+  },
+  {
     "model": "AMD EPYC 7763",
     "normalized": "amd epyc 7763",
     "sc": 1251,
     "mc": null,
     "cores": 64,
     "clockGhz": 2.4,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i5-9500T",
-    "normalized": "intel core i5-9500t",
-    "sc": 1250,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -6372,6 +6372,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon Processor E5-1680 v3",
+    "normalized": "intel xeon processor e5-1680 v3",
+    "sc": 1242,
+    "mc": null,
+    "cores": 8,
+    "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon Silver 4309Y",
     "normalized": "intel xeon silver 4309y",
     "sc": 1242,
@@ -6426,15 +6435,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Xeon Processor E5-1680 v3",
-    "normalized": "intel xeon processor e5-1680 v3",
-    "sc": 1240,
-    "mc": null,
-    "cores": 8,
-    "clockGhz": 3.2,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Xeon Gold 6146",
     "normalized": "intel xeon gold 6146",
     "sc": 1238,
@@ -6482,7 +6482,7 @@
   {
     "model": "Intel Core i7-6820HK",
     "normalized": "intel core i7-6820hk",
-    "sc": 1232,
+    "sc": 1234,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.7,
@@ -6518,7 +6518,7 @@
   {
     "model": "Intel Core i7-4771",
     "normalized": "intel core i7-4771",
-    "sc": 1229,
+    "sc": 1230,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.5,
@@ -6579,6 +6579,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon E3-1271 v3",
+    "normalized": "intel xeon e3-1271 v3",
+    "sc": 1217,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.6,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i7-4770R",
     "normalized": "intel core i7-4770r",
     "sc": 1217,
@@ -6594,15 +6603,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 3.4,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Xeon E3-1271 v3",
-    "normalized": "intel xeon e3-1271 v3",
-    "sc": 1215,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.6,
     "tier": "LOW"
   },
   {
@@ -6651,30 +6651,21 @@
     "tier": "LOW"
   },
   {
-    "model": "AMD Ryzen 3 7320U",
-    "normalized": "amd ryzen 3 7320u",
-    "sc": 1212,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.4,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i5-4690",
-    "normalized": "intel core i5-4690",
-    "sc": 1211,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.5,
-    "tier": "LOW"
-  },
-  {
     "model": "AMD EPYC 7642",
     "normalized": "amd epyc 7642",
     "sc": 1211,
     "mc": null,
     "cores": 48,
     "clockGhz": 2.3,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i5-4690",
+    "normalized": "intel core i5-4690",
+    "sc": 1210,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.5,
     "tier": "LOW"
   },
   {
@@ -6732,6 +6723,15 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD Ryzen 3 7320U",
+    "normalized": "amd ryzen 3 7320u",
+    "sc": 1208,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.4,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon E3-1245 v3",
     "normalized": "intel xeon e3-1245 v3",
     "sc": 1206,
@@ -6759,6 +6759,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i7-4790S",
+    "normalized": "intel core i7-4790s",
+    "sc": 1204,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon E5-1650 v3",
     "normalized": "intel xeon e5-1650 v3",
     "sc": 1204,
@@ -6774,15 +6783,6 @@
     "mc": null,
     "cores": 26,
     "clockGhz": 2.1,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i7-4790S",
-    "normalized": "intel core i7-4790s",
-    "sc": 1203,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.2,
     "tier": "LOW"
   },
   {
@@ -6806,7 +6806,7 @@
   {
     "model": "Intel Core i3-6100",
     "normalized": "intel core i3-6100",
-    "sc": 1201,
+    "sc": 1202,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.7,
@@ -7020,21 +7020,21 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon E3-1240 v3",
+    "normalized": "intel xeon e3-1240 v3",
+    "sc": 1182,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.4,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i3-4360",
     "normalized": "intel core i3-4360",
     "sc": 1182,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.7,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Xeon E3-1240 v3",
-    "normalized": "intel xeon e3-1240 v3",
-    "sc": 1181,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.4,
     "tier": "LOW"
   },
   {
@@ -7074,15 +7074,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-4770S",
-    "normalized": "intel core i7-4770s",
-    "sc": 1178,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.1,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Xeon Gold 6128",
     "normalized": "intel xeon gold 6128",
     "sc": 1178,
@@ -7092,21 +7083,30 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i3-8121U",
-    "normalized": "intel core i3-8121u",
-    "sc": 1178,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.2,
-    "tier": "LOW"
-  },
-  {
     "model": "AMD Ryzen Threadripper 1920X",
     "normalized": "amd ryzen threadripper 1920x",
     "sc": 1178,
     "mc": null,
     "cores": 12,
     "clockGhz": 3.5,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i7-4770S",
+    "normalized": "intel core i7-4770s",
+    "sc": 1177,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.1,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i3-8121U",
+    "normalized": "intel core i3-8121u",
+    "sc": 1177,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -7242,6 +7242,15 @@
     "mc": null,
     "cores": 18,
     "clockGhz": 2.3,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD EPYC 7502P",
+    "normalized": "amd epyc 7502p",
+    "sc": 1168,
+    "mc": null,
+    "cores": 32,
+    "clockGhz": 2.5,
     "tier": "LOW"
   },
   {
@@ -7389,6 +7398,15 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD EPYC 7302P",
+    "normalized": "amd epyc 7302p",
+    "sc": 1146,
+    "mc": null,
+    "cores": 16,
+    "clockGhz": 3,
+    "tier": "LOW"
+  },
+  {
     "model": "AMD Ryzen 7 1800X",
     "normalized": "amd ryzen 7 1800x",
     "sc": 1145,
@@ -7515,21 +7533,21 @@
     "tier": "LOW"
   },
   {
-    "model": "AMD EPYC 7302P",
-    "normalized": "amd epyc 7302p",
-    "sc": 1134,
-    "mc": null,
-    "cores": 16,
-    "clockGhz": 3,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Xeon Gold 6134",
     "normalized": "intel xeon gold 6134",
     "sc": 1132,
     "mc": null,
     "cores": 8,
     "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2699A v4",
+    "normalized": "intel xeon e5-2699a v4",
+    "sc": 1132,
+    "mc": null,
+    "cores": 22,
+    "clockGhz": 2.4,
     "tier": "LOW"
   },
   {
@@ -7548,15 +7566,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 3.6,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Xeon E5-2699A v4",
-    "normalized": "intel xeon e5-2699a v4",
-    "sc": 1128,
-    "mc": null,
-    "cores": 22,
-    "clockGhz": 2.4,
     "tier": "LOW"
   },
   {
@@ -7731,6 +7740,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon E3-1280 v3",
+    "normalized": "intel xeon e3-1280 v3",
+    "sc": 1115,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.6,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i5-7260U",
     "normalized": "intel core i5-7260u",
     "sc": 1115,
@@ -7758,15 +7776,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Xeon E3-1280 v3",
-    "normalized": "intel xeon e3-1280 v3",
-    "sc": 1111,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.6,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Xeon E5-4627 v4",
     "normalized": "intel xeon e5-4627 v4",
     "sc": 1111,
@@ -7776,12 +7785,12 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i3-7100T",
-    "normalized": "intel core i3-7100t",
+    "model": "Intel Core i5-7360U",
+    "normalized": "intel core i5-7360u",
     "sc": 1110,
     "mc": null,
     "cores": 2,
-    "clockGhz": 3.4,
+    "clockGhz": 2.3,
     "tier": "LOW"
   },
   {
@@ -7791,15 +7800,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 3.5,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i5-7360U",
-    "normalized": "intel core i5-7360u",
-    "sc": 1109,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.3,
     "tier": "LOW"
   },
   {
@@ -7818,6 +7818,15 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 2.8,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i3-7100T",
+    "normalized": "intel core i3-7100t",
+    "sc": 1108,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 3.4,
     "tier": "LOW"
   },
   {
@@ -7911,15 +7920,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Xeon E5-2696 v4",
-    "normalized": "intel xeon e5-2696 v4",
-    "sc": 1101,
-    "mc": null,
-    "cores": 22,
-    "clockGhz": 2.2,
-    "tier": "LOW"
-  },
-  {
     "model": "AMD EPYC 7542",
     "normalized": "amd epyc 7542",
     "sc": 1101,
@@ -7929,12 +7929,12 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-6700HQ",
-    "normalized": "intel core i7-6700hq",
-    "sc": 1099,
+    "model": "Intel Xeon E5-2696 v4",
+    "normalized": "intel xeon e5-2696 v4",
+    "sc": 1100,
     "mc": null,
-    "cores": 4,
-    "clockGhz": 2.6,
+    "cores": 22,
+    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -7956,12 +7956,12 @@
     "tier": "LOW"
   },
   {
-    "model": "AMD Ryzen 3 1300X",
-    "normalized": "amd ryzen 3 1300x",
+    "model": "Intel Core i7-6700HQ",
+    "normalized": "intel core i7-6700hq",
     "sc": 1098,
     "mc": null,
     "cores": 4,
-    "clockGhz": 3.5,
+    "clockGhz": 2.6,
     "tier": "LOW"
   },
   {
@@ -7974,21 +7974,30 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD Ryzen 3 1300X",
+    "normalized": "amd ryzen 3 1300x",
+    "sc": 1097,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.5,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i5-6440HQ",
+    "normalized": "intel core i5-6440hq",
+    "sc": 1096,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.6,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon Gold 6140",
     "normalized": "intel xeon gold 6140",
     "sc": 1096,
     "mc": null,
     "cores": 18,
     "clockGhz": 2.3,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i5-6440HQ",
-    "normalized": "intel core i5-6440hq",
-    "sc": 1095,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.6,
     "tier": "LOW"
   },
   {
@@ -8046,15 +8055,6 @@
     "tier": "LOW"
   },
   {
-    "model": "AMD EPYC 7502P",
-    "normalized": "amd epyc 7502p",
-    "sc": 1086,
-    "mc": null,
-    "cores": 32,
-    "clockGhz": 2.5,
-    "tier": "LOW"
-  },
-  {
     "model": "AMD Ryzen 5 1600",
     "normalized": "amd ryzen 5 1600",
     "sc": 1085,
@@ -8084,10 +8084,19 @@
   {
     "model": "Intel Core i5-4570S",
     "normalized": "intel core i5-4570s",
-    "sc": 1081,
+    "sc": 1082,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.9,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i5-6500TE",
+    "normalized": "intel core i5-6500te",
+    "sc": 1081,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.3,
     "tier": "LOW"
   },
   {
@@ -8127,18 +8136,9 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i5-6500TE",
-    "normalized": "intel core i5-6500te",
-    "sc": 1078,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.3,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i3-4160",
     "normalized": "intel core i3-4160",
-    "sc": 1076,
+    "sc": 1077,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.6,
@@ -8262,21 +8262,21 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon E5-2698 v4",
+    "normalized": "intel xeon e5-2698 v4",
+    "sc": 1054,
+    "mc": null,
+    "cores": 20,
+    "clockGhz": 2.2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon E3-1240L v5",
     "normalized": "intel xeon e3-1240l v5",
     "sc": 1054,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.1,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Xeon E5-2698 v4",
-    "normalized": "intel xeon e5-2698 v4",
-    "sc": 1053,
-    "mc": null,
-    "cores": 20,
-    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -8570,7 +8570,7 @@
   {
     "model": "Intel Core i3-4130",
     "normalized": "intel core i3-4130",
-    "sc": 1017,
+    "sc": 1018,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.4,
@@ -8604,15 +8604,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Xeon E5-2678 v3",
-    "normalized": "intel xeon e5-2678 v3",
-    "sc": 1014,
-    "mc": null,
-    "cores": 12,
-    "clockGhz": 2.5,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Xeon Silver 4214",
     "normalized": "intel xeon silver 4214",
     "sc": 1014,
@@ -8622,21 +8613,30 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i7-4770HQ",
+    "normalized": "intel core i7-4770hq",
+    "sc": 1013,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.2,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Xeon E5-2678 v3",
+    "normalized": "intel xeon e5-2678 v3",
+    "sc": 1013,
+    "mc": null,
+    "cores": 12,
+    "clockGhz": 2.5,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon Silver 4216",
     "normalized": "intel xeon silver 4216",
     "sc": 1013,
     "mc": null,
     "cores": 16,
     "clockGhz": 2.1,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i7-4770HQ",
-    "normalized": "intel core i7-4770hq",
-    "sc": 1012,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -8667,15 +8667,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-6650U",
-    "normalized": "intel core i7-6650u",
-    "sc": 1009,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.2,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i5-4210H",
     "normalized": "intel core i5-4210h",
     "sc": 1007,
@@ -8691,6 +8682,15 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 2.8,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i7-6650U",
+    "normalized": "intel core i7-6650u",
+    "sc": 1006,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -8714,7 +8714,7 @@
   {
     "model": "Intel Core i7-4578U",
     "normalized": "intel core i7-4578u",
-    "sc": 1002,
+    "sc": 1004,
     "mc": null,
     "cores": 2,
     "clockGhz": 3,
@@ -8739,15 +8739,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-4700HQ",
-    "normalized": "intel core i7-4700hq",
-    "sc": 999,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.4,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i5-4310M",
     "normalized": "intel core i5-4310m",
     "sc": 999,
@@ -8760,6 +8751,15 @@
     "model": "Intel Core i7-4722HQ",
     "normalized": "intel core i7-4722hq",
     "sc": 998,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.4,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i7-4700HQ",
+    "normalized": "intel core i7-4700hq",
+    "sc": 997,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.4,
@@ -8820,20 +8820,20 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon Silver 4210",
+    "normalized": "intel xeon silver 4210",
+    "sc": 986,
+    "mc": null,
+    "cores": 10,
+    "clockGhz": 2.2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i7-5650U",
     "normalized": "intel core i7-5650u",
     "sc": 981,
     "mc": null,
     "cores": 2,
-    "clockGhz": 2.2,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Xeon Silver 4210",
-    "normalized": "intel xeon silver 4210",
-    "sc": 981,
-    "mc": null,
-    "cores": 10,
     "clockGhz": 2.2,
     "tier": "LOW"
   },
@@ -8930,7 +8930,7 @@
   {
     "model": "Intel Core i7-4702MQ",
     "normalized": "intel core i7-4702mq",
-    "sc": 959,
+    "sc": 958,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.2,
@@ -8991,6 +8991,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i7-4712MQ",
+    "normalized": "intel core i7-4712mq",
+    "sc": 949,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.3,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i5-4300M",
     "normalized": "intel core i5-4300m",
     "sc": 948,
@@ -9000,12 +9009,12 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-4712MQ",
-    "normalized": "intel core i7-4712mq",
+    "model": "Intel Xeon E5-2620 v3",
+    "normalized": "intel xeon e5-2620 v3",
     "sc": 948,
     "mc": null,
-    "cores": 4,
-    "clockGhz": 2.3,
+    "cores": 6,
+    "clockGhz": 2.4,
     "tier": "LOW"
   },
   {
@@ -9018,12 +9027,12 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Xeon E5-2620 v3",
-    "normalized": "intel xeon e5-2620 v3",
-    "sc": 947,
+    "model": "AMD Ryzen 5 3550H",
+    "normalized": "amd ryzen 5 3550h",
+    "sc": 945,
     "mc": null,
-    "cores": 6,
-    "clockGhz": 2.4,
+    "cores": 4,
+    "clockGhz": 2.1,
     "tier": "LOW"
   },
   {
@@ -9033,15 +9042,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 2.4,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD Ryzen 5 3550H",
-    "normalized": "amd ryzen 5 3550h",
-    "sc": 944,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.1,
     "tier": "LOW"
   },
   {
@@ -9243,21 +9243,21 @@
     "tier": "LOW"
   },
   {
-    "model": "AMD Ryzen 7 3700U",
-    "normalized": "amd ryzen 7 3700u",
-    "sc": 916,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.3,
-    "tier": "LOW"
-  },
-  {
     "model": "AMD Athlon 200GE",
     "normalized": "amd athlon 200ge",
     "sc": 915,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD Ryzen 7 3700U",
+    "normalized": "amd ryzen 7 3700u",
+    "sc": 915,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.3,
     "tier": "LOW"
   },
   {
@@ -9281,7 +9281,7 @@
   {
     "model": "Intel Core i5-4210M",
     "normalized": "intel core i5-4210m",
-    "sc": 907,
+    "sc": 906,
     "mc": null,
     "cores": 2,
     "clockGhz": 2.6,
@@ -9641,7 +9641,7 @@
   {
     "model": "AMD Athlon Gold 3150U",
     "normalized": "amd athlon gold 3150u",
-    "sc": 816,
+    "sc": 815,
     "mc": null,
     "cores": 2,
     "clockGhz": 2.4,
@@ -9812,7 +9812,7 @@
   {
     "model": "Intel Pentium G4620",
     "normalized": "intel pentium g4620",
-    "sc": 766,
+    "sc": 768,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.7,
@@ -9839,7 +9839,7 @@
   {
     "model": "Intel Core i5-4210U",
     "normalized": "intel core i5-4210u",
-    "sc": 763,
+    "sc": 764,
     "mc": null,
     "cores": 2,
     "clockGhz": 1.7,
@@ -9875,7 +9875,7 @@
   {
     "model": "Intel Core i3-6100U",
     "normalized": "intel core i3-6100u",
-    "sc": 754,
+    "sc": 755,
     "mc": null,
     "cores": 2,
     "clockGhz": 2.3,
@@ -10028,7 +10028,7 @@
   {
     "model": "Intel Pentium G4560",
     "normalized": "intel pentium g4560",
-    "sc": 712,
+    "sc": 711,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.5,
@@ -10287,21 +10287,21 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i3-5010U",
-    "normalized": "intel core i3-5010u",
-    "sc": 660,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.1,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Xeon E3-1275 v2",
     "normalized": "intel xeon e3-1275 v2",
     "sc": 660,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.5,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i3-5010U",
+    "normalized": "intel core i3-5010u",
+    "sc": 659,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.1,
     "tier": "LOW"
   },
   {
@@ -10514,7 +10514,7 @@
   {
     "model": "Intel Core i5-3570S",
     "normalized": "intel core i5-3570s",
-    "sc": 635,
+    "sc": 636,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.1,
@@ -10568,10 +10568,19 @@
   {
     "model": "Intel Core i5-3470",
     "normalized": "intel core i5-3470",
-    "sc": 621,
+    "sc": 622,
     "mc": null,
     "cores": 4,
     "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i3-5005U",
+    "normalized": "intel core i3-5005u",
+    "sc": 621,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2,
     "tier": "LOW"
   },
   {
@@ -10590,15 +10599,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 2.8,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i3-5005U",
-    "normalized": "intel core i3-5005u",
-    "sc": 620,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2,
     "tier": "LOW"
   },
   {
@@ -10728,6 +10728,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i5-3450",
+    "normalized": "intel core i5-3450",
+    "sc": 608,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.1,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon E3-1270",
     "normalized": "intel xeon e3-1270",
     "sc": 608,
@@ -10743,15 +10752,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 2.9,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i5-3450",
-    "normalized": "intel core i5-3450",
-    "sc": 607,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.1,
     "tier": "LOW"
   },
   {
@@ -10935,6 +10935,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i7-2600S",
+    "normalized": "intel core i7-2600s",
+    "sc": 587,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.8,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon E5-2690",
     "normalized": "intel xeon e5-2690",
     "sc": 586,
@@ -10959,15 +10968,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 1.6,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i7-2600S",
-    "normalized": "intel core i7-2600s",
-    "sc": 584,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.8,
     "tier": "LOW"
   },
   {
@@ -11097,6 +11097,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon Bronze 3104",
+    "normalized": "intel xeon bronze 3104",
+    "sc": 573,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 1.7,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon E3-1240",
     "normalized": "intel xeon e3-1240",
     "sc": 572,
@@ -11115,6 +11124,15 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD PRO A10-8770E",
+    "normalized": "amd pro a10-8770e",
+    "sc": 570,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.8,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i7-3540M",
     "normalized": "intel core i7-3540m",
     "sc": 570,
@@ -11124,30 +11142,12 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Xeon Bronze 3104",
-    "normalized": "intel xeon bronze 3104",
-    "sc": 570,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 1.7,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i7-3520M",
     "normalized": "intel core i7-3520m",
     "sc": 569,
     "mc": null,
     "cores": 2,
     "clockGhz": 2.9,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD PRO A10-8770E",
-    "normalized": "amd pro a10-8770e",
-    "sc": 568,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.8,
     "tier": "LOW"
   },
   {
@@ -11394,15 +11394,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Pentium G2130",
-    "normalized": "intel pentium g2130",
-    "sc": 542,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 3.2,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i5-2405S",
     "normalized": "intel core i5-2405s",
     "sc": 541,
@@ -11484,12 +11475,21 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Celeron 7305E",
-    "normalized": "intel celeron 7305e",
+    "model": "Intel Pentium G2130",
+    "normalized": "intel pentium g2130",
     "sc": 536,
     "mc": null,
-    "cores": 5,
-    "clockGhz": 1,
+    "cores": 2,
+    "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i7-3635QM",
+    "normalized": "intel core i7-3635qm",
+    "sc": 535,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.4,
     "tier": "LOW"
   },
   {
@@ -11499,15 +11499,6 @@
     "mc": null,
     "cores": 8,
     "clockGhz": 2.7,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i7-3635QM",
-    "normalized": "intel core i7-3635qm",
-    "sc": 533,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.4,
     "tier": "LOW"
   },
   {
@@ -11835,6 +11826,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Xeon E3-1265L v2",
+    "normalized": "intel xeon e3-1265l v2",
+    "sc": 510,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.5,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i5-2300",
     "normalized": "intel core i5-2300",
     "sc": 509,
@@ -11850,6 +11850,15 @@
     "mc": null,
     "cores": 6,
     "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Celeron 7305E",
+    "normalized": "intel celeron 7305e",
+    "sc": 508,
+    "mc": null,
+    "cores": 5,
+    "clockGhz": 1,
     "tier": "LOW"
   },
   {
@@ -11874,15 +11883,6 @@
     "model": "Intel Core i5-2400S",
     "normalized": "intel core i5-2400s",
     "sc": 506,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.5,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Xeon E3-1265L v2",
-    "normalized": "intel xeon e3-1265l v2",
-    "sc": 505,
     "mc": null,
     "cores": 4,
     "clockGhz": 2.5,
@@ -12078,15 +12078,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Celeron G1840",
-    "normalized": "intel celeron g1840",
-    "sc": 490,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.8,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i5-3210M",
     "normalized": "intel core i5-3210m",
     "sc": 489,
@@ -12105,6 +12096,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Celeron G1840",
+    "normalized": "intel celeron g1840",
+    "sc": 489,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.8,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Pentium J6426",
     "normalized": "intel pentium j6426",
     "sc": 489,
@@ -12116,7 +12116,7 @@
   {
     "model": "Intel Xeon X5670",
     "normalized": "intel xeon x5670",
-    "sc": 487,
+    "sc": 488,
     "mc": null,
     "cores": 6,
     "clockGhz": 2.9,
@@ -12141,6 +12141,15 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD A10-9620P",
+    "normalized": "amd a10-9620p",
+    "sc": 486,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.5,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i7-3537U",
     "normalized": "intel core i7-3537u",
     "sc": 485,
@@ -12159,12 +12168,12 @@
     "tier": "LOW"
   },
   {
-    "model": "AMD A10-9620P",
-    "normalized": "amd a10-9620p",
-    "sc": 485,
+    "model": "Intel Core i7-2720QM",
+    "normalized": "intel core i7-2720qm",
+    "sc": 484,
     "mc": null,
     "cores": 4,
-    "clockGhz": 2.5,
+    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -12174,15 +12183,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 1.8,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i7-2720QM",
-    "normalized": "intel core i7-2720qm",
-    "sc": 483,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.2,
     "tier": "LOW"
   },
   {
@@ -12219,6 +12219,15 @@
     "mc": null,
     "cores": 6,
     "clockGhz": 3.9,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i5-2390T",
+    "normalized": "intel core i5-2390t",
+    "sc": 480,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.7,
     "tier": "LOW"
   },
   {
@@ -12303,15 +12312,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i5-2390T",
-    "normalized": "intel core i5-2390t",
-    "sc": 475,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.7,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Pentium G870",
     "normalized": "intel pentium g870",
     "sc": 472,
@@ -12384,6 +12384,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i7-2670QM",
+    "normalized": "intel core i7-2670qm",
+    "sc": 467,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon X5570",
     "normalized": "intel xeon x5570",
     "sc": 467,
@@ -12420,15 +12429,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-2670QM",
-    "normalized": "intel core i7-2670qm",
-    "sc": 466,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.2,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i3-2100",
     "normalized": "intel core i3-2100",
     "sc": 465,
@@ -12456,6 +12456,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i3-4020Y",
+    "normalized": "intel core i3-4020y",
+    "sc": 463,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 1.5,
+    "tier": "LOW"
+  },
+  {
     "model": "AMD A10-9600P",
     "normalized": "amd a10-9600p",
     "sc": 462,
@@ -12480,15 +12489,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 4.2,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i3-4020Y",
-    "normalized": "intel core i3-4020y",
-    "sc": 461,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 1.5,
     "tier": "LOW"
   },
   {
@@ -12546,6 +12546,15 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD Athlon X4 760K",
+    "normalized": "amd athlon x4 760k",
+    "sc": 459,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.8,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i5-650",
     "normalized": "intel core i5-650",
     "sc": 458,
@@ -12561,15 +12570,6 @@
     "mc": null,
     "cores": 8,
     "clockGhz": 3.5,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD Athlon X4 760K",
-    "normalized": "amd athlon x4 760k",
-    "sc": 458,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.8,
     "tier": "LOW"
   },
   {
@@ -12654,21 +12654,21 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD FX-6300",
+    "normalized": "amd fx-6300",
+    "sc": 455,
+    "mc": null,
+    "cores": 6,
+    "clockGhz": 3.5,
+    "tier": "LOW"
+  },
+  {
     "model": "AMD A10-5800K",
     "normalized": "amd a10-5800k",
     "sc": 454,
     "mc": null,
     "cores": 2,
     "clockGhz": 3.8,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD FX-6300",
-    "normalized": "amd fx-6300",
-    "sc": 454,
-    "mc": null,
-    "cores": 6,
-    "clockGhz": 3.5,
     "tier": "LOW"
   },
   {
@@ -12771,15 +12771,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-2635QM",
-    "normalized": "intel core i7-2635qm",
-    "sc": 450,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2,
-    "tier": "LOW"
-  },
-  {
     "model": "AMD PRO A10-8700B",
     "normalized": "amd pro a10-8700b",
     "sc": 450,
@@ -12822,6 +12813,15 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 3.6,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i7-2635QM",
+    "normalized": "intel core i7-2635qm",
+    "sc": 448,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2,
     "tier": "LOW"
   },
   {
@@ -12924,15 +12924,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-2630QM",
-    "normalized": "intel core i7-2630qm",
-    "sc": 443,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Pentium G860",
     "normalized": "intel pentium g860",
     "sc": 443,
@@ -12957,6 +12948,15 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 3.4,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i7-2630QM",
+    "normalized": "intel core i7-2630qm",
+    "sc": 442,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2,
     "tier": "LOW"
   },
   {
@@ -13086,6 +13086,15 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD A10-7800",
+    "normalized": "amd a10-7800",
+    "sc": 436,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.5,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Pentium G640",
     "normalized": "intel pentium g640",
     "sc": 436,
@@ -13101,15 +13110,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 2.5,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD A10-7800",
-    "normalized": "amd a10-7800",
-    "sc": 435,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.5,
     "tier": "LOW"
   },
   {
@@ -13158,6 +13158,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i5-3427U",
+    "normalized": "intel core i5-3427u",
+    "sc": 433,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 1.8,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Xeon X3450",
     "normalized": "intel xeon x3450",
     "sc": 433,
@@ -13173,15 +13182,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 3.8,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i5-3427U",
-    "normalized": "intel core i5-3427u",
-    "sc": 432,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 1.8,
     "tier": "LOW"
   },
   {
@@ -13527,6 +13527,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core i5-3337U",
+    "normalized": "intel core i5-3337u",
+    "sc": 407,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 1.8,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Celeron G1610",
     "normalized": "intel celeron g1610",
     "sc": 407,
@@ -13551,15 +13560,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 3.9,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core i5-3337U",
-    "normalized": "intel core i5-3337u",
-    "sc": 406,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 1.8,
     "tier": "LOW"
   },
   {
@@ -13644,6 +13644,15 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD A8-5500B",
+    "normalized": "amd a8-5500b",
+    "sc": 402,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core i5-540M",
     "normalized": "intel core i5-540m",
     "sc": 401,
@@ -13668,15 +13677,6 @@
     "mc": null,
     "cores": 3,
     "clockGhz": 3.5,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD A8-5500B",
-    "normalized": "amd a8-5500b",
-    "sc": 400,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.2,
     "tier": "LOW"
   },
   {
@@ -13862,7 +13862,7 @@
   {
     "model": "AMD FX-6100",
     "normalized": "amd fx-6100",
-    "sc": 386,
+    "sc": 385,
     "mc": null,
     "cores": 6,
     "clockGhz": 3.3,
@@ -14055,15 +14055,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 2.3,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD A10-5757M",
-    "normalized": "amd a10-5757m",
-    "sc": 373,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 2.5,
     "tier": "LOW"
   },
   {
@@ -14499,6 +14490,24 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD A10-5757M",
+    "normalized": "amd a10-5757m",
+    "sc": 346,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 2.5,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i3-390M",
+    "normalized": "intel core i3-390m",
+    "sc": 346,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.7,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core 2 Duo E8300",
     "normalized": "intel core 2 duo e8300",
     "sc": 345,
@@ -14625,24 +14634,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i3-390M",
-    "normalized": "intel core i3-390m",
-    "sc": 341,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.7,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core 2 Duo T9500",
-    "normalized": "intel core 2 duo t9500",
-    "sc": 340,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.6,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core 2 Duo T9600",
     "normalized": "intel core 2 duo t9600",
     "sc": 339,
@@ -14667,6 +14658,15 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 3,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core 2 Duo T9500",
+    "normalized": "intel core 2 duo t9500",
+    "sc": 339,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.6,
     "tier": "LOW"
   },
   {
@@ -14733,6 +14733,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Celeron J4025",
+    "normalized": "intel celeron j4025",
+    "sc": 336,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core 2 Duo P9500",
     "normalized": "intel core 2 duo p9500",
     "sc": 336,
@@ -14748,15 +14757,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 3,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Celeron J4025",
-    "normalized": "intel celeron j4025",
-    "sc": 335,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2,
     "tier": "LOW"
   },
   {
@@ -14949,15 +14949,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Atom x6425RE",
-    "normalized": "intel atom x6425re",
-    "sc": 325,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 1.9,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Core i3-2310M",
     "normalized": "intel core i3-2310m",
     "sc": 324,
@@ -14973,6 +14964,15 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 2.7,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Atom x6425RE",
+    "normalized": "intel atom x6425re",
+    "sc": 324,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 1.9,
     "tier": "LOW"
   },
   {
@@ -15075,15 +15075,6 @@
     "tier": "LOW"
   },
   {
-    "model": "AMD Athlon II X4 645",
-    "normalized": "amd athlon ii x4 645",
-    "sc": 319,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 3.1,
-    "tier": "LOW"
-  },
-  {
     "model": "AMD Phenom II X2 545",
     "normalized": "amd phenom ii x2 545",
     "sc": 319,
@@ -15126,6 +15117,15 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 1.5,
+    "tier": "LOW"
+  },
+  {
+    "model": "AMD Athlon II X4 645",
+    "normalized": "amd athlon ii x4 645",
+    "sc": 317,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 3.1,
     "tier": "LOW"
   },
   {
@@ -15273,15 +15273,6 @@
     "tier": "LOW"
   },
   {
-    "model": "Intel Core i7-720QM",
-    "normalized": "intel core i7-720qm",
-    "sc": 309,
-    "mc": null,
-    "cores": 4,
-    "clockGhz": 1.6,
-    "tier": "LOW"
-  },
-  {
     "model": "Intel Pentium 3556U",
     "normalized": "intel pentium 3556u",
     "sc": 309,
@@ -15297,6 +15288,15 @@
     "mc": null,
     "cores": 3,
     "clockGhz": 3.2,
+    "tier": "LOW"
+  },
+  {
+    "model": "Intel Core i7-720QM",
+    "normalized": "intel core i7-720qm",
+    "sc": 308,
+    "mc": null,
+    "cores": 4,
+    "clockGhz": 1.6,
     "tier": "LOW"
   },
   {
@@ -16110,6 +16110,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Core 2 Duo P7550",
+    "normalized": "intel core 2 duo p7550",
+    "sc": 254,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 2.3,
+    "tier": "LOW"
+  },
+  {
     "model": "AMD A6-3430MX",
     "normalized": "amd a6-3430mx",
     "sc": 254,
@@ -16134,15 +16143,6 @@
     "mc": null,
     "cores": 2,
     "clockGhz": 2.2,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Core 2 Duo P7550",
-    "normalized": "intel core 2 duo p7550",
-    "sc": 252,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 2.3,
     "tier": "LOW"
   },
   {
@@ -16335,21 +16335,21 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Celeron B800",
+    "normalized": "intel celeron b800",
+    "sc": 237,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 1.5,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Core 2 Duo T7800",
     "normalized": "intel core 2 duo t7800",
     "sc": 237,
     "mc": null,
     "cores": 2,
     "clockGhz": 2.6,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Celeron B800",
-    "normalized": "intel celeron b800",
-    "sc": 236,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 1.5,
     "tier": "LOW"
   },
   {
@@ -16958,7 +16958,7 @@
   {
     "model": "Intel Atom x7-Z8750",
     "normalized": "intel atom x7-z8750",
-    "sc": 181,
+    "sc": 180,
     "mc": null,
     "cores": 4,
     "clockGhz": 1.6,
@@ -17093,7 +17093,7 @@
   {
     "model": "Intel Celeron J3160",
     "normalized": "intel celeron j3160",
-    "sc": 171,
+    "sc": 169,
     "mc": null,
     "cores": 4,
     "clockGhz": 1.6,
@@ -17163,6 +17163,15 @@
     "tier": "LOW"
   },
   {
+    "model": "Intel Celeron 847",
+    "normalized": "intel celeron 847",
+    "sc": 164,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 1.1,
+    "tier": "LOW"
+  },
+  {
     "model": "Intel Pentium D 840/935/940",
     "normalized": "intel pentium d 840/935/940",
     "sc": 164,
@@ -17196,15 +17205,6 @@
     "mc": null,
     "cores": 4,
     "clockGhz": 1.8,
-    "tier": "LOW"
-  },
-  {
-    "model": "Intel Celeron 847",
-    "normalized": "intel celeron 847",
-    "sc": 159,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 1.1,
     "tier": "LOW"
   },
   {
@@ -17442,21 +17442,21 @@
     "tier": "LOW"
   },
   {
+    "model": "AMD E1-6010",
+    "normalized": "amd e1-6010",
+    "sc": 129,
+    "mc": null,
+    "cores": 2,
+    "clockGhz": 1.4,
+    "tier": "LOW"
+  },
+  {
     "model": "AMD Athlon 64 3500+",
     "normalized": "amd athlon 64 3500+",
     "sc": 129,
     "mc": null,
     "cores": 1,
     "clockGhz": 2.2,
-    "tier": "LOW"
-  },
-  {
-    "model": "AMD E1-6010",
-    "normalized": "amd e1-6010",
-    "sc": 128,
-    "mc": null,
-    "cores": 2,
-    "clockGhz": 1.4,
     "tier": "LOW"
   },
   {
