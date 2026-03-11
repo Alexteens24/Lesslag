@@ -23,20 +23,10 @@ public class SchedulerAdapter {
         // No-op in modern Paper API
     }
 
-    private static final boolean IS_FOLIA;
-
-    static {
-        boolean folia = false;
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            folia = true;
-        } catch (ClassNotFoundException ignored) {
-        }
-        IS_FOLIA = folia;
-    }
-
+    // LessLag 1.5+ officially targets Paper/Folia Native API natively.
+    // Legacy Bukkit/Spigot schedulers and reflections are completely removed.
     public static boolean isFolia() {
-        return IS_FOLIA;
+        return true;
     }
 
     public void runGlobal(Runnable runnable) {
