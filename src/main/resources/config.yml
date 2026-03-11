@@ -9,7 +9,7 @@ config-version: 2
 
 core:
   # Messages prefix
-  prefix: "&b&lLessLag &8» &7"
+  prefix: "<aqua><bold>LessLag <dark_gray>» <gray>"
   # Check for updates on startup
   check-updates: true
   # Language file to use (messages_{language}.yml)
@@ -201,7 +201,7 @@ modules:
     # Max animals of same type per chunk allowed for breeding
     max-animals-per-chunk: 20
     # Message sent to player (set to "" to disable)
-    message: "&cFarm limit reached! Cannot breed more animals in this chunk."
+    message: "<red>Farm limit reached! Cannot breed more animals in this chunk."
 
   # -----------------------------------------------------------
   # Spawner Limiter (Inspired by MobLimit)
@@ -264,7 +264,7 @@ modules:
     # Action bar message shown to the player on block deny.
     # Placeholders: %material%, %count%, %limit%
     # Set to "" to disable player notifications.
-    message: "&cChunk limit reached! Cannot place more &e%material% &cin this chunk (%count%/%limit%)."
+    message: "<red>Chunk limit reached! Cannot place more <yellow>%material% <red>in this chunk (%count%/%limit%)."
     # Per-material limits (material name: max blocks allowed per chunk)
     limits:
       # Tile entities — counted instantly via getTileEntities() (fast)
@@ -319,7 +319,7 @@ modules:
     # Should we cancel their velocity? (Extremely useful against Elytra launchers)
     cancel-velocity: true
     # Send a warning message to the player?
-    message: "&cYou are moving too fast! Server needs time to load chunks."
+    message: "<red>You are moving too fast! Server needs time to load chunks."
     # Notify admins?
     notify-admin: true
 

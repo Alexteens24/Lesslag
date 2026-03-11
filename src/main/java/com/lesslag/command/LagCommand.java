@@ -576,7 +576,7 @@ public class LagCommand implements CommandExecutor {
             send(sender, "");
             send(sender, "  &e&lWorlds");
             for (World world : Bukkit.getWorlds()) {
-                int entities = world.getEntities().size();
+                int entities = world.getEntityCount();
                 int chunks = world.getLoadedChunks().length;
                 int players = world.getPlayers().size();
                 String entColor = entities > 500 ? "&c" : entities > 200 ? "&e" : "&a";
@@ -807,11 +807,13 @@ public class LagCommand implements CommandExecutor {
                 SchedulerAdapter.runAsync(plugin, () -> {
                     int countTotal = 0, countNoAI = 0;
                     for (World world : worlds) {
-                        for (org.bukkit.entity.Entity entity : world.getEntities()) {
-                            if (entity instanceof org.bukkit.entity.Mob) {
-                                countTotal++;
-                                if (!plugin.isMobAwareSafe((org.bukkit.entity.Mob) entity))
-                                    countNoAI++;
+                        for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
+                            for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
+                                if (entity instanceof org.bukkit.entity.Mob) {
+                                    countTotal++;
+                                    if (!plugin.isMobAwareSafe((org.bukkit.entity.Mob) entity))
+                                        countNoAI++;
+                                }
                             }
                         }
                     }

@@ -145,12 +145,16 @@ public class FrustumCuller {
                                     eye.getDirection().getX(), eye.getDirection().getY(), eye.getDirection().getZ(),
                                     world.getUID()));
 
+                    double maxRadiusSq = maxRadius * maxRadius;
                     for (Entity entity : player.getNearbyEntities(maxRadius, maxRadius, maxRadius)) {
                         if (!(entity instanceof Mob))
                             continue;
                         Mob mob = (Mob) entity;
 
-                        if (player.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                        double pdx = player.getX() - mob.getX();
+                        double pdy = player.getY() - mob.getY();
+                        double pdz = player.getZ() - mob.getZ();
+                        if (pdx * pdx + pdy * pdy + pdz * pdz > maxRadiusSq)
                             continue;
                         if (!processedMobs.add(mob.getUniqueId()))
                             continue;
@@ -187,14 +191,13 @@ public class FrustumCuller {
                             shouldSkip = true;
                         }
 
-                        Location loc = mob.getLocation();
                         boolean currentlyAware = plugin.isMobAwareSafe(mob);
 
                         if (shouldSkip) {
                             if (forceRestore && !currentlyAware) {
                                 mobs.add(new MobSnapshot(
                                         mob.getUniqueId(), world.getUID(),
-                                        loc.getX(), loc.getY(), loc.getZ(),
+                                        mob.getX(), mob.getY(), mob.getZ(),
                                         currentlyAware, true));
                             }
                             continue;
@@ -202,7 +205,7 @@ public class FrustumCuller {
 
                         mobs.add(new MobSnapshot(
                                 mob.getUniqueId(), world.getUID(),
-                                loc.getX(), loc.getY(), loc.getZ(),
+                                mob.getX(), mob.getY(), mob.getZ(),
                                 currentlyAware, false));
                     }
                 } finally {
@@ -276,14 +279,18 @@ public class FrustumCuller {
                 }
 
                 int processedThisBatch = 0;
+                double maxRadiusSq = maxRadius * maxRadius;
                 while (currentEntities.hasNext()) {
                     Entity entity = currentEntities.next();
                     if (!(entity instanceof Mob))
                         continue;
                     Mob mob = (Mob) entity;
 
-                    // Optimization: Use distanceSquared() for precise range check
-                    if (currentPlayer.getLocation().distanceSquared(mob.getLocation()) > maxRadius * maxRadius)
+                    // Optimization: Use zero-allocation primitive math
+                    double pdx = currentPlayer.getX() - mob.getX();
+                    double pdy = currentPlayer.getY() - mob.getY();
+                    double pdz = currentPlayer.getZ() - mob.getZ();
+                    if (pdx * pdx + pdy * pdy + pdz * pdz > maxRadiusSq)
                         continue;
 
                     if (!processedMobs.add(mob.getUniqueId()))
@@ -321,14 +328,13 @@ public class FrustumCuller {
                         shouldSkip = true;
                     }
 
-                    Location loc = mob.getLocation();
                     boolean currentlyAware = plugin.isMobAwareSafe(mob);
 
                     if (shouldSkip) {
                         if (forceRestore && !currentlyAware) {
                             mobs.add(new MobSnapshot(
                                     mob.getUniqueId(), currentPlayer.getWorld().getUID(),
-                                    loc.getX(), loc.getY(), loc.getZ(),
+                                    mob.getX(), mob.getY(), mob.getZ(),
                                     currentlyAware, true));
                         }
                         continue;
@@ -336,7 +342,7 @@ public class FrustumCuller {
 
                     mobs.add(new MobSnapshot(
                             mob.getUniqueId(), currentPlayer.getWorld().getUID(),
-                            loc.getX(), loc.getY(), loc.getZ(),
+                            mob.getX(), mob.getY(), mob.getZ(),
                             currentlyAware, false));
 
                     if (++processedThisBatch > 50) {

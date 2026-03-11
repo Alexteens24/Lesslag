@@ -5,7 +5,6 @@ import com.lesslag.util.SchedulerAdapter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -183,17 +182,15 @@ public class MobFarmOptimizer implements Listener {
                     restore(mob);
                 continue;
             }
-            Location loc = mob.getLocation();
-
             // Skip if a player is nearby (mob should stay active)
-            if (isPlayerNearby(loc)) {
+            if (isPlayerNearby(mob)) {
                 if (isDumbed(mob))
                     restore(mob);
                 continue;
             }
 
             // Check light level
-            int light = loc.getBlock().getLightLevel();
+            int light = mob.getLocation().getBlock().getLightLevel();
             if (light <= maxLightLevel) {
                 if (!isDumbed(mob) && mob.isValid()) {
                     dumb(mob);
@@ -288,9 +285,12 @@ public class MobFarmOptimizer implements Listener {
      * Folia-safe: we only check players in the same world; cross-region entity
      * reads via {@code World#getPlayers()} are thread-safe on Paper/Folia.
      */
-    private boolean isPlayerNearby(Location loc) {
-        for (Player p : loc.getWorld().getPlayers()) {
-            if (p.getLocation().distanceSquared(loc) <= playerActivationRangeSq) {
+    private boolean isPlayerNearby(LivingEntity mob) {
+        for (Player p : mob.getWorld().getPlayers()) {
+            double dx = p.getX() - mob.getX();
+            double dy = p.getY() - mob.getY();
+            double dz = p.getZ() - mob.getZ();
+            if (dx * dx + dy * dy + dz * dz <= playerActivationRangeSq) {
                 return true;
             }
         }

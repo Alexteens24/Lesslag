@@ -1,778 +1,151 @@
 package com.lesslag.util;
 
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
-import java.lang.reflect.Method;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-/** Runtime scheduler bridge for Folia and non-Folia servers. */
+/** Runtime scheduler bridge using native Paper/Folia API (1.20+). */
 public class SchedulerAdapter {
 
-    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-
-    private static final Map<Plugin, SchedulerAdapter> ADAPTERS = Collections.synchronizedMap(new WeakHashMap<>());
-
-    private static volatile Boolean foliaDetectionOverrideForTests;
-    private static volatile Boolean foliaDetectionCache;
-
     private final Plugin plugin;
-    private final boolean foliaDetected;
 
-    private volatile boolean foliaReflectionReady;
-    private volatile boolean bukkitReflectionReady;
-
-    private Object globalScheduler;
-    private Object regionScheduler;
-    private Object asyncScheduler;
-
-    private MethodHandle globalExecute;
-    private MethodHandle globalRunDelayed;
-    private MethodHandle globalRunAtFixedRate;
-
-    private MethodHandle regionExecuteAtLocation;
-    private MethodHandle regionExecuteAtChunk;
-
-    private MethodHandle asyncRunNow;
-    private MethodHandle asyncRunDelayed;
-    private MethodHandle asyncRunAtFixedRate;
-
-    private MethodHandle entityGetSchedulerMethod;
-    private MethodHandle entitySchedulerRun;
-    private MethodHandle entityTeleportAsync;
-
-    private Object bukkitScheduler;
-    private MethodHandle bukkitRunSync;
-    private MethodHandle bukkitRunDelayed;
-    private MethodHandle bukkitRunRepeating;
-    private MethodHandle bukkitRunAsync;
-    private MethodHandle bukkitRunAsyncDelayed;
-    private MethodHandle bukkitRunAsyncRepeating;
-
-    /** Creates an adapter for a plugin instance. */
     public SchedulerAdapter(Plugin plugin) {
-        this.plugin = Objects.requireNonNull(plugin, "plugin");
-        this.foliaDetected = detectFoliaRuntime();
+        this.plugin = plugin;
     }
 
-    /**
-     * Creates an adapter with explicit scheduler bindings for deterministic tests.
-     */
-    public SchedulerAdapter(Plugin plugin, boolean foliaDetected, Object globalScheduler, Object regionScheduler,
-            Object asyncScheduler) {
-        this.plugin = Objects.requireNonNull(plugin, "plugin");
-        this.foliaDetected = foliaDetected;
-        if (foliaDetected) {
-            initializeFoliaBindings(globalScheduler, regionScheduler, asyncScheduler);
-        }
-    }
-
-    /** Initializes detection-related state for compatibility. */
     public static void init() {
-        detectFoliaRuntime();
+        // No-op in modern Paper API
     }
 
-    /** Returns true when Folia-like runtime scheduling APIs are detected. */
-    public static boolean isFolia() {
-        return detectFoliaRuntime();
-    }
+    private static final boolean IS_FOLIA;
 
-    /** Runs a task on global/main execution context. */
-    public void runGlobal(Runnable runnable) {
-        if (!tryRunGlobal(runnable)) {
-            runBukkitSync(runnable);
-        }
-    }
-
-    /** Runs a task on async execution context. */
-    public void runAsync(Runnable runnable) {
-        if (!tryRunAsync(runnable)) {
-            runBukkitAsync(runnable);
-        }
-    }
-
-    /** Runs a task after a delay in ticks. */
-    public void runDelayed(Runnable runnable, long delayTicks) {
-        if (!tryRunGlobalDelayed(runnable, delayTicks)) {
-            runBukkitDelayed(runnable, delayTicks);
-        }
-    }
-
-    /** Runs a repeating task in ticks. */
-    public void runRepeating(Runnable runnable, long delayTicks, long periodTicks) {
-        runRepeatingInternal(runnable, delayTicks, periodTicks, false);
-    }
-
-    /** Runs a task at a location-owned context. */
-    public void runAtLocation(Location loc, Runnable runnable) {
-        if (!tryRunAtLocation(loc, runnable)) {
-            runBukkitSync(runnable);
-        }
-    }
-
-    /** Runs a task at an entity-owned context. */
-    public void runAtEntity(Entity entity, Runnable runnable) {
-        if (!tryRunAtEntity(entity, runnable)) {
-            runBukkitSync(runnable);
-        }
-    }
-
-    /** Teleports an entity and returns completion state. */
-    public CompletableFuture<Boolean> teleportEntity(Entity entity, Location loc) {
-        CompletableFuture<Boolean> result = new CompletableFuture<>();
-        if (entity == null || loc == null) {
-            result.complete(false);
-            return result;
-        }
-
-        if (foliaDetected) {
-            runAtEntity(entity, () -> completeTeleport(result, entity, loc));
-            return result;
-        }
-
-        if (ensureBukkitReflection() && entityTeleportAsync != null) {
-            try {
-                Object asyncResult = entityTeleportAsync.invoke(entity, loc);
-                if (asyncResult instanceof CompletableFuture<?>) {
-                    @SuppressWarnings("unchecked")
-                    CompletableFuture<Boolean> teleportFuture = (CompletableFuture<Boolean>) asyncResult;
-                    teleportFuture.whenComplete((value, error) -> {
-                        if (error != null) {
-                            result.completeExceptionally(error);
-                        } else {
-                            result.complete(Boolean.TRUE.equals(value));
-                        }
-                    });
-                    return result;
-                }
-            } catch (Throwable ex) {
-                log(Level.WARNING, "Async teleport reflection failed", new Exception(ex));
-            }
-        }
-
-        runBukkitSync(() -> completeTeleport(result, entity, loc));
-        return result;
-    }
-
-    /** Runs a task on a chunk-owned context. */
-    public void runAtChunk(World world, int chunkX, int chunkZ, Runnable runnable) {
-        if (!tryRunAtChunk(world, chunkX, chunkZ, runnable)) {
-            runBukkitSync(runnable);
-        }
-    }
-
-    /** Returns true if Folia runtime is detected for this adapter. */
-    public boolean isFoliaDetected() {
-        return foliaDetected;
-    }
-
-    /** Sets Folia detection override for tests; null clears the override. */
-    public static void setFoliaDetectionOverrideForTests(Boolean value) {
-        foliaDetectionOverrideForTests = value;
-        foliaDetectionCache = null; // reset cache so next real detection is fresh
-    }
-
-    /** Clears static adapter cache for deterministic tests. */
-    public static void clearAdapterCacheForTests() {
-        ADAPTERS.clear();
-        foliaDetectionCache = null;
-    }
-
-    /** Runs a task on global/main execution context using static bridge. */
-    public static void runGlobal(Plugin plugin, Runnable runnable) {
-        from(plugin).runGlobal(runnable);
-    }
-
-    /** Runs a delayed task on global/main execution context using static bridge. */
-    public static void runGlobalDelayed(Plugin plugin, Runnable runnable, long delayTicks) {
-        from(plugin).runDelayed(runnable, delayTicks);
-    }
-
-    /** Runs a repeating global/main task and returns a handle. */
-    public static TaskHandle runGlobalRepeating(Plugin plugin, Runnable runnable, long delayTicks, long periodTicks) {
-        return from(plugin).runRepeatingInternal(runnable, delayTicks, periodTicks, true);
-    }
-
-    /** Runs an async task using static bridge. */
-    public static void runAsync(Plugin plugin, Runnable runnable) {
-        from(plugin).runAsync(runnable);
-    }
-
-    /** Runs a delayed async task using static bridge. */
-    public static void runAsyncDelayed(Plugin plugin, Runnable runnable, long delayTicks) {
-        from(plugin).runAsyncDelayedInternal(runnable, delayTicks);
-    }
-
-    /** Runs a repeating async task using static bridge and returns a handle. */
-    public static TaskHandle runAsyncRepeating(Plugin plugin, Runnable runnable, long delayTicks, long periodTicks) {
-        return from(plugin).runAsyncRepeatingInternal(runnable, delayTicks, periodTicks);
-    }
-
-    /** Runs a location task using static bridge. */
-    public static void runAtLocation(Plugin plugin, Location location, Runnable runnable) {
-        from(plugin).runAtLocation(location, runnable);
-    }
-
-    /** Runs an entity task using static bridge. */
-    public static void runAtEntity(Plugin plugin, Entity entity, Runnable runnable) {
-        from(plugin).runAtEntity(entity, runnable);
-    }
-
-    /** Teleports an entity using static bridge. */
-    public static void teleportEntity(Plugin plugin, Entity entity, Location location) {
-        from(plugin).teleportEntity(entity, location);
-    }
-
-    /** Runs a chunk task using static bridge. */
-    public static void runAtChunk(Plugin plugin, World world, int chunkX, int chunkZ, Runnable runnable) {
-        from(plugin).runAtChunk(world, chunkX, chunkZ, runnable);
-    }
-
-    /** Cancels a reflected task handle if supported. */
-    public static void cancelTask(Object taskHandle) {
-        if (taskHandle == null) {
-            return;
-        }
-        try {
-            Method cancelMethod = taskHandle.getClass().getMethod("cancel");
-            cancelMethod.setAccessible(true);
-            cancelMethod.invoke(taskHandle);
-        } catch (Exception ex) {
-            Bukkit.getLogger().log(Level.WARNING, "Task cancellation failed", ex);
-        }
-    }
-
-    /** Handle abstraction for repeated tasks. */
-    public static final class TaskHandle {
-        private final Object rawHandle;
-        private final Logger logger;
-
-        /** Creates a handle wrapper for a platform task object. */
-        public TaskHandle(Object rawHandle, Logger logger) {
-            this.rawHandle = rawHandle;
-            this.logger = logger;
-        }
-
-        /** Creates a handle wrapper using the global logger fallback. */
-        public TaskHandle(Object rawHandle) {
-            this(rawHandle, Bukkit.getLogger());
-        }
-
-        /** Cancels the underlying task if available. */
-        public void cancel() {
-            if (rawHandle == null) {
-                return;
-            }
-            try {
-                Method cancelMethod = rawHandle.getClass().getMethod("cancel");
-                cancelMethod.setAccessible(true);
-                cancelMethod.invoke(rawHandle);
-            } catch (Throwable ex) {
-                logger.log(Level.WARNING, "Task handle cancel failed", new Exception(ex));
-            }
-        }
-
-        /** Returns true if cancellation is requested or unknown. */
-        public boolean isCancelled() {
-            if (rawHandle == null) {
-                return true;
-            }
-            try {
-                Method cancelledMethod = rawHandle.getClass().getMethod("isCancelled");
-                cancelledMethod.setAccessible(true);
-                Object value = cancelledMethod.invoke(rawHandle);
-                return value instanceof Boolean && (Boolean) value;
-            } catch (NoSuchMethodException ex) {
-                return false;
-            } catch (Throwable ex) {
-                logger.log(Level.WARNING, "Task handle status read failed", new Exception(ex));
-                return false;
-            }
-        }
-    }
-
-    private static SchedulerAdapter from(Plugin plugin) {
-        Objects.requireNonNull(plugin, "plugin");
-        synchronized (ADAPTERS) {
-            return ADAPTERS.computeIfAbsent(plugin, SchedulerAdapter::new);
-        }
-    }
-
-    private static boolean detectFoliaRuntime() {
-        Boolean override = foliaDetectionOverrideForTests;
-        if (override != null) {
-            return override;
-        }
-
-        // Return cached result — Folia status cannot change at runtime
-        Boolean cached = foliaDetectionCache;
-        if (cached != null) {
-            return cached;
-        }
-
-        boolean result = detectFoliaRuntimeUncached();
-        foliaDetectionCache = result;
-        return result;
-    }
-
-    private static boolean detectFoliaRuntimeUncached() {
+    static {
+        boolean folia = false;
         try {
             Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            return true;
+            folia = true;
         } catch (ClassNotFoundException ignored) {
-            // fallback check below
         }
+        IS_FOLIA = folia;
+    }
 
-        try {
-            Object server = Bukkit.class.getMethod("getServer").invoke(null);
-            if (server == null) {
-                return false;
-            }
-            server.getClass().getMethod("getGlobalRegionScheduler");
-            return true;
-        } catch (Exception ignored) {
-            return false;
+    public static boolean isFolia() {
+        return IS_FOLIA;
+    }
+
+    public void runGlobal(Runnable runnable) {
+        Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
+    }
+
+    public void runAsync(Runnable runnable) {
+        Bukkit.getAsyncScheduler().runNow(plugin, task -> runnable.run());
+    }
+
+    public void runDelayed(Runnable runnable, long delayTicks) {
+        Bukkit.getGlobalRegionScheduler().runDelayed(plugin, task -> runnable.run(), Math.max(1L, delayTicks));
+    }
+
+    public void runRepeating(Runnable runnable, long delayTicks, long periodTicks) {
+        runRepeatingInternal(runnable, delayTicks, periodTicks);
+    }
+
+    public void runAtLocation(Location loc, Runnable runnable) {
+        if (loc == null) return;
+        Bukkit.getRegionScheduler().execute(plugin, loc, runnable);
+    }
+
+    public void runAtEntity(Entity entity, Runnable runnable) {
+        if (entity == null) return;
+        entity.getScheduler().execute(plugin, runnable, null, 0L);
+    }
+
+    public CompletableFuture<Boolean> teleportEntity(Entity entity, Location loc) {
+        if (entity == null || loc == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return entity.teleportAsync(loc);
+    }
+
+    public void runAtChunk(World world, int chunkX, int chunkZ, Runnable runnable) {
+        if (world == null) return;
+        Bukkit.getRegionScheduler().execute(plugin, world, chunkX, chunkZ, runnable);
+    }
+
+    public static void runGlobal(Plugin plugin, Runnable runnable) {
+        new SchedulerAdapter(plugin).runGlobal(runnable);
+    }
+
+    public static void runGlobalDelayed(Plugin plugin, Runnable runnable, long delayTicks) {
+        new SchedulerAdapter(plugin).runDelayed(runnable, delayTicks);
+    }
+
+    public static TaskHandle runGlobalRepeating(Plugin plugin, Runnable runnable, long delayTicks, long periodTicks) {
+        return new SchedulerAdapter(plugin).runRepeatingInternal(runnable, delayTicks, periodTicks);
+    }
+
+    public static void runAsync(Plugin plugin, Runnable runnable) {
+        new SchedulerAdapter(plugin).runAsync(runnable);
+    }
+
+    public static void runAsyncDelayed(Plugin plugin, Runnable runnable, long delayTicks) {
+        Bukkit.getAsyncScheduler().runDelayed(plugin, task -> runnable.run(), delayTicks * 50L, TimeUnit.MILLISECONDS);
+    }
+
+    public static TaskHandle runAsyncRepeating(Plugin plugin, Runnable runnable, long delayTicks, long periodTicks) {
+        ScheduledTask task = Bukkit.getAsyncScheduler().runAtFixedRate(plugin, t -> runnable.run(), delayTicks * 50L, periodTicks * 50L, TimeUnit.MILLISECONDS);
+        return new TaskHandle(task);
+    }
+
+    public static void runAtLocation(Plugin plugin, Location location, Runnable runnable) {
+        new SchedulerAdapter(plugin).runAtLocation(location, runnable);
+    }
+
+    public static void runAtEntity(Plugin plugin, Entity entity, Runnable runnable) {
+        new SchedulerAdapter(plugin).runAtEntity(entity, runnable);
+    }
+
+    public static void teleportEntity(Plugin plugin, Entity entity, Location location) {
+        new SchedulerAdapter(plugin).teleportEntity(entity, location);
+    }
+
+    public static void runAtChunk(Plugin plugin, World world, int chunkX, int chunkZ, Runnable runnable) {
+        new SchedulerAdapter(plugin).runAtChunk(world, chunkX, chunkZ, runnable);
+    }
+
+    public static void cancelTask(Object taskHandle) {
+        if (taskHandle instanceof ScheduledTask) {
+            ((ScheduledTask) taskHandle).cancel();
+        } else if (taskHandle instanceof TaskHandle) {
+            ((TaskHandle) taskHandle).cancel();
         }
     }
 
-    private boolean ensureFoliaReflection() {
-        if (!foliaDetected) {
-            return false;
-        }
-        if (foliaReflectionReady) {
-            return true;
-        }
-
-        synchronized (this) {
-            if (foliaReflectionReady) {
-                return true;
-            }
-            try {
-                Object server = Bukkit.class.getMethod("getServer").invoke(null);
-                if (server == null) {
-                    return false;
-                }
-
-                Method globalGetter = server.getClass().getMethod("getGlobalRegionScheduler");
-                Method regionGetter = server.getClass().getMethod("getRegionScheduler");
-                Method asyncGetter = server.getClass().getMethod("getAsyncScheduler");
-
-                initializeFoliaBindings(globalGetter.invoke(server), regionGetter.invoke(server),
-                        asyncGetter.invoke(server));
-                return foliaReflectionReady;
-            } catch (Exception ex) {
-                log(Level.WARNING, "Folia reflection initialization failed", ex);
-                return false;
-            }
-        }
+    private TaskHandle runRepeatingInternal(Runnable runnable, long delayTicks, long periodTicks) {
+        ScheduledTask task = Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> runnable.run(), Math.max(1L, delayTicks), Math.max(1L, periodTicks));
+        return new TaskHandle(task);
     }
 
-    private void initializeFoliaBindings(Object globalScheduler, Object regionScheduler, Object asyncScheduler) {
-        try {
-            this.globalScheduler = Objects.requireNonNull(globalScheduler, "globalScheduler");
-            this.regionScheduler = Objects.requireNonNull(regionScheduler, "regionScheduler");
-            this.asyncScheduler = Objects.requireNonNull(asyncScheduler, "asyncScheduler");
+    public static final class TaskHandle {
+        private final ScheduledTask rawHandle;
 
-            Method mGlobalExecute = this.globalScheduler.getClass().getMethod("execute", Plugin.class, Runnable.class);
-            Method mGlobalRunDelayed = this.globalScheduler.getClass().getMethod("runDelayed", Plugin.class,
-                    Consumer.class,
-                    long.class);
-            Method mGlobalRunAtFixedRate = this.globalScheduler.getClass().getMethod("runAtFixedRate", Plugin.class,
-                    Consumer.class, long.class, long.class);
-
-            Method mRegionExecuteAtLocation = this.regionScheduler.getClass().getMethod("execute", Plugin.class,
-                    Location.class,
-                    Runnable.class);
-            Method mRegionExecuteAtChunk = this.regionScheduler.getClass().getMethod("execute", Plugin.class,
-                    World.class,
-                    int.class, int.class, Runnable.class);
-
-            Method mAsyncRunNow = this.asyncScheduler.getClass().getMethod("runNow", Plugin.class, Consumer.class);
-            Method mAsyncRunDelayed = this.asyncScheduler.getClass().getMethod("runDelayed", Plugin.class,
-                    Consumer.class,
-                    long.class, TimeUnit.class);
-            Method mAsyncRunAtFixedRate = this.asyncScheduler.getClass().getMethod("runAtFixedRate", Plugin.class,
-                    Consumer.class, long.class, long.class, TimeUnit.class);
-
-            Method mEntityGetSchedulerMethod = Entity.class.getMethod("getScheduler");
-            Class<?> entitySchedulerClass = mEntityGetSchedulerMethod.getReturnType();
-            Method mEntitySchedulerRun = entitySchedulerClass.getMethod("run", Plugin.class, Consumer.class,
-                    Runnable.class);
-
-            globalExecute = LOOKUP.unreflect(mGlobalExecute);
-            globalRunDelayed = LOOKUP.unreflect(mGlobalRunDelayed);
-            globalRunAtFixedRate = LOOKUP.unreflect(mGlobalRunAtFixedRate);
-            regionExecuteAtLocation = LOOKUP.unreflect(mRegionExecuteAtLocation);
-            regionExecuteAtChunk = LOOKUP.unreflect(mRegionExecuteAtChunk);
-            asyncRunNow = LOOKUP.unreflect(mAsyncRunNow);
-            asyncRunDelayed = LOOKUP.unreflect(mAsyncRunDelayed);
-            asyncRunAtFixedRate = LOOKUP.unreflect(mAsyncRunAtFixedRate);
-            entityGetSchedulerMethod = LOOKUP.unreflect(mEntityGetSchedulerMethod);
-            entitySchedulerRun = LOOKUP.unreflect(mEntitySchedulerRun);
-
-            foliaReflectionReady = true;
-        } catch (Exception ex) {
-            log(Level.WARNING, "Folia binding initialization failed", ex);
-            foliaReflectionReady = false;
-        }
-    }
-
-    private boolean ensureBukkitReflection() {
-        if (bukkitReflectionReady) {
-            return true;
+        public TaskHandle(ScheduledTask rawHandle) {
+            this.rawHandle = rawHandle;
         }
 
-        synchronized (this) {
-            if (bukkitReflectionReady) {
-                return true;
-            }
-            try {
-                Method getSchedulerMethod = Bukkit.class.getMethod("getScheduler");
-                bukkitScheduler = getSchedulerMethod.invoke(null);
-                if (bukkitScheduler == null) {
-                    return false;
-                }
-
-                Class<?> schedulerClass = bukkitScheduler.getClass();
-                Method mBukkitRunSync = schedulerClass.getMethod("run" + "Task", Plugin.class, Runnable.class);
-                Method mBukkitRunDelayed = schedulerClass.getMethod("run" + "TaskLater", Plugin.class, Runnable.class,
-                        long.class);
-                Method mBukkitRunRepeating = schedulerClass.getMethod("run" + "TaskTimer", Plugin.class, Runnable.class,
-                        long.class, long.class);
-                Method mBukkitRunAsync = schedulerClass.getMethod("run" + "TaskAsynchronously", Plugin.class,
-                        Runnable.class);
-                Method mBukkitRunAsyncDelayed = schedulerClass.getMethod("run" + "TaskLaterAsynchronously",
-                        Plugin.class,
-                        Runnable.class, long.class);
-                Method mBukkitRunAsyncRepeating = schedulerClass.getMethod("run" + "TaskTimerAsynchronously",
-                        Plugin.class,
-                        Runnable.class, long.class, long.class);
-
-                bukkitRunSync = LOOKUP.unreflect(mBukkitRunSync);
-                bukkitRunDelayed = LOOKUP.unreflect(mBukkitRunDelayed);
-                bukkitRunRepeating = LOOKUP.unreflect(mBukkitRunRepeating);
-                bukkitRunAsync = LOOKUP.unreflect(mBukkitRunAsync);
-                bukkitRunAsyncDelayed = LOOKUP.unreflect(mBukkitRunAsyncDelayed);
-                bukkitRunAsyncRepeating = LOOKUP.unreflect(mBukkitRunAsyncRepeating);
-
-                try {
-                    Method mEntityTeleportAsync = Entity.class.getMethod("teleportAsync", Location.class);
-                    entityTeleportAsync = LOOKUP.unreflect(mEntityTeleportAsync);
-                } catch (NoSuchMethodException ignored) {
-                    entityTeleportAsync = null;
-                }
-
-                bukkitReflectionReady = true;
-                return true;
-            } catch (Exception ex) {
-                log(Level.WARNING, "Bukkit reflection initialization failed", ex);
-                return false;
-            }
-        }
-    }
-
-    private boolean tryRunGlobal(Runnable runnable) {
-        if (!ensureFoliaReflection()) {
-            return false;
-        }
-        try {
-            globalExecute.invoke(globalScheduler, plugin, runnable);
-            return true;
-        } catch (Throwable ex) {
-            log(Level.WARNING, "Folia global execution failed", new Exception(ex));
-            return false;
-        }
-    }
-
-    private boolean tryRunGlobalDelayed(Runnable runnable, long delayTicks) {
-        if (!ensureFoliaReflection()) {
-            return false;
-        }
-        try {
-            globalRunDelayed.invoke(globalScheduler, plugin, (Consumer<Object>) task -> runnable.run(),
-                    normalizeTickValue(delayTicks));
-            return true;
-        } catch (Throwable ex) {
-            log(Level.WARNING, "Folia delayed execution failed", new Exception(ex));
-            return false;
-        }
-    }
-
-    private boolean tryRunAsync(Runnable runnable) {
-        if (!ensureFoliaReflection()) {
-            return false;
-        }
-        try {
-            asyncRunNow.invoke(asyncScheduler, plugin, (Consumer<Object>) task -> runnable.run());
-            return true;
-        } catch (Throwable ex) {
-            log(Level.WARNING, "Folia async execution failed", new Exception(ex));
-            return false;
-        }
-    }
-
-    private boolean tryRunAtLocation(Location location, Runnable runnable) {
-        if (location == null) {
-            return false;
-        }
-        if (!ensureFoliaReflection()) {
-            return false;
-        }
-        try {
-            regionExecuteAtLocation.invoke(regionScheduler, plugin, location, runnable);
-            return true;
-        } catch (Throwable ex) {
-            if (isPluginDisabledSchedulerError(ex)) {
-                return false;
-            }
-            log(Level.WARNING, "Folia location execution failed", new Exception(ex));
-            return false;
-        }
-    }
-
-    private boolean tryRunAtEntity(Entity entity, Runnable runnable) {
-        if (entity == null) {
-            return false;
-        }
-        if (!ensureFoliaReflection()) {
-            return false;
-        }
-        try {
-            Object entityScheduler = entityGetSchedulerMethod.invoke(entity);
-            entitySchedulerRun.invoke(entityScheduler, plugin, (Consumer<Object>) task -> runnable.run(), null);
-            return true;
-        } catch (Throwable ex) {
-            if (isPluginDisabledSchedulerError(ex)) {
-                return false;
-            }
-            log(Level.WARNING, "Folia entity execution failed", new Exception(ex));
-            return false;
-        }
-    }
-
-    private boolean tryRunAtChunk(World world, int chunkX, int chunkZ, Runnable runnable) {
-        if (world == null) {
-            return false;
-        }
-        if (!ensureFoliaReflection()) {
-            return false;
-        }
-        try {
-            regionExecuteAtChunk.invoke(regionScheduler, plugin, world, chunkX, chunkZ, runnable);
-            return true;
-        } catch (Throwable ex) {
-            if (isPluginDisabledSchedulerError(ex)) {
-                return false;
-            }
-            log(Level.WARNING, "Folia chunk execution failed", new Exception(ex));
-            return false;
-        }
-    }
-
-    private void runBukkitSync(Runnable runnable) {
-        if (!ensureBukkitReflection()) {
-            safeRun(runnable);
-            return;
-        }
-        try {
-            bukkitRunSync.invoke(bukkitScheduler, plugin, runnable);
-        } catch (Throwable ex) {
-            if (isPluginDisabledSchedulerError(ex)) {
-                return;
-            }
-            log(Level.WARNING, "Bukkit sync execution failed", new Exception(ex));
-            safeRun(runnable);
-        }
-    }
-
-    private boolean isPluginDisabledSchedulerError(Throwable error) {
-        Throwable current = error;
-        while (current != null) {
-            if (current instanceof org.bukkit.plugin.IllegalPluginAccessException) {
-                String message = current.getMessage();
-                return message != null && message.contains("while disabled");
-            }
-            current = current.getCause();
-        }
-        return false;
-    }
-
-    private void runBukkitDelayed(Runnable runnable, long delayTicks) {
-        if (!ensureBukkitReflection()) {
-            safeRun(runnable);
-            return;
-        }
-        try {
-            bukkitRunDelayed.invoke(bukkitScheduler, plugin, runnable, normalizeTickValue(delayTicks));
-        } catch (Throwable ex) {
-            log(Level.WARNING, "Bukkit delayed execution failed", new Exception(ex));
-            safeRun(runnable);
-        }
-    }
-
-    private void runBukkitAsync(Runnable runnable) {
-        if (!ensureBukkitReflection()) {
-            Thread thread = new Thread(runnable, "LessLag-Adapter-Async");
-            thread.setDaemon(true);
-            thread.start();
-            return;
-        }
-        try {
-            bukkitRunAsync.invoke(bukkitScheduler, plugin, runnable);
-        } catch (Throwable ex) {
-            log(Level.WARNING, "Bukkit async execution failed", new Exception(ex));
-            Thread thread = new Thread(runnable, "LessLag-Adapter-Async");
-            thread.setDaemon(true);
-            thread.start();
-        }
-    }
-
-    private void runAsyncDelayedInternal(Runnable runnable, long delayTicks) {
-        if (tryRunAsyncDelayed(runnable, delayTicks)) {
-            return;
-        }
-        if (!ensureBukkitReflection()) {
-            safeRun(runnable);
-            return;
-        }
-        try {
-            bukkitRunAsyncDelayed.invoke(bukkitScheduler, plugin, runnable, normalizeTickValue(delayTicks));
-        } catch (Throwable ex) {
-            log(Level.WARNING, "Bukkit async delayed execution failed", new Exception(ex));
-            safeRun(runnable);
-        }
-    }
-
-    private TaskHandle runAsyncRepeatingInternal(Runnable runnable, long delayTicks, long periodTicks) {
-        if (ensureFoliaReflection()) {
-            try {
-                Object handle = asyncRunAtFixedRate.invoke(
-                        asyncScheduler,
-                        plugin,
-                        (Consumer<Object>) task -> runnable.run(),
-                        ticksToMillis(delayTicks),
-                        ticksToMillis(periodTicks),
-                        TimeUnit.MILLISECONDS);
-                return new TaskHandle(handle, plugin.getLogger());
-            } catch (Throwable ex) {
-                log(Level.WARNING, "Folia async repeating execution failed", new Exception(ex));
+        public void cancel() {
+            if (rawHandle != null) {
+                rawHandle.cancel();
             }
         }
 
-        if (ensureBukkitReflection()) {
-            try {
-                Object handle = bukkitRunAsyncRepeating.invoke(
-                        bukkitScheduler,
-                        plugin,
-                        runnable,
-                        normalizeTickValue(delayTicks),
-                        normalizeTickValue(periodTicks));
-                return new TaskHandle(handle, plugin.getLogger());
-            } catch (Throwable ex) {
-                log(Level.WARNING, "Bukkit async repeating execution failed", new Exception(ex));
-            }
-        }
-
-        safeRun(runnable);
-        return new TaskHandle(null, plugin.getLogger());
-    }
-
-    private TaskHandle runRepeatingInternal(Runnable runnable, long delayTicks, long periodTicks,
-            boolean returnHandle) {
-        if (ensureFoliaReflection()) {
-            try {
-                Object handle = globalRunAtFixedRate.invoke(
-                        globalScheduler,
-                        plugin,
-                        (Consumer<Object>) task -> runnable.run(),
-                        normalizeTickValue(delayTicks),
-                        normalizeTickValue(periodTicks));
-                return returnHandle ? new TaskHandle(handle, plugin.getLogger())
-                        : new TaskHandle(null, plugin.getLogger());
-            } catch (Throwable ex) {
-                log(Level.WARNING, "Folia repeating execution failed", new Exception(ex));
-            }
-        }
-
-        if (ensureBukkitReflection()) {
-            try {
-                Object handle = bukkitRunRepeating.invoke(
-                        bukkitScheduler,
-                        plugin,
-                        runnable,
-                        normalizeTickValue(delayTicks),
-                        normalizeTickValue(periodTicks));
-                return returnHandle ? new TaskHandle(handle, plugin.getLogger())
-                        : new TaskHandle(null, plugin.getLogger());
-            } catch (Throwable ex) {
-                log(Level.WARNING, "Bukkit repeating execution failed", new Exception(ex));
-            }
-        }
-
-        safeRun(runnable);
-        return new TaskHandle(null, plugin.getLogger());
-    }
-
-    private boolean tryRunAsyncDelayed(Runnable runnable, long delayTicks) {
-        if (!ensureFoliaReflection()) {
-            return false;
-        }
-        try {
-            asyncRunDelayed.invoke(
-                    asyncScheduler,
-                    plugin,
-                    (Consumer<Object>) task -> runnable.run(),
-                    ticksToMillis(delayTicks),
-                    TimeUnit.MILLISECONDS);
-            return true;
-        } catch (Throwable ex) {
-            log(Level.WARNING, "Folia async delayed execution failed", new Exception(ex));
-            return false;
-        }
-    }
-
-    private void completeTeleport(CompletableFuture<Boolean> result, Entity entity, Location location) {
-        try {
-            result.complete(entity.teleport(location));
-        } catch (Exception ex) {
-            result.completeExceptionally(ex);
-        }
-    }
-
-    private long normalizeTickValue(long ticks) {
-        return Math.max(1L, ticks);
-    }
-
-    private long ticksToMillis(long ticks) {
-        return normalizeTickValue(ticks) * 50L;
-    }
-
-    private void safeRun(Runnable runnable) {
-        try {
-            runnable.run();
-        } catch (Exception ex) {
-            log(Level.WARNING, "Fallback runnable failed", ex);
-        }
-    }
-
-    private void log(Level level, String message, Exception ex) {
-        try {
-            plugin.getLogger().log(level, message, ex);
-        } catch (Exception ignored) {
-            Bukkit.getLogger().log(level, message, ex);
+        public boolean isCancelled() {
+            return rawHandle == null || rawHandle.isCancelled();
         }
     }
 }

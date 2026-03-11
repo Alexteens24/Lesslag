@@ -74,7 +74,7 @@ public class ActionExecutor {
         if (messagesConfig != null) {
             String val = messagesConfig.getString(key);
             if (val != null) {
-                return val.replace("&", "§"); // Simple color translation
+                return val; // Handled natively by MiniMessage
             }
         }
         return def;
@@ -773,8 +773,10 @@ public class ActionExecutor {
     public Map<String, Integer> getEntityBreakdown() {
         Map<String, Integer> breakdown = new TreeMap<>();
         for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                breakdown.merge(entity.getType().name(), 1, (a, b) -> a + b);
+            for (Chunk chunk : world.getLoadedChunks()) {
+                for (Entity entity : chunk.getEntities()) {
+                    breakdown.merge(entity.getType().name(), 1, (a, b) -> a + b);
+                }
             }
         }
         return breakdown;
@@ -1051,7 +1053,7 @@ public class ActionExecutor {
     public int getTotalEntityCount() {
         int total = 0;
         for (World world : Bukkit.getWorlds()) {
-            total += world.getEntities().size();
+            total += world.getEntityCount();
         }
         return total;
     }

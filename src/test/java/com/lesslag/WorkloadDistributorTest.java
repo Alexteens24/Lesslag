@@ -1,7 +1,6 @@
 package com.lesslag;
 
 import com.lesslag.util.SchedulerAdapter;
-import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -95,7 +94,7 @@ class WorkloadDistributorTest {
 
         @Override
         protected SchedulerAdapter.TaskHandle scheduleTimerTask(Runnable run, long delay, long period) {
-            return new SchedulerAdapter.TaskHandle(mock(BukkitTask.class));
+            return new SchedulerAdapter.TaskHandle(mock(io.papermc.paper.threadedregions.scheduler.ScheduledTask.class));
         }
     }
 }

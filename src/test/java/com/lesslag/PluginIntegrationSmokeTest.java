@@ -33,7 +33,25 @@ public class PluginIntegrationSmokeTest {
             bukkitMock.when(Bukkit::getServer).thenReturn(null);
             bukkitMock.when(Bukkit::getScheduler).thenReturn(bukkitSchedulerProxy);
 
-            SchedulerAdapter.setFoliaDetectionOverrideForTests(false);
+            io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler globalScheduler = Mockito.mock(io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler.class);
+            bukkitMock.when(Bukkit::getGlobalRegionScheduler).thenReturn(globalScheduler);
+            io.papermc.paper.threadedregions.scheduler.ScheduledTask mockTask = Mockito.mock(io.papermc.paper.threadedregions.scheduler.ScheduledTask.class);
+            when(globalScheduler.runAtFixedRate(Mockito.any(Plugin.class), Mockito.any(), Mockito.anyLong(), Mockito.anyLong())).thenAnswer(invocation -> {
+                java.util.function.Consumer<io.papermc.paper.threadedregions.scheduler.ScheduledTask> consumer = invocation.getArgument(1);
+                consumer.accept(mockTask);
+                return mockTask;
+            });
+            when(globalScheduler.runDelayed(Mockito.any(Plugin.class), Mockito.any(), Mockito.anyLong())).thenAnswer(invocation -> {
+                java.util.function.Consumer<io.papermc.paper.threadedregions.scheduler.ScheduledTask> consumer = invocation.getArgument(1);
+                consumer.accept(mockTask);
+                return mockTask;
+            });
+            Mockito.doAnswer(invocation -> {
+                Runnable r = invocation.getArgument(1);
+                r.run();
+                return null;
+            }).when(globalScheduler).execute(Mockito.any(Plugin.class), Mockito.any(Runnable.class));
+
             SchedulerAdapter adapter = new SchedulerAdapter(schedulerPlugin);
 
             AtomicInteger repeatingRuns = new AtomicInteger();

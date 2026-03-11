@@ -168,12 +168,17 @@ public class DensityOptimizer {
         scanCursor = end;
     }
 
+    private final ThreadLocal<Map<EntityType, List<Mob>>> localMobsMap = ThreadLocal.withInitial(() -> new EnumMap<>(EntityType.class));
+
     private void processChunk(Chunk chunk) {
         if (!chunk.isLoaded())
             return;
 
         // Local map — on Folia this runs on different region threads concurrently
-        Map<EntityType, List<Mob>> mobsByType = new HashMap<>();
+        Map<EntityType, List<Mob>> mobsByType = localMobsMap.get();
+        for (List<Mob> list : mobsByType.values()) {
+            list.clear();
+        }
 
         // 1. Snapshot valid mobs
         for (Entity entity : chunk.getEntities()) {
@@ -198,7 +203,11 @@ public class DensityOptimizer {
         for (Map.Entry<EntityType, List<Mob>> entry : mobsByType.entrySet()) {
             EntityType type = entry.getKey();
             List<Mob> mobs = entry.getValue();
-            int limit = limits.get(type);
+            if (mobs.isEmpty()) continue;
+            
+            Integer limitObj = limits.get(type);
+            if (limitObj == null) continue;
+            int limit = limitObj;
 
             // Apply scaling limit if stricter
             if (scalingLimit > 0 && scalingLimit < limit) {

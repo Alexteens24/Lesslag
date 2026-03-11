@@ -26,7 +26,7 @@ import com.lesslag.util.ConfigUpdater;
 import com.lesslag.util.SchedulerAdapter;
 import com.lesslag.web.LessLagApiClient;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -522,9 +522,9 @@ public class LessLag extends JavaPlugin implements Listener {
             pendingPatches.put(patchId, patch);
             String shortId = patchId.length() >= 8 ? patchId.substring(0, 8) : patchId;
             SchedulerAdapter.runGlobal(this,
-                    () -> Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(
-                            "&b[LessLag] &7New web patch (&e" + riskLevel + "&7, " + proposals.size()
-                                    + " change(s)). Confirm with &b/lg confirm " + shortId)));
+                    () -> Bukkit.broadcast(MiniMessage.miniMessage().deserialize(
+                            "<aqua>[LessLag] <gray>New web patch (<yellow>" + riskLevel + "<gray>, " + proposals.size()
+                                    + " change(s)). Confirm with <aqua>/lg confirm " + shortId)));
         }
     }
 
@@ -578,15 +578,15 @@ public class LessLag extends JavaPlugin implements Listener {
     public void confirmPendingPatch(String shortId, CommandSender sender) {
         if (shortId == null || shortId.isBlank()) {
             if (pendingPatches.isEmpty()) {
-                sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
-                        .deserialize("&b[LessLag] &7No pending patches."));
+                sender.sendMessage(MiniMessage.miniMessage()
+                        .deserialize("<aqua>[LessLag] <gray>No pending patches."));
             } else {
-                sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
-                        .deserialize("&b[LessLag] &7Pending patches:"));
+                sender.sendMessage(MiniMessage.miniMessage()
+                        .deserialize("<aqua>[LessLag] <gray>Pending patches:"));
                 for (String id : pendingPatches.keySet()) {
                     String sid = id.length() >= 8 ? id.substring(0, 8) : id;
-                    sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
-                            .deserialize("  &e" + sid));
+                    sender.sendMessage(MiniMessage.miniMessage()
+                            .deserialize("  <yellow>" + sid));
                 }
             }
             return;
@@ -595,15 +595,15 @@ public class LessLag extends JavaPlugin implements Listener {
                 .filter(id -> id.startsWith(shortId) || id.equals(shortId))
                 .findFirst().orElse(null);
         if (matchedId == null) {
-            sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
-                    .deserialize("&b[LessLag] &cNo patch matching '" + shortId + "'."));
+            sender.sendMessage(MiniMessage.miniMessage()
+                    .deserialize("<aqua>[LessLag] <red>No patch matching '" + shortId + "'."));
             return;
         }
         Map<String, Object> patch = pendingPatches.remove(matchedId);
         if (patch != null) {
             applyPatch(matchedId, patch);
-            sender.sendMessage(LegacyComponentSerializer.legacyAmpersand()
-                    .deserialize("&b[LessLag] &aPatch applied successfully."));
+            sender.sendMessage(MiniMessage.miniMessage()
+                    .deserialize("<aqua>[LessLag] <green>Patch applied successfully."));
         }
     }
 
@@ -761,41 +761,42 @@ public class LessLag extends JavaPlugin implements Listener {
     }
 
     /**
-     * Translate & color codes to Adventure Component
+     * Parse message using MiniMessage, with backward compatibility for legacy & codes.
      */
     public static Component colorize(String message) {
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(message);
-    }
-
-    public static String colorizeLegacy(String message) {
-        return LegacyComponentSerializer.legacySection().serialize(colorize(message));
+        if (message == null) return Component.empty();
+        message = message.replace("§", "&");
+        message = message.replace("&0", "<black>");
+        message = message.replace("&1", "<dark_blue>");
+        message = message.replace("&2", "<dark_green>");
+        message = message.replace("&3", "<dark_aqua>");
+        message = message.replace("&4", "<dark_red>");
+        message = message.replace("&5", "<dark_purple>");
+        message = message.replace("&6", "<gold>");
+        message = message.replace("&7", "<gray>");
+        message = message.replace("&8", "<dark_gray>");
+        message = message.replace("&9", "<blue>");
+        message = message.replace("&a", "<green>");
+        message = message.replace("&b", "<aqua>");
+        message = message.replace("&c", "<red>");
+        message = message.replace("&d", "<light_purple>");
+        message = message.replace("&e", "<yellow>");
+        message = message.replace("&f", "<white>");
+        message = message.replace("&k", "<obfuscated>");
+        message = message.replace("&l", "<bold>");
+        message = message.replace("&m", "<strikethrough>");
+        message = message.replace("&n", "<underlined>");
+        message = message.replace("&o", "<italic>");
+        message = message.replace("&r", "<reset>");
+        return MiniMessage.miniMessage().deserialize(message);
     }
 
     public static void sendMessage(CommandSender sender, String message) {
-        String legacy = colorizeLegacy(message);
-        try {
-            Method method = sender.getClass().getMethod("sendMessage", Component.class);
-            method.invoke(sender, colorize(message));
-        } catch (Exception e) {
-            sender.sendMessage(legacy);
-        }
+        sender.sendMessage(colorize(message));
     }
 
     public static void sendActionBar(Player player, String message) {
-        String legacy = colorizeLegacy(message);
-        try {
-            Method method = player.getClass().getMethod("sendActionBar", Component.class);
-            method.invoke(player, colorize(message));
-            return;
-        } catch (Exception ignored) {
-        }
-
-        try {
-            Method method = player.getClass().getMethod("sendActionBar", String.class);
-            method.invoke(player, legacy);
-        } catch (Exception e) {
-            player.sendMessage(legacy);
-        }
+        player.sendActionBar(colorize(message));
     }
 
     public String getPrefix() {
