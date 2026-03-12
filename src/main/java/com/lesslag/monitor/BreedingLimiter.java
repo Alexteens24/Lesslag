@@ -32,7 +32,7 @@ public class BreedingLimiter implements Listener {
         this.enabled = plugin.getConfig().getBoolean("modules.breeding-limiter.enabled", true);
         this.maxAnimalsPerChunk = plugin.getConfig().getInt("modules.breeding-limiter.max-animals-per-chunk", 20);
         this.message = plugin.getConfig().getString("modules.breeding-limiter.message",
-                "&cFarm limit reached! Cannot breed more animals in this chunk.");
+                "<red>Farm limit reached! Cannot breed more animals in this chunk.");
     }
 
     public void setMaxAnimalsPerChunk(int maxAnimalsPerChunk) {

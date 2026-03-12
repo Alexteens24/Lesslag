@@ -4,6 +4,7 @@ import com.lesslag.LessLag;
 import com.lesslag.util.SchedulerAdapter;
 
 import org.bukkit.Chunk;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -13,6 +14,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -56,6 +58,7 @@ public class SpawnerLimiter implements Listener {
     }
 
     private final LessLag plugin;
+    private final NamespacedKey SPAWNER_DUMB_KEY;
 
     // Config
     private boolean enabled;
@@ -70,6 +73,7 @@ public class SpawnerLimiter implements Listener {
 
     public SpawnerLimiter(LessLag plugin) {
         this.plugin = plugin;
+        this.SPAWNER_DUMB_KEY = new NamespacedKey(plugin, "spawner_dumb");
         loadConfig();
     }
 
@@ -166,8 +170,7 @@ public class SpawnerLimiter implements Listener {
                 if (entity instanceof LivingEntity le) {
                     SchedulerAdapter.runAtEntity(plugin, le, () -> {
                         le.setAI(false);
-                        le.setMetadata("LessLag.SpawnerDumb",
-                                new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                        le.getPersistentDataContainer().set(SPAWNER_DUMB_KEY, PersistentDataType.BYTE, (byte) 1);
                     });
                 }
             } else {

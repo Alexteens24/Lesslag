@@ -105,7 +105,7 @@ public class TickMonitor {
      */
     private void notifySpike(double durationMs) {
         String message = plugin.getConfig().getString("messages.tick-spike",
-                "&e⚠ Tick spike: &f{duration}ms &7(normal: 50ms)")
+                "<yellow>⚠ Tick spike: <white>{duration}ms <gray>(normal: 50ms)")
                 .replace("{duration}", String.format("%.1f", durationMs));
         // Dispatch to main thread via NotificationHelper
         NotificationHelper.notifyAdminsAsync(message);

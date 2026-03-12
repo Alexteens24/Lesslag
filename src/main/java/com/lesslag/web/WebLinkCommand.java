@@ -49,7 +49,7 @@ public class WebLinkCommand {
         String webUrl = plugin.getConfig().getString("web.dashboard-url",
                 "https://lesslag-web.vercel.app");
 
-        LessLag.sendMessage(sender, plugin.getPrefix() + "&7Capturing server data...");
+        LessLag.sendMessage(sender, plugin.getPrefix() + "<gray>Capturing server data...");
 
         // Collect on main thread (needs Bukkit API)
         final Map<String, Object> payload = buildPayload();
@@ -61,7 +61,7 @@ public class WebLinkCommand {
                 encoded = encodePayload(payload);
             } catch (Exception e) {
                 SchedulerAdapter.runGlobal(plugin, () ->
-                    LessLag.sendMessage(sender, plugin.getPrefix() + "&cFailed to encode payload: &f" + e.getMessage())
+                    LessLag.sendMessage(sender, plugin.getPrefix() + "<red>Failed to encode payload: <white>" + e.getMessage())
                 );
                 return;
             }
@@ -70,7 +70,7 @@ public class WebLinkCommand {
 
             SchedulerAdapter.runGlobal(plugin, () -> {
                 LessLag.sendMessage(sender, "");
-                LessLag.sendMessage(sender, "&a&l  ✓ Link ready!");
+                LessLag.sendMessage(sender, "<green><bold>  ✓ Link ready!");
                 LessLag.sendMessage(sender, "");
 
                 if (sender instanceof Player player) {
@@ -87,12 +87,12 @@ public class WebLinkCommand {
                             );
                     player.sendMessage(clickable);
                 } else {
-                    LessLag.sendMessage(sender, "  &bURL: &f" + url);
+                    LessLag.sendMessage(sender, "  <aqua>URL: <white>" + url);
                 }
 
                 LessLag.sendMessage(sender, "");
-                LessLag.sendMessage(sender, "  &7Your hardware info is encoded in the link.");
-                LessLag.sendMessage(sender, "  &7The web page will skip the hardware step automatically.");
+                LessLag.sendMessage(sender, "  <gray>Your hardware info is encoded in the link.");
+                LessLag.sendMessage(sender, "  <gray>The web page will skip the hardware step automatically.");
                 LessLag.sendMessage(sender, "");
             });
         });

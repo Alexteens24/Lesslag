@@ -31,14 +31,14 @@ public class ThresholdConfigTest {
 
         List<ThresholdConfig> list = Arrays.asList(t1, t2, t3);
 
-        // Severity 0, Max 2 -> Ratio 0.0 -> "Low" -> "&e"
-        assertEquals("&e", t1.getColor(list));
+        // Severity 0, Max 2 -> Ratio 0.0 -> "Low" -> "<yellow>"
+        assertEquals("<yellow>", t1.getColor(list));
 
-        // Severity 1, Max 2 -> Ratio 0.5 -> "High" -> "&c"
-        assertEquals("&c", t2.getColor(list));
+        // Severity 1, Max 2 -> Ratio 0.5 -> "High" -> "<red>"
+        assertEquals("<red>", t2.getColor(list));
 
-        // Severity 2, Max 2 -> Ratio 1.0 -> "Most Severe" -> "&4&l"
-        assertEquals("&4&l", t3.getColor(list));
+        // Severity 2, Max 2 -> Ratio 1.0 -> "Most Severe" -> "<dark_red><bold>"
+        assertEquals("<dark_red><bold>", t3.getColor(list));
     }
 
     private ThresholdConfig createMockThreshold(double tps) {

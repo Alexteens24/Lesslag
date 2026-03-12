@@ -99,7 +99,7 @@ public class LagSourceAnalyzer {
             // Flag worlds with too many entities
             if (world.totalEntities > entityWarning) {
                 sources.add(new LagSource(LagSource.Type.ENTITY_OVERLOAD,
-                        "&c" + world.totalEntities + " entities in " + world.name,
+                        "<red>" + world.totalEntities + " entities in " + world.name,
                         world.totalEntities));
             }
 
@@ -112,7 +112,7 @@ public class LagSourceAnalyzer {
             for (Map.Entry<String, Integer> entry : top) {
                 if (entry.getValue() > 50) { // Only report significant counts
                     sources.add(new LagSource(LagSource.Type.ENTITY_TYPE,
-                            "&e" + entry.getValue() + " " + entry.getKey() + " &7in &f" + world.name,
+                            "<yellow>" + entry.getValue() + " " + entry.getKey() + " <gray>in <white>" + world.name,
                             entry.getValue()));
                 }
             }
@@ -130,9 +130,9 @@ public class LagSourceAnalyzer {
             }
             if (hotspotCount > 0) {
                 sources.add(new LagSource(LagSource.Type.ENTITY_DENSITY,
-                        "&c" + hotspotCount + " chunk(s) with " + densityThreshold
+                        "<red>" + hotspotCount + " chunk(s) with " + densityThreshold
                                 + "+ entities in " + world.name
-                                + " &7(worst: &c" + worstDensity + "&7)",
+                                + " <gray>(worst: <red>" + worstDensity + "<gray>)",
                         worstDensity));
             }
         }
@@ -141,7 +141,7 @@ public class LagSourceAnalyzer {
         for (WorldSnapshot world : worlds) {
             if (world.loadedChunks > chunkWarning) {
                 sources.add(new LagSource(LagSource.Type.CHUNK_OVERLOAD,
-                        "&c" + String.format("%,d", world.loadedChunks) + " loaded chunks in " + world.name,
+                        "<red>" + String.format("%,d", world.loadedChunks) + " loaded chunks in " + world.name,
                         world.loadedChunks));
             }
         }
@@ -157,9 +157,9 @@ public class LagSourceAnalyzer {
 
                     if (chunksPerSecond > chunkRateWarning) {
                         sources.add(new LagSource(LagSource.Type.CHUNK_RATE,
-                                "&c" + String.format("%.1f", chunksPerSecond)
+                                "<red>" + String.format("%.1f", chunksPerSecond)
                                         + " chunks/sec loading in " + world.name
-                                        + " &7(exploration lag)",
+                                        + " <gray>(exploration lag)",
                                 (int) chunksPerSecond));
                     }
                 }
@@ -170,7 +170,7 @@ public class LagSourceAnalyzer {
         for (TaskSnapshot task : tasks) {
             if (task.count > taskWarning) {
                 sources.add(new LagSource(LagSource.Type.PLUGIN_TASKS,
-                        "&e" + task.pluginName + " &7has &c" + task.count + " &7active tasks",
+                        "<yellow>" + task.pluginName + " <gray>has <red>" + task.count + " <gray>active tasks",
                         task.count));
             }
         }
@@ -188,7 +188,7 @@ public class LagSourceAnalyzer {
         List<String> lines = new ArrayList<>();
 
         if (sources.isEmpty()) {
-            lines.add("  &a✔ No significant lag sources detected.");
+            lines.add("  <green>✔ No significant lag sources detected.");
             return lines;
         }
 
@@ -202,20 +202,20 @@ public class LagSourceAnalyzer {
                 || grouped.containsKey(LagSource.Type.ENTITY_DENSITY);
 
         if (hasEntitySection) {
-            lines.add("  &e&lTOP ENTITIES");
+            lines.add("  <yellow><bold>TOP ENTITIES");
             if (grouped.containsKey(LagSource.Type.ENTITY_OVERLOAD)) {
                 for (LagSource s : grouped.get(LagSource.Type.ENTITY_OVERLOAD)) {
-                    lines.add("    &c⚠ " + s.description);
+                    lines.add("    <red>⚠ " + s.description);
                 }
             }
             if (grouped.containsKey(LagSource.Type.ENTITY_TYPE)) {
                 for (LagSource s : grouped.get(LagSource.Type.ENTITY_TYPE)) {
-                    lines.add("    &8▸ " + s.description);
+                    lines.add("    <dark_gray>▸ " + s.description);
                 }
             }
             if (grouped.containsKey(LagSource.Type.ENTITY_DENSITY)) {
                 for (LagSource s : grouped.get(LagSource.Type.ENTITY_DENSITY)) {
-                    lines.add("    &c⚠ " + s.description);
+                    lines.add("    <red>⚠ " + s.description);
                 }
             }
         }
@@ -225,24 +225,24 @@ public class LagSourceAnalyzer {
                 || grouped.containsKey(LagSource.Type.CHUNK_RATE);
 
         if (hasChunkSection) {
-            lines.add("  &e&lLOADED CHUNKS");
+            lines.add("  <yellow><bold>LOADED CHUNKS");
             if (grouped.containsKey(LagSource.Type.CHUNK_OVERLOAD)) {
                 for (LagSource s : grouped.get(LagSource.Type.CHUNK_OVERLOAD)) {
-                    lines.add("    &c⚠ " + s.description);
+                    lines.add("    <red>⚠ " + s.description);
                 }
             }
             if (grouped.containsKey(LagSource.Type.CHUNK_RATE)) {
                 for (LagSource s : grouped.get(LagSource.Type.CHUNK_RATE)) {
-                    lines.add("    &c⚠ " + s.description);
+                    lines.add("    <red>⚠ " + s.description);
                 }
             }
         }
 
         // Plugin tasks section
         if (grouped.containsKey(LagSource.Type.PLUGIN_TASKS)) {
-            lines.add("  &e&lPLUGIN TASKS");
+            lines.add("  <yellow><bold>PLUGIN TASKS");
             for (LagSource s : grouped.get(LagSource.Type.PLUGIN_TASKS)) {
-                lines.add("    &c⚠ " + s.description);
+                lines.add("    <red>⚠ " + s.description);
             }
         }
 
@@ -267,7 +267,7 @@ public class LagSourceAnalyzer {
         int topN = plugin.getConfig().getInt("system.lag-source-analyzer.thresholds.top-entities", 3);
 
         // ── TOP ENTITIES ──
-        lines.add("  &e&lTOP ENTITIES");
+        lines.add("  <yellow><bold>TOP ENTITIES");
         for (WorldSnapshot world : worldSnapshots) {
             List<Map.Entry<String, Integer>> top = world.entityCounts.entrySet().stream()
                     .sorted((a, b) -> b.getValue() - a.getValue())
@@ -277,16 +277,16 @@ public class LagSourceAnalyzer {
             if (top.isEmpty())
                 continue;
 
-            StringBuilder sb = new StringBuilder("    &8▸ &f" + world.name + ": ");
+            StringBuilder sb = new StringBuilder("    <dark_gray>▸ <white>" + world.name + ": ");
             for (int j = 0; j < top.size(); j++) {
                 Map.Entry<String, Integer> entry = top.get(j);
-                String color = entry.getValue() > 200 ? "&c" : entry.getValue() > 100 ? "&e" : "&a";
-                sb.append(color).append(entry.getKey()).append(" &7(").append(entry.getValue()).append(")");
+                String color = entry.getValue() > 200 ? "<red>" : entry.getValue() > 100 ? "<yellow>" : "<green>";
+                sb.append(color).append(entry.getKey()).append(" <gray>(").append(entry.getValue()).append(")");
                 if (j < top.size() - 1)
-                    sb.append("&8, ");
+                    sb.append("<dark_gray>, ");
             }
             if (world.totalEntities > entityWarning)
-                sb.append(" &c⚠");
+                sb.append(" <red>⚠");
             lines.add(sb.toString());
         }
 
@@ -305,21 +305,21 @@ public class LagSourceAnalyzer {
             }
             if (hotspots > 0) {
                 if (!hasDensity) {
-                    lines.add("  &e&lENTITY HOTSPOTS");
+                    lines.add("  <yellow><bold>ENTITY HOTSPOTS");
                     hasDensity = true;
                 }
-                lines.add("    &c⚠ &f" + world.name + ": &c" + hotspots + " chunk(s) "
-                        + "with " + densityThreshold + "+ entities &7(worst: " + worst + ")");
+                lines.add("    <red>⚠ <white>" + world.name + ": <red>" + hotspots + " chunk(s) "
+                        + "with " + densityThreshold + "+ entities <gray>(worst: " + worst + ")");
             }
         }
 
         // ── LOADED CHUNKS ──
-        lines.add("  &e&lLOADED CHUNKS");
+        lines.add("  <yellow><bold>LOADED CHUNKS");
         for (WorldSnapshot world : worldSnapshots) {
-            String chkColor = world.loadedChunks > chunkWarning ? "&c"
-                    : world.loadedChunks > chunkWarning / 2 ? "&e" : "&a";
-            String warn = world.loadedChunks > chunkWarning ? " &c⚠" : "";
-            lines.add("    &8▸ &f" + world.name + ": " + chkColor
+            String chkColor = world.loadedChunks > chunkWarning ? "<red>"
+                    : world.loadedChunks > chunkWarning / 2 ? "<yellow>" : "<green>";
+            String warn = world.loadedChunks > chunkWarning ? " <red>⚠" : "";
+            lines.add("    <dark_gray>▸ <white>" + world.name + ": " + chkColor
                     + String.format("%,d", world.loadedChunks) + " chunks" + warn);
         }
 
@@ -335,29 +335,29 @@ public class LagSourceAnalyzer {
                     int delta = world.loadedChunks - prev;
                     double rate = delta / elapsedSec;
                     if (rate > rateWarning) {
-                        lines.add("    &c⚠ &f" + world.name + ": &c"
-                                + String.format("%.1f", rate) + " chunks/sec &7(exploration lag)");
+                        lines.add("    <red>⚠ <white>" + world.name + ": <red>"
+                                + String.format("%.1f", rate) + " chunks/sec <gray>(exploration lag)");
                     }
                 }
             }
         }
 
         // ── PLUGIN TASKS ──
-        lines.add("  &e&lPLUGIN TASKS");
+        lines.add("  <yellow><bold>PLUGIN TASKS");
         // Sort tasks by count descending
         Arrays.sort(taskSnapshots, (a, b) -> Integer.compare(b.count, a.count));
         int shown = 0;
         for (TaskSnapshot task : taskSnapshots) {
             if (shown >= 10)
                 break;
-            String color = task.count > taskWarning ? "&c"
-                    : task.count > taskWarning / 2 ? "&e" : "&a";
-            String warn = task.count > taskWarning ? " &c⚠" : "";
-            lines.add("    &8▸ &f" + task.pluginName + ": " + color + task.count + " tasks" + warn);
+            String color = task.count > taskWarning ? "<red>"
+                    : task.count > taskWarning / 2 ? "<yellow>" : "<green>";
+            String warn = task.count > taskWarning ? " <red>⚠" : "";
+            lines.add("    <dark_gray>▸ <white>" + task.pluginName + ": " + color + task.count + " tasks" + warn);
             shown++;
         }
         if (taskSnapshots.length > 10) {
-            lines.add("    &8  ... and " + (taskSnapshots.length - 10) + " more plugins");
+            lines.add("    <dark_gray>  ... and " + (taskSnapshots.length - 10) + " more plugins");
         }
 
         return lines;
@@ -375,12 +375,12 @@ public class LagSourceAnalyzer {
         for (LagSource source : sources) {
             if (shown >= 3)
                 break;
-            lines.add("  &8→ " + source.description);
+            lines.add("  <dark_gray>→ " + source.description);
             shown++;
         }
 
         if (sources.size() > 3) {
-            lines.add("  &8  ... and " + (sources.size() - 3) + " more issues");
+            lines.add("  <dark_gray>  ... and " + (sources.size() - 3) + " more issues");
         }
 
         return lines;

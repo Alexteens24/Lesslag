@@ -302,7 +302,7 @@ public class TPSMonitor {
 
                 // Send lag source report to admins (async-safe with Adventure)
                 SchedulerAdapter.runGlobal(plugin, () -> {
-                    String header = plugin.getPrefix() + "&7Possible lag causes:";
+                    String header = plugin.getPrefix() + "<gray>Possible lag causes:";
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         if (player.hasPermission("lesslag.notify")) {
                             LessLag.sendMessage(player, header);
@@ -362,7 +362,7 @@ public class TPSMonitor {
                 String broadcastMsg = threshold.getBroadcastMessage();
                 if (broadcastMsg == null) {
                     broadcastMsg = plugin.getConfig().getString("messages.broadcast-emergency",
-                            "&c&l[!] &fServer is experiencing lag, auto-fix in progress...");
+                            "<red><bold>[!] <white>Server is experiencing lag, auto-fix in progress...");
                 }
                 broadcastMsg = broadcastMsg.replace("{tps}", String.format("%.1f", currentTPS));
                 String broadcast = plugin.getPrefix() + broadcastMsg;
@@ -406,7 +406,7 @@ public class TPSMonitor {
                     settingsModified = false;
                     activeThreshold = null;
 
-                    String recoveryMsg = config.getString("messages.recovery", "&a TPS stabilized: {tps}")
+                    String recoveryMsg = config.getString("messages.recovery", "<green> TPS stabilized: {tps}")
                             .replace("{tps}", String.format("%.1f", currentTPS));
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         if (player.hasPermission("lesslag.notify")) {

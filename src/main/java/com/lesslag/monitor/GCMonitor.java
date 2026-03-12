@@ -128,7 +128,7 @@ public class GCMonitor {
                     String type = name.toLowerCase().contains("old") || name.toLowerCase().contains("major")
                             ? "Major"
                             : "Minor";
-                    final String msg = "&e⚠ GC " + type + " &8(" + name + ")&e: " +
+                    final String msg = "<yellow>⚠ GC " + type + " <dark_gray>(" + name + ")<yellow>: " +
                             newCollections + " collection(s), " +
                             String.format("%.0f", avgPauseMs) + "ms avg pause";
 
@@ -193,25 +193,25 @@ public class GCMonitor {
             CollectorStats stats = collectorStats.get(gc.getName());
             long collections = stats != null ? stats.totalCollections : gc.getCollectionCount();
             long timeMs = stats != null ? stats.totalTimeMs : gc.getCollectionTime();
-            sb.append("  &8▸ &f").append(gc.getName())
-                    .append(" &8| &7Collections: &e").append(collections)
-                    .append(" &8| &7Time: &e").append(timeMs).append("ms");
+            sb.append("  <dark_gray>▸ <white>").append(gc.getName())
+                    .append(" <dark_gray>| <gray>Collections: <yellow>").append(collections)
+                    .append(" <dark_gray>| <gray>Time: <yellow>").append(timeMs).append("ms");
 
             if (stats != null && stats.worstPauseMs > 0) {
-                sb.append(" &8| &7Worst: &c").append(String.format("%.0f", stats.worstPauseMs)).append("ms");
+                sb.append(" <dark_gray>| <gray>Worst: <red>").append(String.format("%.0f", stats.worstPauseMs)).append("ms");
             }
         }
 
         // Append overhead line
-        sb.append("\n  &8▸ &7GC Overhead: ");
+        sb.append("\n  <dark_gray>▸ <gray>GC Overhead: ");
         if (gcOverheadPercent > 10) {
-            sb.append("&c");
+            sb.append("<red>");
         } else if (gcOverheadPercent > 5) {
-            sb.append("&e");
+            sb.append("<yellow>");
         } else {
-            sb.append("&a");
+            sb.append("<green>");
         }
-        sb.append(String.format("%.1f%%", gcOverheadPercent)).append(" &7(60s window)");
+        sb.append(String.format("%.1f%%", gcOverheadPercent)).append(" <gray>(60s window)");
 
         return sb.toString();
     }

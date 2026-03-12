@@ -38,7 +38,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.lang.reflect.Method;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,8 +85,7 @@ public class LessLag extends JavaPlugin implements Listener {
     private final Map<String, Integer> originalViewDistances = new HashMap<>();
     private final Map<String, Integer> originalSimulationDistances = new HashMap<>();
 
-    private static final Method WORLD_GET_SIM_DISTANCE = getMethod(World.class, "getSimulationDistance");
-    private static final Method WORLD_SET_SIM_DISTANCE = getMethod(World.class, "setSimulationDistance", int.class);
+
 
     // Workload Distributor
     private final WorkloadDistributor workloadDistributor = new WorkloadDistributor();
@@ -107,7 +106,7 @@ public class LessLag extends JavaPlugin implements Listener {
 
         // Initialize Folia scheduler adapter (must be early)
         SchedulerAdapter.init();
-        getLogger().info("Running on " + (SchedulerAdapter.isFolia() ? "Folia (regionised)" : "Paper/Spigot"));
+        getLogger().info("Running on " + (SchedulerAdapter.isFolia() ? "Folia (regionalised)" : "Paper"));
 
         String minVersion = getConfig().getString("compatibility.min-version", "1.20.4");
         boolean allowUnsupported = getConfig().getBoolean("compatibility.allow-unsupported-versions", false);
@@ -124,10 +123,7 @@ public class LessLag extends JavaPlugin implements Listener {
         // Store original per-world settings
         for (World world : getServer().getWorlds()) {
             originalViewDistances.put(world.getName(), world.getViewDistance());
-            Integer simDistance = getSimulationDistanceSafe(world);
-            if (simDistance != null) {
-                originalSimulationDistances.put(world.getName(), simDistance);
-            }
+            originalSimulationDistances.put(world.getName(), world.getSimulationDistance());
         }
 
         getServer().getPluginManager().registerEvents(this, this);
@@ -359,20 +355,20 @@ public class LessLag extends JavaPlugin implements Listener {
      * @param sender the command sender (may be console or a player)
      */
     public void performDriftCheck(CommandSender sender) {
-        sendMessage(sender, getPrefix() + "&7Checking for config drift...");
+        sendMessage(sender, getPrefix() + "<gray>Checking for config drift...");
         SchedulerAdapter.runAsync(this, () -> {
             List<String> drifted = detectConfigDrift();
             SchedulerAdapter.runGlobal(this, () -> {
                 if (drifted.isEmpty()) {
-                    sendMessage(sender, getPrefix() + "&aNo drift detected. Config matches lesslag-config.json.");
+                    sendMessage(sender, getPrefix() + "<green>No drift detected. Config matches lesslag-config.json.");
                 } else {
                     sendMessage(sender, "");
-                    sendMessage(sender, "&e&l  ⚠ Config drift detected! (" + drifted.size() + " key(s))");
+                    sendMessage(sender, "<yellow><bold>  ⚠ Config drift detected! (" + drifted.size() + " key(s))");
                     for (String key : drifted) {
-                        sendMessage(sender, "    &c✗ &7" + key);
+                        sendMessage(sender, "    <red>✗ <gray>" + key);
                     }
                     sendMessage(sender, "");
-                    sendMessage(sender, "  &7Run &b/lg apply&7 to re-apply lesslag-config.json.");
+                    sendMessage(sender, "  <gray>Run <aqua>/lg apply<gray> to re-apply lesslag-config.json.");
                     sendMessage(sender, "");
                 }
             });
@@ -701,36 +697,8 @@ public class LessLag extends JavaPlugin implements Listener {
         return originalViewDistances.getOrDefault(world.getName(), world.getViewDistance());
     }
 
-    public Integer getOriginalSimulationDistance(World world) {
-        Integer stored = originalSimulationDistances.get(world.getName());
-        return stored != null ? stored : getSimulationDistanceSafe(world);
-    }
-
-    public boolean isSimulationDistanceSupported() {
-        return WORLD_GET_SIM_DISTANCE != null && WORLD_SET_SIM_DISTANCE != null;
-    }
-
-    public Integer getSimulationDistanceSafe(World world) {
-        if (WORLD_GET_SIM_DISTANCE == null) {
-            return null;
-        }
-        try {
-            return (Integer) WORLD_GET_SIM_DISTANCE.invoke(world);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    public boolean setSimulationDistanceSafe(World world, int distance) {
-        if (WORLD_SET_SIM_DISTANCE == null) {
-            return false;
-        }
-        try {
-            WORLD_SET_SIM_DISTANCE.invoke(world, distance);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+    public int getOriginalSimulationDistance(World world) {
+        return originalSimulationDistances.getOrDefault(world.getName(), world.getSimulationDistance());
     }
 
     public static boolean hasCustomName(Entity entity) {
@@ -761,33 +729,28 @@ public class LessLag extends JavaPlugin implements Listener {
     }
 
     /**
-     * Parse message using MiniMessage, with backward compatibility for legacy & codes.
+     * Parse a message to a Component.
+     * <p>
+     * Native MiniMessage tags ({@code <red>}, {@code <bold>}, …) are parsed directly.
+     * Legacy Bukkit {@code &x} / {@code §x} color codes are supported for backward
+     * compatibility with config-supplied strings — they are deserialized via
+     * {@link net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer}.
+     * Internally authored strings should use MiniMessage natively.
      */
     public static Component colorize(String message) {
         if (message == null) return Component.empty();
-        message = message.replace("§", "&");
-        message = message.replace("&0", "<black>");
-        message = message.replace("&1", "<dark_blue>");
-        message = message.replace("&2", "<dark_green>");
-        message = message.replace("&3", "<dark_aqua>");
-        message = message.replace("&4", "<dark_red>");
-        message = message.replace("&5", "<dark_purple>");
-        message = message.replace("&6", "<gold>");
-        message = message.replace("&7", "<gray>");
-        message = message.replace("&8", "<dark_gray>");
-        message = message.replace("&9", "<blue>");
-        message = message.replace("&a", "<green>");
-        message = message.replace("&b", "<aqua>");
-        message = message.replace("&c", "<red>");
-        message = message.replace("&d", "<light_purple>");
-        message = message.replace("&e", "<yellow>");
-        message = message.replace("&f", "<white>");
-        message = message.replace("&k", "<obfuscated>");
-        message = message.replace("&l", "<bold>");
-        message = message.replace("&m", "<strikethrough>");
-        message = message.replace("&n", "<underlined>");
-        message = message.replace("&o", "<italic>");
-        message = message.replace("&r", "<reset>");
+        // Normalize § prefix variant used in some configs
+        if (message.contains("§")) {
+            message = message.replace('§', '&');
+        }
+        // If any legacy &x codes remain (config-sourced strings), use legacy deserializer.
+        // Pure MiniMessage strings won't contain bare '&' followed by a hex char, so this
+        // guard is a reliable fast-path discriminator.
+        if (message.contains("&")) {
+            return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                    .legacyAmpersand()
+                    .deserialize(message);
+        }
         return MiniMessage.miniMessage().deserialize(message);
     }
 
@@ -800,26 +763,17 @@ public class LessLag extends JavaPlugin implements Listener {
     }
 
     public String getPrefix() {
-        return getConfig().getString("core.prefix", "&8[&c&lLessLag&8] &r");
+        return getConfig().getString("core.prefix", "<dark_gray>[<red><bold>LessLag<dark_gray>] <reset>");
     }
 
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
         World world = event.getWorld();
         originalViewDistances.putIfAbsent(world.getName(), world.getViewDistance());
-        Integer simDistance = getSimulationDistanceSafe(world);
-        if (simDistance != null) {
-            originalSimulationDistances.putIfAbsent(world.getName(), simDistance);
-        }
+        originalSimulationDistances.putIfAbsent(world.getName(), world.getSimulationDistance());
     }
 
-    private static Method getMethod(Class<?> type, String name, Class<?>... params) {
-        try {
-            return type.getMethod(name, params);
-        } catch (NoSuchMethodException e) {
-            return null;
-        }
-    }
+
 
     private boolean isVersionAtLeast(String minVersion) {
         String[] parts = minVersion.split("\\.");

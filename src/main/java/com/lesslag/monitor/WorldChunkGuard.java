@@ -363,9 +363,9 @@ public class WorldChunkGuard {
                             s.lastAction = "Unloaded " + unloaded + " chunks";
 
                         if (notify) {
-                            notifyAdmins("&e⚠ &7[WorldChunkGuard] &f" + worldName
-                                    + "&7: Unloaded &e" + unloaded + " &7excess chunks"
-                                    + " (&f" + remaining + "&7 remaining)");
+                            notifyAdmins("<yellow>⚠ <gray>[WorldChunkGuard] <white>" + worldName
+                                    + "<gray>: Unloaded <yellow>" + unloaded + " <gray>excess chunks"
+                                    + " (<white>" + remaining + "<gray> remaining)");
                         }
                         plugin.getLogger().info("[WorldChunkGuard] " + worldName
                                 + ": Successfully unloaded " + unloaded + " chunks"
@@ -382,9 +382,9 @@ public class WorldChunkGuard {
                                     + ": CHUNK UNLOAD BLOCKED after " + maxRetries + " attempts!");
 
                             if (notify) {
-                                notifyAdmins("&4&l⚠ CRITICAL &c[WorldChunkGuard] &f" + worldName
-                                        + " &cchunk overload cannot be resolved!"
-                                        + "\n&c  Evacuating players to &f" + evacuateWorldName + "&c...");
+                                notifyAdmins("<dark_red><bold>⚠ CRITICAL <red>[WorldChunkGuard] <white>" + worldName
+                                        + " <red>chunk overload cannot be resolved!"
+                                        + "\n<red>  Evacuating players to <white>" + evacuateWorldName + "<red>...");
                             }
 
                             evacuateWorld(w, evacuateWorldName);
@@ -394,10 +394,10 @@ public class WorldChunkGuard {
                                 s.lastAction = "Unload partially blocked (" + newRetries + "/" + maxRetries + ")";
 
                             if (notify) {
-                                notifyAdmins("&c⚠ &7[WorldChunkGuard] &f" + worldName
-                                        + "&c: Chunk unload partially blocked!"
-                                        + " &7Attempt &e" + newRetries + "&7/&c" + maxRetries
-                                        + " &8(unloaded: " + unloaded + ", failed: " + failed + ")");
+                                notifyAdmins("<red>⚠ <gray>[WorldChunkGuard] <white>" + worldName
+                                        + "<red>: Chunk unload partially blocked!"
+                                        + " <gray>Attempt <yellow>" + newRetries + "<gray>/<red>" + maxRetries
+                                        + " <dark_gray>(unloaded: " + unloaded + ", failed: " + failed + ")");
                             }
                         }
                     }
@@ -439,8 +439,8 @@ public class WorldChunkGuard {
             try {
                 SchedulerAdapter.teleportEntity(plugin, player, spawnLoc);
                 LessLag.sendMessage(player,
-                        "&c&l⚠ &fYou have been evacuated from &e" + world.getName()
-                                + " &fdue to critical chunk overload.");
+                        "<red><bold>⚠ <white>You have been evacuated from <yellow>" + world.getName()
+                                + " <white>due to critical chunk overload.");
             } catch (Exception e) {
                 plugin.getLogger().warning("[WorldChunkGuard] Failed to teleport "
                         + player.getName() + ": " + e.getMessage());
@@ -464,9 +464,9 @@ public class WorldChunkGuard {
                 if (unloaded) {
                     plugin.getLogger().info("[WorldChunkGuard] World " + world.getName()
                             + " fully unloaded after evacuation.");
-                    notifyAdmins("&a✔ &7[WorldChunkGuard] World &f" + world.getName()
-                            + " &7fully unloaded. &e" + playersToMove.size()
-                            + " &7player(s) moved to &f" + finalTargetWorld.getName());
+                    notifyAdmins("<green>✔ <gray>[WorldChunkGuard] World <white>" + world.getName()
+                            + " <gray>fully unloaded. <yellow>" + playersToMove.size()
+                            + " <gray>player(s) moved to <white>" + finalTargetWorld.getName());
                 } else {
                     // Default world or Folia — force-unload chunks via WorkloadDistributor
                     Chunk[] chunks = world.getLoadedChunks();
@@ -518,9 +518,9 @@ public class WorldChunkGuard {
                     plugin.getWorkloadDistributor().addWorkload(() -> {
                         plugin.getLogger().info("[WorldChunkGuard] Force-unloaded " + forceCount.get()
                                 + " chunks from " + world.getName() + " (world kept loaded)");
-                        notifyAdmins("&e⚠ &7[WorldChunkGuard] &f" + world.getName()
-                                + " &7cannot be fully unloaded (default world)."
-                                + " Force-unloaded &e" + forceCount.get() + " &7chunks.");
+                        notifyAdmins("<yellow>⚠ <gray>[WorldChunkGuard] <white>" + world.getName()
+                                + " <gray>cannot be fully unloaded (default world)."
+                                + " Force-unloaded <yellow>" + forceCount.get() + " <gray>chunks.");
                     });
                 }
             }

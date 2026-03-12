@@ -175,7 +175,7 @@ public class ActionExecutor {
      * Execute a single action by its config key.
      */
     public void executeAction(String actionKey) {
-        String scheduledMsg = getMsg("action.scheduled", "&aScheduled cleanup task: %action%");
+        String scheduledMsg = getMsg("action.scheduled", "<green>Scheduled cleanup task: %action%");
         switch (actionKey.toLowerCase()) {
             case "clear-ground-items": {
                 clearGroundItems();
@@ -200,7 +200,7 @@ public class ActionExecutor {
             case "reduce-view-distance": {
                 reduceViewDistance();
                 if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                    String defaultMsg = "&aReduced view distance to save performance.";
+                    String defaultMsg = "<green>Reduced view distance to save performance.";
                     String broadcastMsg = getMsg("messages.broadcast-view-distance-reduced", defaultMsg);
                     NotificationHelper.broadcastAsync(broadcastMsg);
                 }
@@ -209,7 +209,7 @@ public class ActionExecutor {
             case "reduce-simulation-distance": {
                 reduceSimulationDistance();
                 if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                    String defaultMsg = "&aReduced simulation distance to save performance.";
+                    String defaultMsg = "<green>Reduced simulation distance to save performance.";
                     String broadcastMsg = getMsg("messages.broadcast-simulation-distance-reduced", defaultMsg);
                     NotificationHelper.broadcastAsync(broadcastMsg);
                 }
@@ -239,7 +239,7 @@ public class ActionExecutor {
                 if (unloaded > 0) {
                     plugin.getLogger().info("[Action] Unloaded " + unloaded + " excess chunks across all worlds");
                     if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                        String defaultMsg = "&aUnloaded &e" + unloaded + " &aexcess chunks.";
+                        String defaultMsg = "<green>Unloaded <yellow>" + unloaded + " <green>excess chunks.";
                         String broadcastMsg = getMsg("messages.broadcast-chunks-unloaded", defaultMsg)
                                 .replace("%count%", String.valueOf(unloaded));
                         NotificationHelper.broadcastAsync(broadcastMsg);
@@ -250,7 +250,7 @@ public class ActionExecutor {
             case "notify-admin": {
                 // Predictive optimization sends its own detailed notification.
                 // This action exists to prevent errors when used as a default in config.
-                NotificationHelper.notifyAdminsAsync("&e⚠ &7[Action] &fAdmin notification triggered.");
+                NotificationHelper.notifyAdminsAsync("<yellow>⚠ <gray>[Action] <white>Admin notification triggered.");
                 break;
             }
             default: {
@@ -347,7 +347,7 @@ public class ActionExecutor {
                 plugin.getLogger().info(consoleMsg);
 
                 if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                    String defaultMsg = "&aRemoved &e" + count + " &a" + actionName.toLowerCase() + ".";
+                    String defaultMsg = "<green>Removed <yellow>" + count + " <green>" + actionName.toLowerCase() + ".";
                     String broadcastMsg = getMsg(broadcastMessageKey, defaultMsg).replace("%count%",
                             String.valueOf(count));
                     NotificationHelper.broadcast(broadcastMsg);
@@ -455,7 +455,7 @@ public class ActionExecutor {
             if (count > 0) {
                 plugin.getLogger().info("[Action] Mob AI disable completed. Disabled AI for " + count + " mobs.");
                 if (plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                    String defaultMsg = "&aDisabled AI for &e" + count + " &amobs.";
+                    String defaultMsg = "<green>Disabled AI for <yellow>" + count + " <green>mobs.";
                     String broadcastMsg = getMsg("messages.broadcast-ai-disabled", defaultMsg).replace("%count%",
                             String.valueOf(count));
                     NotificationHelper.broadcast(broadcastMsg);
@@ -501,7 +501,7 @@ public class ActionExecutor {
                 int count = restoredCount.get();
                 plugin.getLogger().info("[Action] Mob AI restoration completed. Restored " + count + " mobs.");
                 if (count > 0 && plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                    String defaultMsg = "&aRestored AI for &e" + count + " &amobs.";
+                    String defaultMsg = "<green>Restored AI for <yellow>" + count + " <green>mobs.";
                     String broadcastMsg = getMsg("messages.broadcast-ai-restored", defaultMsg).replace("%count%",
                             String.valueOf(count));
                     NotificationHelper.broadcast(broadcastMsg);
@@ -538,7 +538,7 @@ public class ActionExecutor {
                 int count = restoredCount.get();
                 plugin.getLogger().info("[Action] Mob AI restoration batches completed. Restored " + count + " mobs.");
                 if (count > 0 && plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                    String defaultMsg = "&aRestored AI for &e" + count + " &amobs.";
+                    String defaultMsg = "<green>Restored AI for <yellow>" + count + " <green>mobs.";
                     String broadcastMsg = getMsg("messages.broadcast-ai-restored", defaultMsg).replace("%count%",
                             String.valueOf(count));
                     NotificationHelper.broadcast(broadcastMsg);
@@ -585,22 +585,14 @@ public class ActionExecutor {
     public void reduceSimulationDistance() {
         int minSD = plugin.getConfig().getInt("modules.chunks.simulation-distance.min", 4);
         int reduceBy = plugin.getConfig().getInt("modules.chunks.simulation-distance.reduce-by", 2);
-        if (!plugin.isSimulationDistanceSupported()) {
-            plugin.getLogger().fine("Simulation distance API not available");
-            return;
-        }
 
         for (World world : Bukkit.getWorlds()) {
-            Integer currentSD = plugin.getSimulationDistanceSafe(world);
-            if (currentSD == null) {
-                continue;
-            }
+            int currentSD = world.getSimulationDistance();
             if (currentSD > minSD) {
                 int newSD = Math.max(minSD, currentSD - reduceBy);
-                if (plugin.setSimulationDistanceSafe(world, newSD)) {
-                    plugin.getLogger()
-                            .info("Simulation Distance [" + world.getName() + "]: " + currentSD + " -> " + newSD);
-                }
+                world.setSimulationDistance(newSD);
+                plugin.getLogger()
+                        .info("Simulation Distance [" + world.getName() + "]: " + currentSD + " -> " + newSD);
             }
         }
     }
@@ -667,14 +659,12 @@ public class ActionExecutor {
     public void restoreDefaults() {
         for (World world : Bukkit.getWorlds()) {
             int originalVD = plugin.getOriginalViewDistance(world);
-            Integer originalSD = plugin.getOriginalSimulationDistance(world);
+            int originalSD = plugin.getOriginalSimulationDistance(world);
             try {
                 world.setViewDistance(originalVD);
             } catch (Exception ignored) {
             }
-            if (originalSD != null) {
-                plugin.setSimulationDistanceSafe(world, originalSD);
-            }
+            world.setSimulationDistance(originalSD);
         }
 
         restoreMobAI();
@@ -688,14 +678,12 @@ public class ActionExecutor {
     public void restoreDefaultsSync() {
         for (World world : Bukkit.getWorlds()) {
             int originalVD = plugin.getOriginalViewDistance(world);
-            Integer originalSD = plugin.getOriginalSimulationDistance(world);
+            int originalSD = plugin.getOriginalSimulationDistance(world);
             try {
                 world.setViewDistance(originalVD);
             } catch (Exception ignored) {
             }
-            if (originalSD != null) {
-                plugin.setSimulationDistanceSafe(world, originalSD);
-            }
+            world.setSimulationDistance(originalSD);
         }
 
         // Restore mob AI synchronously — no scheduler or WorkloadDistributor needed
@@ -987,7 +975,7 @@ public class ActionExecutor {
 
                     plugin.getLogger().info("[EntityLimit] Scheduled removal of " + totalScheduled + " entities.");
                     if (totalScheduled > 0 && plugin.getConfig().getBoolean("notifications.broadcast-actions", false)) {
-                        String defaultMsg = "&aRemoved &e" + totalScheduled + " &aexcess entities for server limits.";
+                        String defaultMsg = "<green>Removed <yellow>" + totalScheduled + " <green>excess entities for server limits.";
                         String broadcastMsg = getMsg("messages.broadcast-entity-limits", defaultMsg).replace("%count%",
                                 String.valueOf(totalScheduled));
                         NotificationHelper.broadcastAsync(broadcastMsg);

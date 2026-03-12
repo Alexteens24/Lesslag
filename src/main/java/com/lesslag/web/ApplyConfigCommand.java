@@ -37,9 +37,9 @@ public class ApplyConfigCommand {
         File configJson = new File(plugin.getDataFolder(), CONFIG_JSON_NAME);
         if (!configJson.exists()) {
             LessLag.sendMessage(sender, plugin.getPrefix()
-                + "&cNo &flesslag-config.json&c found in &fplugins/LessLag/&c.");
+                + "<red>No <white>lesslag-config.json<red> found in <white>plugins/LessLag/<red>.");
             LessLag.sendMessage(sender, plugin.getPrefix()
-                + "&7Generate one at &bhttps://lesslag-web.vercel.app&7 with &b/lg web link&7.");
+                + "<gray>Generate one at <aqua>https://lesslag-web.vercel.app<gray> with <aqua>/lg web link<gray>.");
             return;
         }
 
@@ -48,13 +48,13 @@ public class ApplyConfigCommand {
             root = GSON.fromJson(reader, JsonObject.class);
         } catch (Exception e) {
             LessLag.sendMessage(sender, plugin.getPrefix()
-                + "&cFailed to read lesslag-config.json: &f" + e.getMessage());
+                + "<red>Failed to read lesslag-config.json: <white>" + e.getMessage());
             return;
         }
 
         if (!root.has("lesslag") || !root.get("lesslag").isJsonObject()) {
             LessLag.sendMessage(sender, plugin.getPrefix()
-                + "&clesslag-config.json is missing the &f\"lesslag\"&c block.");
+                + "<red>lesslag-config.json is missing the <white>\"lesslag\"<red> block.");
             return;
         }
 
@@ -63,8 +63,8 @@ public class ApplyConfigCommand {
         RollbackBundle bundle = backup.createSnapshot("apply-cmd");
         if (bundle != null) {
             LessLag.sendMessage(sender, plugin.getPrefix()
-                + "&7Config backup created. Token: &f" + bundle.getRollbackToken()
-                + " &8(use &f/lg restore&8 to roll back)");
+                + "<gray>Config backup created. Token: <white>" + bundle.getRollbackToken()
+                + " <dark_gray>(use <white>/lg restore<dark_gray> to roll back)");
         }
 
         // ── 2. Apply lesslag block ────────────────────────────────────────────
@@ -82,13 +82,13 @@ public class ApplyConfigCommand {
 
         // ── 3. Report ─────────────────────────────────────────────────────────
         LessLag.sendMessage(sender, "");
-        LessLag.sendMessage(sender, "&a&l  ✓ Applied " + applied + " setting(s) to config.yml.");
+        LessLag.sendMessage(sender, "<green><bold>  ✓ Applied " + applied + " setting(s) to config.yml.");
         LessLag.sendMessage(sender, "");
-        LessLag.sendMessage(sender, "  &7Run &b/lg verify&7 to check server config expectations.");
+        LessLag.sendMessage(sender, "  <gray>Run <aqua>/lg verify<gray> to check server config expectations.");
         if (root.has("server_config_expectations")) {
             JsonObject expectations = root.getAsJsonObject("server_config_expectations");
             int totalFiles = expectations.size();
-            LessLag.sendMessage(sender, "  &e" + totalFiles + " server config file(s) have manual changes — see &b/lg verify&e.");
+            LessLag.sendMessage(sender, "  <yellow>" + totalFiles + " server config file(s) have manual changes — see <aqua>/lg verify<yellow>.");
         }
         LessLag.sendMessage(sender, "");
     }

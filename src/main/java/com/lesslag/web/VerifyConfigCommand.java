@@ -39,13 +39,13 @@ public class VerifyConfigCommand {
         File configJson = new File(plugin.getDataFolder(), CONFIG_JSON_NAME);
         if (!configJson.exists()) {
             LessLag.sendMessage(sender, plugin.getPrefix()
-                + "&cNo &flesslag-config.json&c found in &fplugins/LessLag/&c.");
+                + "<red>No <white>lesslag-config.json<red> found in <white>plugins/LessLag/<red>.");
             LessLag.sendMessage(sender, plugin.getPrefix()
-                + "&7Generate one via &b/lg web link&7 and the web configurator.");
+                + "<gray>Generate one via <aqua>/lg web link<gray> and the web configurator.");
             return;
         }
 
-        LessLag.sendMessage(sender, plugin.getPrefix() + "&7Scanning server config files...");
+        LessLag.sendMessage(sender, plugin.getPrefix() + "<gray>Scanning server config files...");
 
         // Run file I/O async to avoid blocking main thread
         SchedulerAdapter.runAsync(plugin, () -> {
@@ -55,7 +55,7 @@ public class VerifyConfigCommand {
             } catch (Exception e) {
                 SchedulerAdapter.runGlobal(plugin, () ->
                     LessLag.sendMessage(sender, plugin.getPrefix()
-                        + "&cFailed to read lesslag-config.json: &f" + e.getMessage())
+                        + "<red>Failed to read lesslag-config.json: <white>" + e.getMessage())
                 );
                 return;
             }
@@ -64,7 +64,7 @@ public class VerifyConfigCommand {
                     || !root.get("server_config_expectations").isJsonObject()) {
                 SchedulerAdapter.runGlobal(plugin, () ->
                     LessLag.sendMessage(sender, plugin.getPrefix()
-                        + "&7No server_config_expectations in lesslag-config.json. Nothing to verify.")
+                        + "<gray>No server_config_expectations in lesslag-config.json. Nothing to verify.")
                 );
                 return;
             }
@@ -83,10 +83,10 @@ public class VerifyConfigCommand {
                 JsonObject keys = fileEntry.getValue().getAsJsonObject();
                 boolean filePresent = adapter.isPresent(fileName);
 
-                report.append("\n  &8&m────────────────────────&r&7 ")
+                report.append("\n  <dark_gray><strikethrough>────────────────────────<reset><gray> ")
                       .append(fileName);
                 if (!filePresent) {
-                    report.append(" &7(&cfile not found&7)\n");
+                    report.append(" <gray>(<red>file not found<gray>)\n");
                 }
 
                 for (Map.Entry<String, JsonElement> keyEntry : keys.entrySet()) {
@@ -94,8 +94,8 @@ public class VerifyConfigCommand {
                     String expected = jsonElementToString(keyEntry.getValue());
 
                     if (!filePresent) {
-                        report.append("\n    &e⚠ &7").append(key)
-                              .append(" &8→ &eexpected: &f").append(expected).append(" &8(file missing)");
+                        report.append("\n    <yellow>⚠ <gray>").append(key)
+                              .append(" <dark_gray>→ <yellow>expected: <white>").append(expected).append(" <dark_gray>(file missing)");
                         warned++;
                         continue;
                     }
@@ -103,19 +103,19 @@ public class VerifyConfigCommand {
                     Object actual = adapter.getValue(fileName, key);
 
                     if (actual == null) {
-                        report.append("\n    &e⚠ &7").append(key)
-                              .append(" &8→ &enot set &8(default applies) | expected: &f").append(expected);
+                        report.append("\n    <yellow>⚠ <gray>").append(key)
+                              .append(" <dark_gray>→ <yellow>not set <dark_gray>(default applies) | expected: <white>").append(expected);
                         warned++;
                     } else {
                         String actualStr = actual.toString();
                         if (valuesMatch(actualStr, expected)) {
-                            report.append("\n    &a✓ &7").append(key)
-                                  .append(" &8= &a").append(actualStr);
+                            report.append("\n    <green>✓ <gray>").append(key)
+                                  .append(" <dark_gray>= <green>").append(actualStr);
                             passed++;
                         } else {
-                            report.append("\n    &c✗ &7").append(key)
-                                  .append(" &8= &c").append(actualStr)
-                                  .append(" &8| expected: &f").append(expected);
+                            report.append("\n    <red>✗ <gray>").append(key)
+                                  .append(" <dark_gray>= <red>").append(actualStr)
+                                  .append(" <dark_gray>| expected: <white>").append(expected);
                             failed++;
                         }
                     }
@@ -124,8 +124,8 @@ public class VerifyConfigCommand {
             }
 
             // Summary line
-            String summary = "&7Verify: &a" + passed + " passed&7, &e" + warned
-                + " warnings&7, &c" + failed + " failed";
+            String summary = "<gray>Verify: <green>" + passed + " passed<gray>, <yellow>" + warned
+                + " warnings<gray>, <red>" + failed + " failed";
 
             final String reportStr = report.toString();
             final String summaryStr = summary;
@@ -133,7 +133,7 @@ public class VerifyConfigCommand {
 
             SchedulerAdapter.runGlobal(plugin, () -> {
                 LessLag.sendMessage(sender, "");
-                LessLag.sendMessage(sender, "&c&l  ≡ Server Config Verification ≡");
+                LessLag.sendMessage(sender, "<red><bold>  ≡ Server Config Verification ≡");
                 // Print each line separately (Bukkit sendMessage handles one line at a time)
                 for (String line : reportStr.split("\n")) {
                     if (!line.isEmpty()) LessLag.sendMessage(sender, line);
@@ -141,7 +141,7 @@ public class VerifyConfigCommand {
                 LessLag.sendMessage(sender, "");
                 LessLag.sendMessage(sender, "  " + summaryStr);
                 if (failCount > 0) {
-                    LessLag.sendMessage(sender, "  &7Edit the listed files manually, then restart the server.");
+                    LessLag.sendMessage(sender, "  <gray>Edit the listed files manually, then restart the server.");
                 }
                 LessLag.sendMessage(sender, "");
             });

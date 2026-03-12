@@ -12,6 +12,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,7 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MobFarmOptimizer implements Listener {
 
-    private static final String META_DUMB = "LessLag.FarmDumb";
+    private final NamespacedKey FARM_DUMB_KEY;
 
     private final LessLag plugin;
     private SchedulerAdapter.TaskHandle scanTask;
@@ -70,6 +72,7 @@ public class MobFarmOptimizer implements Listener {
 
     public MobFarmOptimizer(LessLag plugin) {
         this.plugin = plugin;
+        this.FARM_DUMB_KEY = new NamespacedKey(plugin, "farm_dumb");
         loadConfig();
     }
 
@@ -209,18 +212,18 @@ public class MobFarmOptimizer implements Listener {
 
     private void dumb(LivingEntity mob) {
         mob.setAI(false);
-        mob.setMetadata(META_DUMB, new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+        mob.getPersistentDataContainer().set(FARM_DUMB_KEY, PersistentDataType.BYTE, (byte) 1);
         dumbed.incrementAndGet();
     }
 
     private void restore(LivingEntity mob) {
         mob.setAI(true);
-        mob.removeMetadata(META_DUMB, plugin);
+        mob.getPersistentDataContainer().remove(FARM_DUMB_KEY);
         dumbed.updateAndGet(n -> Math.max(0, n - 1));
     }
 
     private boolean isDumbed(LivingEntity mob) {
-        return mob.hasMetadata(META_DUMB);
+        return mob.getPersistentDataContainer().has(FARM_DUMB_KEY);
     }
 
     // ══════════════════════════════════════════════════

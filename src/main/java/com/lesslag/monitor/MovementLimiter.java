@@ -52,7 +52,7 @@ public class MovementLimiter implements Listener {
         this.action = plugin.getConfig().getString("modules.movement-limiter.action", "rubberband");
         this.cancelVelocity = plugin.getConfig().getBoolean("modules.movement-limiter.cancel-velocity", true);
         this.warningMessage = plugin.getConfig().getString("modules.movement-limiter.message",
-                "&cYou are moving too fast! Server needs time to load chunks.");
+                "<red>You are moving too fast! Server needs time to load chunks.");
         this.notifyAdmin = plugin.getConfig().getBoolean("modules.movement-limiter.notify-admin", true);
     }
 

@@ -382,7 +382,7 @@ public class BottleneckAnalyzer {
         }
 
         String message = plugin.getConfig().getString("messages.bottleneck-detected",
-                "&c&lLAG SPIKE! &7({duration}ms) Caused by: &e{method} &7({percent}%)")
+                "<red><bold>LAG SPIKE! <gray>({duration}ms) Caused by: <yellow>{method} <gray>({percent}%)")
                 .replace("{duration}", String.valueOf(durationMs))
                 .replace("{method}", methodName)
                 .replace("{percent}", String.format("%.1f", percentage));

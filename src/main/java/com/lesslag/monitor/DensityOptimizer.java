@@ -4,14 +4,17 @@ import com.lesslag.LessLag;
 import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.*;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
 public class DensityOptimizer {
 
     private final LessLag plugin;
+    private final NamespacedKey DENSITY_SUPPRESSED_KEY;
     private boolean enabled;
     private int checkInterval;
     private Map<EntityType, Integer> limits;
@@ -37,6 +40,7 @@ public class DensityOptimizer {
 
     public DensityOptimizer(LessLag plugin) {
         this.plugin = plugin;
+        this.DENSITY_SUPPRESSED_KEY = new NamespacedKey(plugin, "density_suppressed");
         this.limits = new HashMap<>();
         reloadConfig();
     }
@@ -191,7 +195,7 @@ public class DensityOptimizer {
                     if (!plugin.isMobAwareSafe(mob)) {
                         plugin.setMobAwareSafe(mob, true);
                         mob.setCollidable(true);
-                        mob.removeMetadata("LessLag.DensitySuppressed", plugin);
+                        mob.getPersistentDataContainer().remove(DENSITY_SUPPRESSED_KEY);
                     }
                     continue;
                 }
@@ -233,10 +237,9 @@ public class DensityOptimizer {
                         if (!shouldBeActive) {
                             currentPassOptimized++;
                             totalMobsOptimized++;
-                            mob.setMetadata("LessLag.DensitySuppressed",
-                                    new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                            mob.getPersistentDataContainer().set(DENSITY_SUPPRESSED_KEY, PersistentDataType.BYTE, (byte) 1);
                         } else {
-                            mob.removeMetadata("LessLag.DensitySuppressed", plugin);
+                            mob.getPersistentDataContainer().remove(DENSITY_SUPPRESSED_KEY);
                         }
                     }
                 }
@@ -248,7 +251,7 @@ public class DensityOptimizer {
                     if (!plugin.isMobAwareSafe(mob)) {
                         plugin.setMobAwareSafe(mob, true);
                         mob.setCollidable(true);
-                        mob.removeMetadata("LessLag.DensitySuppressed", plugin);
+                        mob.getPersistentDataContainer().remove(DENSITY_SUPPRESSED_KEY);
                     }
                 }
             }
@@ -324,7 +327,7 @@ public class DensityOptimizer {
                 if (!plugin.isMobAwareSafe(mob)) {
                     plugin.setMobAwareSafe(mob, true);
                     mob.setCollidable(true);
-                    mob.removeMetadata("LessLag.DensitySuppressed", plugin);
+                    mob.getPersistentDataContainer().remove(DENSITY_SUPPRESSED_KEY);
                 }
             }
         }

@@ -120,7 +120,7 @@ public class BlockPlacementLimiter implements Listener {
         this.enabled = plugin.getConfig().getBoolean("modules.block-placement-limiter.enabled", true);
         this.messageTemplate = plugin.getConfig().getString(
                 "modules.block-placement-limiter.message",
-                "&cChunk limit reached! Cannot place more &e%material% &cin this chunk (%count%/%limit%).");
+                "<red>Chunk limit reached! Cannot place more <yellow>%material% <red>in this chunk (%count%/%limit%).");
 
         Map<Material, Integer> newLimits = new EnumMap<>(Material.class);
         org.bukkit.configuration.ConfigurationSection sec = plugin.getConfig()

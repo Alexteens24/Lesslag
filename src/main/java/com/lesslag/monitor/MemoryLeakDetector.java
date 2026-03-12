@@ -271,22 +271,22 @@ public class MemoryLeakDetector {
 
         String severity;
         if (pctUsed > 85) {
-            severity = "&4&l⚠ CRITICAL";
+            severity = "<dark_red><bold>⚠ CRITICAL";
         } else if (pctUsed > 70) {
-            severity = "&c⚠ WARNING";
+            severity = "<red>⚠ WARNING";
         } else {
-            severity = "&e⚠ NOTICE";
+            severity = "<yellow>⚠ NOTICE";
         }
 
-        final String msg = severity + " &7[MemLeak] Post-GC memory rising steadily!"
-                + "\n&7  Slope: &c+" + String.format("%.1f", slopeMBPerMin) + " MB/min"
-                + "\n&7  Baseline: &f" + String.format("%.0f", firstBaseline) + "MB &7→ &c"
+        final String msg = severity + " <gray>[MemLeak] Post-GC memory rising steadily!"
+                + "\n<gray>  Slope: <red>+" + String.format("%.1f", slopeMBPerMin) + " MB/min"
+                + "\n<gray>  Baseline: <white>" + String.format("%.0f", firstBaseline) + "MB <gray>→ <red>"
                 + String.format("%.0f", currentBaseline) + "MB"
-                + " &8(over " + timeSpanMin + " min)"
-                + "\n&7  Old Gen: &f" + String.format("%.0f", currentBaseline) + "MB &8/ &f" + maxMB + "MB"
-                + " &8(" + String.format("%.0f", pctUsed) + "%)"
-                + "\n&7  GC Rate: &e" + String.format("%.1f", gcFrequency) + " &7/min"
-                + "\n&8  Possible memory leak in a plugin or world data.";
+                + " <dark_gray>(over " + timeSpanMin + " min)"
+                + "\n<gray>  Old Gen: <white>" + String.format("%.0f", currentBaseline) + "MB <dark_gray>/ <white>" + maxMB + "MB"
+                + " <dark_gray>(" + String.format("%.0f", pctUsed) + "%)"
+                + "\n<gray>  GC Rate: <yellow>" + String.format("%.1f", gcFrequency) + " <gray>/min"
+                + "\n<dark_gray>  Possible memory leak in a plugin or world data.";
 
         plugin.getLogger().warning("[MemLeakDetector] Suspected memory leak!"
                 + " Post-GC baseline rising at +" + String.format("%.1f", slopeMBPerMin) + " MB/min"

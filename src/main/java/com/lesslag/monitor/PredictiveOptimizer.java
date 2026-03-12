@@ -205,9 +205,9 @@ public class PredictiveOptimizer {
         }
 
         if (notifyEnabled) {
-            String msg = "&6⚡ Predictive " + triggerType + ": &eMSPT rising (&f"
-                    + String.format("%.1f", lastAvgMSPT) + "ms&e, slope &f+"
-                    + String.format("%.1f", lastSlope) + "&e/s) — Running preemptive cleanup";
+            String msg = "<gold>⚡ Predictive " + triggerType + ": <yellow>MSPT rising (<white>"
+                    + String.format("%.1f", lastAvgMSPT) + "ms<yellow>, slope <white>+"
+                    + String.format("%.1f", lastSlope) + "<yellow>/s) — Running preemptive cleanup";
             NotificationHelper.notifyAdminsAsync(msg);
         }
     }

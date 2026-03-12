@@ -65,7 +65,7 @@ public class LagCommand implements CommandExecutor {
             @NotNull String label, @NotNull String[] args) {
 
         if (!sender.hasPermission("lesslag.admin")) {
-            sender.sendMessage(LessLag.colorize("&cYou don't have permission to use this command!"));
+            sender.sendMessage(LessLag.colorize("<red>You don't have permission to use this command!"));
             return true;
         }
 
@@ -142,7 +142,7 @@ public class LagCommand implements CommandExecutor {
                 doRestore(sender);
                 break;
             case "setup":
-                send(sender, "&cThe setup wizard has been moved to the web dashboard! Please use &e/lg web link&c.");
+                send(sender, "<red>The setup wizard has been moved to the web dashboard! Please use <yellow>/lg web link<red>.");
                 break;
             case "web":
                 handleWeb(sender, args);
@@ -176,39 +176,39 @@ public class LagCommand implements CommandExecutor {
 
     private void showHelp(CommandSender sender) {
         send(sender, "");
-        send(sender, "&c&l  ≡ LessLag v" + plugin.getPluginMeta().getVersion() + " ≡");
-        send(sender, "&8  Server Performance Guardian");
+        send(sender, "<red><bold>  ≡ LessLag v" + plugin.getPluginMeta().getVersion() + " ≡");
+        send(sender, "<dark_gray>  Server Performance Guardian");
         send(sender, "");
-        send(sender, "  &e/lg status      &8- &7Quick server overview");
-        send(sender, "  &e/lg health      &8- &7Full diagnostics report");
-        send(sender, "  &e/lg tps         &8- &7TPS history (5s/10s/1m/5m/15m)");
-        send(sender, "  &e/lg gc          &8- &7Force garbage collection");
-        send(sender, "  &e/lg gcinfo      &8- &7GC collector statistics");
-        send(sender, "  &e/lg tickmonitor &8- &7Tick spike statistics");
-        send(sender, "  &e/lg entities    &8- &7Entity type breakdown");
-        send(sender, "  &e/lg thresholds  &8- &7View threshold config & status");
-        send(sender, "  &e/lg sources     &8- &7Analyze lag sources (async)");
-        send(sender, "  &e/lg trace       &8- &7Shows Bottleneck Analyzer config");
-        send(sender, "  &e/lg chunks      &8- &7Smart Chunk Limiter status");
-        send(sender, "  &e/lg redstone    &8- &7Redstone Suppressor status");
-        send(sender, "  &e/lg predictive  &8- &7Predictive Optimizer status");
-        send(sender, "  &e/lg frustum     &8- &7Frustum Culler status");
-        send(sender, "  &e/lg worldguard  &8- &7World Chunk Guard status");
-        send(sender, "  &e/lg memory      &8- &7Memory Leak Detector status");
-        send(sender, "  &e/lg villager    &8- &7Villager Optimizer status");
-        send(sender, "  &e/lg density     &8- &7Density Optimizer status");
-        send(sender, "  &e/lg breeding    &8- &7Breeding Limiter status");
-        send(sender, "  &e/lg clear       &8- &7Clear entities &8[items|mobs|hostile|all]");
-        send(sender, "  &e/lg ai          &8- &7AI control &8[disable|restore|status]");
-        send(sender, "  &e/lg restore     &8- &7Restore all defaults");
-        send(sender, "  &e/lg web link    &8- &7Generate pre-filled web configurator link");
-        send(sender, "  &e/lg apply       &8- &7Apply lesslag-config.json from web");
-        send(sender, "  &e/lg verify      &8- &7Verify server config expectations");
-        send(sender, "  &e/lg drift       &8- &7Check for config drift from web snapshot");
-        send(sender, "  &e/lg confirm      &8- &7Confirm pending web config patches");
-        send(sender, "  &e/lg reload      &8- &7Reload configuration");
+        send(sender, "  <yellow>/lg status      <dark_gray>- <gray>Quick server overview");
+        send(sender, "  <yellow>/lg health      <dark_gray>- <gray>Full diagnostics report");
+        send(sender, "  <yellow>/lg tps         <dark_gray>- <gray>TPS history (5s/10s/1m/5m/15m)");
+        send(sender, "  <yellow>/lg gc          <dark_gray>- <gray>Force garbage collection");
+        send(sender, "  <yellow>/lg gcinfo      <dark_gray>- <gray>GC collector statistics");
+        send(sender, "  <yellow>/lg tickmonitor <dark_gray>- <gray>Tick spike statistics");
+        send(sender, "  <yellow>/lg entities    <dark_gray>- <gray>Entity type breakdown");
+        send(sender, "  <yellow>/lg thresholds  <dark_gray>- <gray>View threshold config & status");
+        send(sender, "  <yellow>/lg sources     <dark_gray>- <gray>Analyze lag sources (async)");
+        send(sender, "  <yellow>/lg trace       <dark_gray>- <gray>Shows Bottleneck Analyzer config");
+        send(sender, "  <yellow>/lg chunks      <dark_gray>- <gray>Smart Chunk Limiter status");
+        send(sender, "  <yellow>/lg redstone    <dark_gray>- <gray>Redstone Suppressor status");
+        send(sender, "  <yellow>/lg predictive  <dark_gray>- <gray>Predictive Optimizer status");
+        send(sender, "  <yellow>/lg frustum     <dark_gray>- <gray>Frustum Culler status");
+        send(sender, "  <yellow>/lg worldguard  <dark_gray>- <gray>World Chunk Guard status");
+        send(sender, "  <yellow>/lg memory      <dark_gray>- <gray>Memory Leak Detector status");
+        send(sender, "  <yellow>/lg villager    <dark_gray>- <gray>Villager Optimizer status");
+        send(sender, "  <yellow>/lg density     <dark_gray>- <gray>Density Optimizer status");
+        send(sender, "  <yellow>/lg breeding    <dark_gray>- <gray>Breeding Limiter status");
+        send(sender, "  <yellow>/lg clear       <dark_gray>- <gray>Clear entities <dark_gray>[items|mobs|hostile|all]");
+        send(sender, "  <yellow>/lg ai          <dark_gray>- <gray>AI control <dark_gray>[disable|restore|status]");
+        send(sender, "  <yellow>/lg restore     <dark_gray>- <gray>Restore all defaults");
+        send(sender, "  <yellow>/lg web link    <dark_gray>- <gray>Generate pre-filled web configurator link");
+        send(sender, "  <yellow>/lg apply       <dark_gray>- <gray>Apply lesslag-config.json from web");
+        send(sender, "  <yellow>/lg verify      <dark_gray>- <gray>Verify server config expectations");
+        send(sender, "  <yellow>/lg drift       <dark_gray>- <gray>Check for config drift from web snapshot");
+        send(sender, "  <yellow>/lg confirm      <dark_gray>- <gray>Confirm pending web config patches");
+        send(sender, "  <yellow>/lg reload      <dark_gray>- <gray>Reload configuration");
         send(sender, "");
-        send(sender, "  &8Permissions: &7lesslag.admin &8(commands) &7lesslag.notify &8(alerts)");
+        send(sender, "  <dark_gray>Permissions: <gray>lesslag.admin <dark_gray>(commands) <gray>lesslag.notify <dark_gray>(alerts)");
         send(sender, "");
     }
 
@@ -229,13 +229,13 @@ public class LagCommand implements CommandExecutor {
             statusColor = active.getColor(allThresholds);
             statusText = "⚠ " + active.getName().toUpperCase();
         } else {
-            statusColor = "&a";
+            statusColor = "<green>";
             statusText = "✔ NORMAL";
         }
 
         // Health Score (0-100) computed from TPS, MSPT, memory
         int healthScore = computeHealthScore(tps);
-        String healthColor = healthScore >= 80 ? "&a" : healthScore >= 50 ? "&e" : "&c";
+        String healthColor = healthScore >= 80 ? "<green>" : healthScore >= 50 ? "<yellow>" : "<red>";
         String healthBar = buildBar(healthScore, 100, 20);
 
         // TPS bar with gradient
@@ -243,9 +243,9 @@ public class LagCommand implements CommandExecutor {
         int filled = (int) Math.round(tps.getCurrentTPS());
         for (int i = 0; i < 20; i++) {
             if (i < filled) {
-                tpsBar.append(i < 8 ? "&c" : i < 16 ? "&e" : "&a").append("█");
+                tpsBar.append(i < 8 ? "<red>" : i < 16 ? "<yellow>" : "<green>").append("█");
             } else {
-                tpsBar.append("&8█");
+                tpsBar.append("<dark_gray>█");
             }
         }
 
@@ -254,74 +254,74 @@ public class LagCommand implements CommandExecutor {
         String uptime = formatDuration(uptimeMs);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ LessLag Status ≡");
+        send(sender, "<red><bold>  ≡ LessLag Status ≡");
         send(sender, "");
-        send(sender, "  &7Health: " + healthColor + healthScore + "/100 " + healthBar);
-        send(sender, "  &7TPS: " + tpsColor + String.format("%.1f", tps.getCurrentTPS()) + " &8/ &a20.0");
+        send(sender, "  <gray>Health: " + healthColor + healthScore + "/100 " + healthBar);
+        send(sender, "  <gray>TPS: " + tpsColor + String.format("%.1f", tps.getCurrentTPS()) + " <dark_gray>/ <green>20.0");
         send(sender, "  " + tpsBar);
-        send(sender, "  &7MSPT: &f" + String.format("%.1f", tps.getCurrentMSPT()) + "ms &8("
-                + "&7min: " + String.format("%.1f", tps.getMinMSPT())
-                + " &8/ &7max: " + String.format("%.1f", tps.getMaxMSPT()) + "&8)");
+        send(sender, "  <gray>MSPT: <white>" + String.format("%.1f", tps.getCurrentMSPT()) + "ms <dark_gray>("
+                + "<gray>min: " + String.format("%.1f", tps.getMinMSPT())
+                + " <dark_gray>/ <gray>max: " + String.format("%.1f", tps.getMaxMSPT()) + "<dark_gray>)");
 
         // MSPT percentiles
         double[] pct = tps.getMSPTPercentiles();
-        send(sender, "  &7MSPT &8P50: &f" + String.format("%.1f", pct[0])
-                + "ms &8P95: &f" + String.format("%.1f", pct[1])
-                + "ms &8P99: &f" + String.format("%.1f", pct[2]) + "ms");
+        send(sender, "  <gray>MSPT <dark_gray>P50: <white>" + String.format("%.1f", pct[0])
+                + "ms <dark_gray>P95: <white>" + String.format("%.1f", pct[1])
+                + "ms <dark_gray>P99: <white>" + String.format("%.1f", pct[2]) + "ms");
         send(sender, "");
-        send(sender, "  &7Status: " + statusColor + statusText);
-        send(sender, "  &7Modified: " + (tps.isSettingsModified() ? "&eYes &8(settings changed)" : "&aNo"));
-        send(sender, "  &7RAM: &f" + plugin.getActionExecutor().getMemoryInfo());
-        send(sender, "  &7Players: &f" + Bukkit.getOnlinePlayers().size() + " &8/ &f" + Bukkit.getMaxPlayers());
-        send(sender, "  &7Entities: &f" + plugin.getActionExecutor().getTotalEntityCount());
-        send(sender, "  &7Uptime: &f" + uptime);
+        send(sender, "  <gray>Status: " + statusColor + statusText);
+        send(sender, "  <gray>Modified: " + (tps.isSettingsModified() ? "<yellow>Yes <dark_gray>(settings changed)" : "<green>No"));
+        send(sender, "  <gray>RAM: <white>" + plugin.getActionExecutor().getMemoryInfo());
+        send(sender, "  <gray>Players: <white>" + Bukkit.getOnlinePlayers().size() + " <dark_gray>/ <white>" + Bukkit.getMaxPlayers());
+        send(sender, "  <gray>Entities: <white>" + plugin.getActionExecutor().getTotalEntityCount());
+        send(sender, "  <gray>Uptime: <white>" + uptime);
 
         // Active optimizers summary
         send(sender, "");
-        send(sender, "  &e&lActive Optimizers");
+        send(sender, "  <yellow><bold>Active Optimizers");
         PredictiveOptimizer po = plugin.getPredictiveOptimizer();
-        String predState = po != null && po.isPredictiveTriggered() ? "&c⚠ TRIGGERED" : "&a✔ Idle";
-        send(sender, "    &7Predictive: " + predState
-                + (po != null && po.getTriggerCount() > 0 ? " &8(" + po.getTriggerCount() + " total)" : ""));
+        String predState = po != null && po.isPredictiveTriggered() ? "<red>⚠ TRIGGERED" : "<green>✔ Idle";
+        send(sender, "    <gray>Predictive: " + predState
+                + (po != null && po.getTriggerCount() > 0 ? " <dark_gray>(" + po.getTriggerCount() + " total)" : ""));
 
         VillagerOptimizer vo = plugin.getVillagerOptimizer();
         if (vo != null) {
-            send(sender, "    &7Villagers: &e" + vo.getOptimizedCount() + " &7optimized, &a"
-                    + vo.getActiveRestoredCount() + " &7active");
+            send(sender, "    <gray>Villagers: <yellow>" + vo.getOptimizedCount() + " <gray>optimized, <green>"
+                    + vo.getActiveRestoredCount() + " <gray>active");
         }
 
         DensityOptimizer dens = plugin.getDensityOptimizer();
         if (dens != null && dens.isEnabled()) {
-            send(sender, "    &7Density: &e" + dens.getTotalMobsOptimized() + " &7mobs suppressed");
+            send(sender, "    <gray>Density: <yellow>" + dens.getTotalMobsOptimized() + " <gray>mobs suppressed");
         }
 
         FrustumCuller fc = plugin.getFrustumCuller();
         if (fc != null) {
-            send(sender, "    &7Frustum: &e" + fc.getLastCulled() + " &7culled, &a"
-                    + fc.getLastRestored() + " &7restored");
+            send(sender, "    <gray>Frustum: <yellow>" + fc.getLastCulled() + " <gray>culled, <green>"
+                    + fc.getLastRestored() + " <gray>restored");
         }
 
         // Workload queue
         com.lesslag.WorkloadDistributor wd = plugin.getWorkloadDistributor();
         if (wd != null) {
             int queueSize = wd.getQueueSize();
-            String qColor = queueSize == 0 ? "&a" : queueSize < 50 ? "&e" : "&c";
-            send(sender, "    &7Workload Queue: " + qColor + queueSize
-                    + (wd.isProcessing() ? " &8(processing)" : " &8(idle)"));
+            String qColor = queueSize == 0 ? "<green>" : queueSize < 50 ? "<yellow>" : "<red>";
+            send(sender, "    <gray>Workload Queue: " + qColor + queueSize
+                    + (wd.isProcessing() ? " <dark_gray>(processing)" : " <dark_gray>(idle)"));
         }
 
         // Tick spikes
         TickMonitor tick = plugin.getTickMonitor();
         if (tick != null && tick.getSpikeCount() > 0) {
-            send(sender, "    &7Tick Spikes: &e" + tick.getSpikeCount()
-                    + " &8(worst: &f" + String.format("%.0f", tick.getWorstTickMs()) + "ms&8)");
+            send(sender, "    <gray>Tick Spikes: <yellow>" + tick.getSpikeCount()
+                    + " <dark_gray>(worst: <white>" + String.format("%.0f", tick.getWorstTickMs()) + "ms<dark_gray>)");
         }
 
         // Bottleneck spikes
         BottleneckAnalyzer ba = plugin.getBottleneckAnalyzer();
         if (ba != null && ba.getTotalSpikes() > 0) {
-            send(sender, "    &7Bottlenecks: &c" + ba.getTotalSpikes()
-                    + " &8(worst: &f" + ba.getWorstSpikeDurationMs() + "ms&8)");
+            send(sender, "    <gray>Bottlenecks: <red>" + ba.getTotalSpikes()
+                    + " <dark_gray>(worst: <white>" + ba.getWorstSpikeDurationMs() + "ms<dark_gray>)");
         }
 
         send(sender, "");
@@ -346,9 +346,9 @@ public class LagCommand implements CommandExecutor {
     private String buildBar(int value, int max, int width) {
         int filled = (int) Math.round((double) value / max * width);
         StringBuilder bar = new StringBuilder();
-        String color = value * 100 / max >= 80 ? "&a" : value * 100 / max >= 50 ? "&e" : "&c";
+        String color = value * 100 / max >= 80 ? "<green>" : value * 100 / max >= 50 ? "<yellow>" : "<red>";
         for (int i = 0; i < width; i++) {
-            bar.append(i < filled ? color + "█" : "&8█");
+            bar.append(i < filled ? color + "█" : "<dark_gray>█");
         }
         return bar.toString();
     }
@@ -374,44 +374,44 @@ public class LagCommand implements CommandExecutor {
         ThresholdConfig active = tps.getActiveThreshold();
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Threshold Configuration ≡");
-        send(sender, "  &7Current TPS: " + getTpsColor(tps.getCurrentTPS())
+        send(sender, "<red><bold>  ≡ Threshold Configuration ≡");
+        send(sender, "  <gray>Current TPS: " + getTpsColor(tps.getCurrentTPS())
                 + String.format("%.1f", tps.getCurrentTPS()));
         send(sender, "");
 
         if (thresholds.isEmpty()) {
-            send(sender, "  &7No thresholds configured.");
+            send(sender, "  <gray>No thresholds configured.");
         } else {
             for (ThresholdConfig threshold : thresholds) {
                 String color = threshold.getColor(thresholds);
                 boolean isActive = threshold.equals(active);
-                String marker = isActive ? " &c&l◄ ACTIVE" : "";
+                String marker = isActive ? " <red><bold>◄ ACTIVE" : "";
 
                 // Header line
                 send(sender, "  " + color + (isActive ? "▶" : "▸") + " " + threshold.getName().toUpperCase()
-                        + " &8(TPS ≤ " + color + threshold.getTps() + "&8)" + marker);
+                        + " <dark_gray>(TPS ≤ " + color + threshold.getTps() + "<dark_gray>)" + marker);
 
                 // Actions
                 if (!threshold.getActions().isEmpty()) {
-                    send(sender, "    &7Actions: &f" + String.join("&8, &f", threshold.getActions()));
+                    send(sender, "    <gray>Actions: <white>" + String.join("<dark_gray>, <white>", threshold.getActions()));
                 }
 
                 // Commands
                 if (!threshold.getCommands().isEmpty()) {
-                    send(sender, "    &7Commands: &f" + threshold.getCommands().size() + " configured");
+                    send(sender, "    <gray>Commands: <white>" + threshold.getCommands().size() + " configured");
                 }
 
                 // Notification summary
-                StringBuilder notifyInfo = new StringBuilder("    &7Notify: ");
+                StringBuilder notifyInfo = new StringBuilder("    <gray>Notify: ");
                 if (threshold.isNotifyChat())
-                    notifyInfo.append("&aChat ");
+                    notifyInfo.append("<green>Chat ");
                 if (threshold.isNotifyActionbar())
-                    notifyInfo.append("&aActionBar ");
+                    notifyInfo.append("<green>ActionBar ");
                 if (threshold.isNotifySound())
-                    notifyInfo.append("&aSound&8(&f")
-                            .append(threshold.getSoundType()).append("&8) ");
+                    notifyInfo.append("<green>Sound<dark_gray>(<white>")
+                            .append(threshold.getSoundType()).append("<dark_gray>) ");
                 if (threshold.isBroadcast())
-                    notifyInfo.append("&6Broadcast ");
+                    notifyInfo.append("<gold>Broadcast ");
                 send(sender, notifyInfo.toString());
 
                 send(sender, "");
@@ -419,10 +419,10 @@ public class LagCommand implements CommandExecutor {
         }
 
         // Available actions
-        send(sender, "&8  ─────────────────────────────────────");
-        send(sender, "  &7Available actions:");
+        send(sender, "<dark_gray>  ─────────────────────────────────────");
+        send(sender, "  <gray>Available actions:");
         for (String action : ActionExecutor.ACTIONS_SORTED) {
-            send(sender, "    &8• &f" + action + " &8- &7" + getActionDescription(action));
+            send(sender, "    <dark_gray>• <white>" + action + " <dark_gray>- <gray>" + getActionDescription(action));
         }
         send(sender, "");
     }
@@ -474,14 +474,14 @@ public class LagCommand implements CommandExecutor {
         boolean showEntityBreakdown = plugin.getConfig().getBoolean("health-report.entity-breakdown", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Server Health Report ≡");
-        send(sender, "&8  ─────────────────────────────────────");
+        send(sender, "<red><bold>  ≡ Server Health Report ≡");
+        send(sender, "<dark_gray>  ─────────────────────────────────────");
 
         if (!showTps && !showMspt && !showCpu && !showMemory && !showDisk && !showWorlds && !showEntityBreakdown) {
             send(sender, "");
-            send(sender, "  &7All health-report sections are disabled in config.");
+            send(sender, "  <gray>All health-report sections are disabled in config.");
             send(sender, "");
-            send(sender, "&8  ─────────────────────────────────────");
+            send(sender, "<dark_gray>  ─────────────────────────────────────");
             send(sender, "");
             return;
         }
@@ -489,106 +489,106 @@ public class LagCommand implements CommandExecutor {
         // TPS Section
         if (showTps) {
             send(sender, "");
-            send(sender, "  &e&lTPS &8(Ticks Per Second)");
-            send(sender, "    &7 5s: " + formatTPS(tps.getTPS5s()));
-            send(sender, "    &710s: " + formatTPS(tps.getTPS10s()));
-            send(sender, "    &7 1m: " + formatTPS(tps.getTPS1m()));
-            send(sender, "    &7 5m: " + formatTPS(tps.getTPS5m()));
-            send(sender, "    &715m: " + formatTPS(tps.getTPS15m()));
+            send(sender, "  <yellow><bold>TPS <dark_gray>(Ticks Per Second)");
+            send(sender, "    <gray> 5s: " + formatTPS(tps.getTPS5s()));
+            send(sender, "    <gray>10s: " + formatTPS(tps.getTPS10s()));
+            send(sender, "    <gray> 1m: " + formatTPS(tps.getTPS1m()));
+            send(sender, "    <gray> 5m: " + formatTPS(tps.getTPS5m()));
+            send(sender, "    <gray>15m: " + formatTPS(tps.getTPS15m()));
         }
 
         // MSPT Section
         if (showMspt) {
             send(sender, "");
-            send(sender, "  &e&lMSPT &8(Milliseconds Per Tick)");
-            send(sender, "    &7Avg: " + formatMSPT(tps.getCurrentMSPT()));
-            send(sender, "    &7Min: " + formatMSPT(tps.getMinMSPT()));
-            send(sender, "    &7Max: " + formatMSPT(tps.getMaxMSPT()));
+            send(sender, "  <yellow><bold>MSPT <dark_gray>(Milliseconds Per Tick)");
+            send(sender, "    <gray>Avg: " + formatMSPT(tps.getCurrentMSPT()));
+            send(sender, "    <gray>Min: " + formatMSPT(tps.getMinMSPT()));
+            send(sender, "    <gray>Max: " + formatMSPT(tps.getMaxMSPT()));
         }
 
         // CPU Section
         if (showCpu) {
             send(sender, "");
-            send(sender, "  &e&lCPU");
+            send(sender, "  <yellow><bold>CPU");
             try {
                 OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
                 double loadAvg = os.getSystemLoadAverage();
                 int cpus = os.getAvailableProcessors();
-                send(sender, "    &7Cores: &f" + cpus);
-                send(sender, "    &7Load Avg: &f" + (loadAvg >= 0 ? String.format("%.2f", loadAvg) : "N/A"));
+                send(sender, "    <gray>Cores: <white>" + cpus);
+                send(sender, "    <gray>Load Avg: <white>" + (loadAvg >= 0 ? String.format("%.2f", loadAvg) : "N/A"));
             } catch (Exception e) {
-                send(sender, "    &7CPU info unavailable");
+                send(sender, "    <gray>CPU info unavailable");
             }
         }
 
         // Memory Section
         if (showMemory) {
             send(sender, "");
-            send(sender, "  &e&lMemory");
+            send(sender, "  <yellow><bold>Memory");
             Runtime rt = Runtime.getRuntime();
             long usedMB = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
             long allocMB = rt.totalMemory() / (1024 * 1024);
             long maxMB = rt.maxMemory() / (1024 * 1024);
             long freePercent = 100 - (usedMB * 100 / maxMB);
-            String memColor = freePercent > 30 ? "&a" : freePercent > 15 ? "&e" : "&c";
+            String memColor = freePercent > 30 ? "<green>" : freePercent > 15 ? "<yellow>" : "<red>";
 
             // Memory bar
             int memFilled = (int) ((usedMB * 20) / maxMB);
             StringBuilder memBar = new StringBuilder();
             for (int i = 0; i < 20; i++) {
-                memBar.append(i < memFilled ? memColor + "█" : "&8█");
+                memBar.append(i < memFilled ? memColor + "█" : "<dark_gray>█");
             }
 
-            send(sender, "    &7Used:      " + memColor + usedMB + "MB &8/ &f" + maxMB + "MB &8("
-                    + memColor + (usedMB * 100 / maxMB) + "%&8)");
+            send(sender, "    <gray>Used:      " + memColor + usedMB + "MB <dark_gray>/ <white>" + maxMB + "MB <dark_gray>("
+                    + memColor + (usedMB * 100 / maxMB) + "%<dark_gray>)");
             send(sender, "    " + memBar);
-            send(sender, "    &7Allocated: &f" + allocMB + "MB");
-            send(sender, "    &7Free:      &f" + (maxMB - usedMB) + "MB");
+            send(sender, "    <gray>Allocated: <white>" + allocMB + "MB");
+            send(sender, "    <gray>Free:      <white>" + (maxMB - usedMB) + "MB");
         }
 
         // Disk Section
         if (showDisk) {
             send(sender, "");
-            send(sender, "  &e&lDisk");
+            send(sender, "  <yellow><bold>Disk");
             File root = new File(".");
             long diskFreeMB = root.getFreeSpace() / (1024 * 1024);
             long diskTotalMB = root.getTotalSpace() / (1024 * 1024);
             long diskUsedMB = diskTotalMB - diskFreeMB;
-            String diskColor = diskFreeMB > 5000 ? "&a" : diskFreeMB > 1000 ? "&e" : "&c";
-            send(sender, "    &7Used: " + diskColor + diskUsedMB + "MB &8/ &f" + diskTotalMB + "MB");
-            send(sender, "    &7Free: " + diskColor + diskFreeMB + "MB");
+            String diskColor = diskFreeMB > 5000 ? "<green>" : diskFreeMB > 1000 ? "<yellow>" : "<red>";
+            send(sender, "    <gray>Used: " + diskColor + diskUsedMB + "MB <dark_gray>/ <white>" + diskTotalMB + "MB");
+            send(sender, "    <gray>Free: " + diskColor + diskFreeMB + "MB");
         }
 
         // Uptime
         send(sender, "");
-        send(sender, "  &e&lServer");
+        send(sender, "  <yellow><bold>Server");
         RuntimeMXBean runtimeMX = ManagementFactory.getRuntimeMXBean();
         long uptimeMs = runtimeMX.getUptime();
         long hours = TimeUnit.MILLISECONDS.toHours(uptimeMs);
         long minutes = TimeUnit.MILLISECONDS.toMinutes(uptimeMs) % 60;
         long seconds = TimeUnit.MILLISECONDS.toSeconds(uptimeMs) % 60;
-        send(sender, "    &7Uptime: &f" + hours + "h " + minutes + "m " + seconds + "s");
-        send(sender, "    &7Java: &f" + System.getProperty("java.version"));
-        send(sender, "    &7OS: &f" + System.getProperty("os.name") + " " + System.getProperty("os.arch"));
+        send(sender, "    <gray>Uptime: <white>" + hours + "h " + minutes + "m " + seconds + "s");
+        send(sender, "    <gray>Java: <white>" + System.getProperty("java.version"));
+        send(sender, "    <gray>OS: <white>" + System.getProperty("os.name") + " " + System.getProperty("os.arch"));
 
         // World Overview
         if (showWorlds) {
             send(sender, "");
-            send(sender, "  &e&lWorlds");
+            send(sender, "  <yellow><bold>Worlds");
             for (World world : Bukkit.getWorlds()) {
                 int entities = world.getEntityCount();
                 int chunks = world.getLoadedChunks().length;
                 int players = world.getPlayers().size();
-                String entColor = entities > 500 ? "&c" : entities > 200 ? "&e" : "&a";
-                String chkColor = chunks > 1000 ? "&c" : chunks > 500 ? "&e" : "&a";
-                Integer simDistance = plugin.getSimulationDistanceSafe(world);
-                String simText = simDistance != null ? simDistance.toString() : "N/A";
-                send(sender, "    &8▸ &f" + world.getName()
-                        + " &8| &7E: " + entColor + entities
-                        + " &8| &7C: " + chkColor + chunks
-                        + " &8| &7P: &e" + players
-                        + " &8| &7VD: &e" + world.getViewDistance()
-                        + " &8| &7SD: &e" + simText);
+                String entColor = entities > 500 ? "<red>" : entities > 200 ? "<yellow>" : "<green>";
+                String chkColor = chunks > 1000 ? "<red>" : chunks > 500 ? "<yellow>" : "<green>";
+                int simDistance = world.getSimulationDistance();
+                String simText = String.valueOf(simDistance);
+                send(sender, "    <dark_gray>▸ <white>" + world.getName()
+                        + " <dark_gray>| <gray>E: " + entColor + entities
+                        + " <dark_gray>| <gray>C: " + chkColor + chunks
+                        + " <dark_gray>| <gray>P: <yellow>" + players
+                        + " <dark_gray>| <gray>VD: <yellow>" + world.getViewDistance()
+                        + " <dark_gray>| <gray>SD: <yellow>" + simText);
             }
         }
 
@@ -596,22 +596,22 @@ public class LagCommand implements CommandExecutor {
             Map<String, Integer> breakdown = plugin.getActionExecutor().getEntityBreakdown();
             if (!breakdown.isEmpty()) {
                 send(sender, "");
-                send(sender, "  &e&lEntity Breakdown");
+                send(sender, "  <yellow><bold>Entity Breakdown");
                 int total = plugin.getActionExecutor().getTotalEntityCount();
                 breakdown.entrySet().stream()
                         .sorted((a, b) -> b.getValue() - a.getValue())
                         .limit(10)
                         .forEach(entry -> {
-                            String color = entry.getValue() > 100 ? "&c" : entry.getValue() > 50 ? "&e" : "&a";
+                            String color = entry.getValue() > 100 ? "<red>" : entry.getValue() > 50 ? "<yellow>" : "<green>";
                             String pct = total > 0 ? String.format("%.0f", entry.getValue() * 100.0 / total) + "%" : "";
-                            send(sender, "    &8▸ &f" + entry.getKey() + " &8- " + color
-                                    + entry.getValue() + " &8(" + pct + ")");
+                            send(sender, "    <dark_gray>▸ <white>" + entry.getKey() + " <dark_gray>- " + color
+                                    + entry.getValue() + " <dark_gray>(" + pct + ")");
                         });
             }
         }
 
         send(sender, "");
-        send(sender, "&8  ─────────────────────────────────────");
+        send(sender, "<dark_gray>  ─────────────────────────────────────");
         send(sender, "");
     }
 
@@ -623,17 +623,17 @@ public class LagCommand implements CommandExecutor {
         TPSMonitor tps = plugin.getTpsMonitor();
 
         send(sender, "");
-        send(sender, "&c&l  ≡ TPS History ≡");
+        send(sender, "<red><bold>  ≡ TPS History ≡");
         send(sender, "");
-        send(sender, "  &7 5s avg: " + formatTPS(tps.getTPS5s()));
-        send(sender, "  &710s avg: " + formatTPS(tps.getTPS10s()));
-        send(sender, "  &7 1m avg: " + formatTPS(tps.getTPS1m()));
-        send(sender, "  &7 5m avg: " + formatTPS(tps.getTPS5m()));
-        send(sender, "  &715m avg: " + formatTPS(tps.getTPS15m()));
+        send(sender, "  <gray> 5s avg: " + formatTPS(tps.getTPS5s()));
+        send(sender, "  <gray>10s avg: " + formatTPS(tps.getTPS10s()));
+        send(sender, "  <gray> 1m avg: " + formatTPS(tps.getTPS1m()));
+        send(sender, "  <gray> 5m avg: " + formatTPS(tps.getTPS5m()));
+        send(sender, "  <gray>15m avg: " + formatTPS(tps.getTPS15m()));
         send(sender, "");
-        send(sender, "  &7MSPT: &f" + String.format("%.1f", tps.getCurrentMSPT()) + "ms " +
-                "&8(&7min " + String.format("%.1f", tps.getMinMSPT()) +
-                " / max " + String.format("%.1f", tps.getMaxMSPT()) + "&8)");
+        send(sender, "  <gray>MSPT: <white>" + String.format("%.1f", tps.getCurrentMSPT()) + "ms " +
+                "<dark_gray>(<gray>min " + String.format("%.1f", tps.getMinMSPT()) +
+                " / max " + String.format("%.1f", tps.getMaxMSPT()) + "<dark_gray>)");
         send(sender, "");
     }
 
@@ -643,21 +643,21 @@ public class LagCommand implements CommandExecutor {
 
     private void doGC(CommandSender sender) {
         plugin.getLogger().info(sender.getName() + " requested manual GC (disabled — use /lg gcinfo for stats).");
-        send(sender, plugin.getPrefix() + "&7Manual GC is &cdisabled&7 to prevent stop-the-world pauses.");
-        send(sender, plugin.getPrefix() + "&7Use &f/lg gcinfo&7 for Garbage Collection statistics.");
-        send(sender, plugin.getPrefix() + "&7RAM: &f" + plugin.getActionExecutor().getMemoryInfo());
+        send(sender, plugin.getPrefix() + "<gray>Manual GC is <red>disabled<gray> to prevent stop-the-world pauses.");
+        send(sender, plugin.getPrefix() + "<gray>Use <white>/lg gcinfo<gray> for Garbage Collection statistics.");
+        send(sender, plugin.getPrefix() + "<gray>RAM: <white>" + plugin.getActionExecutor().getMemoryInfo());
     }
 
     private void showGCInfo(CommandSender sender) {
         GCMonitor gc = plugin.getGcMonitor();
 
         send(sender, "");
-        send(sender, "&c&l  ≡ GC Information ≡");
+        send(sender, "<red><bold>  ≡ GC Information ≡");
         send(sender, "");
-        send(sender, "  &7Total collections: &e" + gc.getTotalCollections());
-        send(sender, "  &7Total GC time: &e" + gc.getTotalTimeMs() + "ms");
+        send(sender, "  <gray>Total collections: <yellow>" + gc.getTotalCollections());
+        send(sender, "  <gray>Total GC time: <yellow>" + gc.getTotalTimeMs() + "ms");
         send(sender, "");
-        send(sender, "  &7&lCollectors:");
+        send(sender, "  <gray><bold>Collectors:");
         String summary = gc.getGCSummary();
         for (String line : summary.split("\n")) {
             send(sender, line);
@@ -674,24 +674,24 @@ public class LagCommand implements CommandExecutor {
         TPSMonitor tps = plugin.getTpsMonitor();
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Tick Monitor ≡");
+        send(sender, "<red><bold>  ≡ Tick Monitor ≡");
         send(sender, "");
-        send(sender, "  &7Last tick: &f" + String.format("%.1f", tick.getLastTickMs()) + "ms");
-        send(sender, "  &7Worst tick: &f" + String.format("%.1f", tick.getWorstTickMs()) + "ms");
-        send(sender, "  &7Spike count: &e" + tick.getSpikeCount() +
-                " &8(threshold: " + plugin.getConfig().getDouble("system.tick-monitor.threshold-ms", 100) + "ms)");
+        send(sender, "  <gray>Last tick: <white>" + String.format("%.1f", tick.getLastTickMs()) + "ms");
+        send(sender, "  <gray>Worst tick: <white>" + String.format("%.1f", tick.getWorstTickMs()) + "ms");
+        send(sender, "  <gray>Spike count: <yellow>" + tick.getSpikeCount() +
+                " <dark_gray>(threshold: " + plugin.getConfig().getDouble("system.tick-monitor.threshold-ms", 100) + "ms)");
 
         // MSPT percentiles from TPSMonitor's buffer
         if (tps != null) {
             double[] pct = tps.getMSPTPercentiles();
             send(sender, "");
-            send(sender, "  &e&lMSPT Distribution");
-            send(sender, "    &7P50: &f" + String.format("%.1f", pct[0]) + "ms &8(median)");
-            send(sender, "    &7P95: &f" + String.format("%.1f", pct[1]) + "ms &8(95th percentile)");
-            send(sender, "    &7P99: &f" + String.format("%.1f", pct[2]) + "ms &8(99th percentile)");
-            send(sender, "    &7Avg: &f" + String.format("%.1f", tps.getCurrentMSPT()) + "ms");
-            send(sender, "    &7Min: &f" + String.format("%.1f", tps.getMinMSPT()) + "ms");
-            send(sender, "    &7Max: &f" + String.format("%.1f", tps.getMaxMSPT()) + "ms");
+            send(sender, "  <yellow><bold>MSPT Distribution");
+            send(sender, "    <gray>P50: <white>" + String.format("%.1f", pct[0]) + "ms <dark_gray>(median)");
+            send(sender, "    <gray>P95: <white>" + String.format("%.1f", pct[1]) + "ms <dark_gray>(95th percentile)");
+            send(sender, "    <gray>P99: <white>" + String.format("%.1f", pct[2]) + "ms <dark_gray>(99th percentile)");
+            send(sender, "    <gray>Avg: <white>" + String.format("%.1f", tps.getCurrentMSPT()) + "ms");
+            send(sender, "    <gray>Min: <white>" + String.format("%.1f", tps.getMinMSPT()) + "ms");
+            send(sender, "    <gray>Max: <white>" + String.format("%.1f", tps.getMaxMSPT()) + "ms");
         }
 
         send(sender, "");
@@ -708,22 +708,22 @@ public class LagCommand implements CommandExecutor {
         int total = breakdown.values().stream().mapToInt(Integer::intValue).sum();
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Entity Breakdown ≡");
-        send(sender, "  &7Total: &f" + total);
+        send(sender, "<red><bold>  ≡ Entity Breakdown ≡");
+        send(sender, "  <gray>Total: <white>" + total);
         send(sender, "");
 
         breakdown.entrySet().stream()
                 .sorted((a, b) -> b.getValue() - a.getValue())
                 .limit(15)
                 .forEach(entry -> {
-                    String color = entry.getValue() > 100 ? "&c" : entry.getValue() > 50 ? "&e" : "&a";
+                    String color = entry.getValue() > 100 ? "<red>" : entry.getValue() > 50 ? "<yellow>" : "<green>";
                     String pct = total > 0 ? String.format("%.0f", entry.getValue() * 100.0 / total) + "%" : "";
-                    send(sender, "  &8▸ &f" + entry.getKey() + " &8- " + color + entry.getValue()
-                            + " &8(" + pct + ")");
+                    send(sender, "  <dark_gray>▸ <white>" + entry.getKey() + " <dark_gray>- " + color + entry.getValue()
+                            + " <dark_gray>(" + pct + ")");
                 });
 
         if (breakdown.size() > 15) {
-            send(sender, "  &8... and " + (breakdown.size() - 15) + " more types");
+            send(sender, "  <dark_gray>... and " + (breakdown.size() - 15) + " more types");
         }
         send(sender, "");
     }
@@ -739,25 +739,25 @@ public class LagCommand implements CommandExecutor {
         switch (type) {
             case "items": {
                 plugin.getActionExecutor().clearGroundItems();
-                String msg = getMessage("messages.items-cleared", "&aScheduled clearing of ground items.");
+                String msg = getMessage("messages.items-cleared", "<green>Scheduled clearing of ground items.");
                 send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "xp": {
                 plugin.getActionExecutor().clearXPOrbs();
-                String msg = getMessage("messages.xp-cleared", "&aScheduled clearing of XP orbs.");
+                String msg = getMessage("messages.xp-cleared", "<green>Scheduled clearing of XP orbs.");
                 send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "mobs": {
                 plugin.getActionExecutor().clearExcessMobs();
-                String msg = getMessage("messages.mobs-cleared", "&aScheduled removal of excess mobs.");
+                String msg = getMessage("messages.mobs-cleared", "<green>Scheduled removal of excess mobs.");
                 send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "hostile": {
                 plugin.getActionExecutor().killHostileMobs();
-                String msg = getMessage("messages.hostile-killed", "&aScheduled killing of hostile mobs.");
+                String msg = getMessage("messages.hostile-killed", "<green>Scheduled killing of hostile mobs.");
                 send(sender, plugin.getPrefix() + msg);
                 break;
             }
@@ -765,7 +765,7 @@ public class LagCommand implements CommandExecutor {
             default: {
                 plugin.getActionExecutor().clearAll();
                 String msg = getMessage("messages.all-cleared",
-                        "&aScheduled clearing of all entities (items, xp, mobs).");
+                        "<green>Scheduled clearing of all entities (items, xp, mobs).");
                 send(sender, plugin.getPrefix() + msg);
                 break;
             }
@@ -785,21 +785,21 @@ public class LagCommand implements CommandExecutor {
         switch (action) {
             case "disable": {
                 plugin.getActionExecutor().disableMobAI();
-                String msg = getMessage("messages.ai-disabled", "&aScheduled AI disable task.");
+                String msg = getMessage("messages.ai-disabled", "<green>Scheduled AI disable task.");
                 send(sender, plugin.getPrefix() + msg);
                 break;
             }
             case "restore": {
                 plugin.getActionExecutor().restoreMobAI();
                 send(sender, plugin.getPrefix()
-                        + "&aScheduled AI restoration for all mobs. This process is batched to prevent lag.");
+                        + "<green>Scheduled AI restoration for all mobs. This process is batched to prevent lag.");
                 break;
             }
             case "status":
             default: {
                 // Snapshot world/entity references on main thread first,
                 // then count async to avoid stalling the tick with a full entity scan.
-                send(sender, plugin.getPrefix() + "&7Counting mobs (async)...");
+                send(sender, plugin.getPrefix() + "<gray>Counting mobs (async)...");
                 final List<World> worlds = Bukkit.getWorlds();
                 final int activeRadius = plugin.getConfig().getInt("modules.mob-ai.active-radius", 48);
                 final int protectedTypes = plugin.getConfig().getStringList("modules.mob-ai.protected").size();
@@ -820,12 +820,12 @@ public class LagCommand implements CommandExecutor {
                     final int ft = countTotal, fn = countNoAI;
                     SchedulerAdapter.runGlobal(plugin, () -> {
                         send(sender, "");
-                        send(sender, "&c&l  ≡ AI Status ≡");
-                        send(sender, "  &7Total mobs: &f" + ft);
-                        send(sender, "  &7AI disabled: &e" + fn);
-                        send(sender, "  &7AI active: &a" + (ft - fn));
-                        send(sender, "  &7Active radius: &f" + activeRadius + " blocks");
-                        send(sender, "  &7Protected types: &f" + protectedTypes);
+                        send(sender, "<red><bold>  ≡ AI Status ≡");
+                        send(sender, "  <gray>Total mobs: <white>" + ft);
+                        send(sender, "  <gray>AI disabled: <yellow>" + fn);
+                        send(sender, "  <gray>AI active: <green>" + (ft - fn));
+                        send(sender, "  <gray>Active radius: <white>" + activeRadius + " blocks");
+                        send(sender, "  <gray>Protected types: <white>" + protectedTypes);
                         send(sender, "");
                     });
                 });
@@ -839,13 +839,13 @@ public class LagCommand implements CommandExecutor {
     // ══════════════════════════════════════════════════
 
     private void showSources(CommandSender sender) {
-        send(sender, plugin.getPrefix() + "&7Analyzing lag sources (async)...");
+        send(sender, plugin.getPrefix() + "<gray>Analyzing lag sources (async)...");
 
         plugin.getLagSourceAnalyzer().analyzeFullAsync().thenAccept(result -> {
             // Dispatch display back to main thread
             SchedulerAdapter.runGlobal(plugin, () -> {
                 send(sender, "");
-                send(sender, "&c&l  ≡ Lag Source Analysis ≡");
+                send(sender, "<red><bold>  ≡ Lag Source Analysis ≡");
                 send(sender, "");
 
                 // Use the full detailed report format
@@ -858,27 +858,27 @@ public class LagCommand implements CommandExecutor {
                 // Warnings summary
                 if (!result.sources.isEmpty()) {
                     send(sender, "");
-                    send(sender, "  &c&lWARNINGS &8(" + result.sources.size() + " issues detected)");
+                    send(sender, "  <red><bold>WARNINGS <dark_gray>(" + result.sources.size() + " issues detected)");
                     int shown = 0;
                     for (var source : result.sources) {
                         if (shown >= 5)
                             break;
-                        send(sender, "    &c⚠ " + source.description);
+                        send(sender, "    <red>⚠ " + source.description);
                         shown++;
                     }
                     if (result.sources.size() > 5) {
-                        send(sender, "    &8  ... and " + (result.sources.size() - 5) + " more");
+                        send(sender, "    <dark_gray>  ... and " + (result.sources.size() - 5) + " more");
                     }
                 } else {
                     send(sender, "");
-                    send(sender, "  &a✔ No significant lag sources detected.");
+                    send(sender, "  <green>✔ No significant lag sources detected.");
                 }
 
                 send(sender, "");
             });
         }).exceptionally(e -> {
             SchedulerAdapter.runGlobal(plugin, () -> {
-                send(sender, plugin.getPrefix() + "&cFailed to analyze lag sources: " + e.getMessage());
+                send(sender, plugin.getPrefix() + "<red>Failed to analyze lag sources: " + e.getMessage());
             });
             return null;
         });
@@ -893,42 +893,42 @@ public class LagCommand implements CommandExecutor {
         BottleneckAnalyzer ba = plugin.getBottleneckAnalyzer();
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Bottleneck Analyzer (Trace) ≡");
+        send(sender, "<red><bold>  ≡ Bottleneck Analyzer (Trace) ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled (Running as Watchdog)" : "&cDisabled"));
-        send(sender, "  &7Lag Threshold: &f"
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled (Running as Watchdog)" : "<red>Disabled"));
+        send(sender, "  <gray>Lag Threshold: <white>"
                 + plugin.getConfig().getLong("system.bottleneck-analyzer.threshold-ms", 100L) + "ms");
-        send(sender, "  &7Sampling Interval: &f"
+        send(sender, "  <gray>Sampling Interval: <white>"
                 + plugin.getConfig().getLong("system.bottleneck-analyzer.sample-interval-ms", 5L) + "ms");
 
         if (ba != null && ba.getTotalSpikes() > 0) {
             send(sender, "");
-            send(sender, "  &e&lRuntime Statistics");
-            send(sender, "    &7Total spikes detected: &c" + ba.getTotalSpikes());
-            send(sender, "    &7Worst spike: &c" + ba.getWorstSpikeDurationMs() + "ms");
+            send(sender, "  <yellow><bold>Runtime Statistics");
+            send(sender, "    <gray>Total spikes detected: <red>" + ba.getTotalSpikes());
+            send(sender, "    <gray>Worst spike: <red>" + ba.getWorstSpikeDurationMs() + "ms");
             if (!ba.getWorstSpikeCulprit().isEmpty()) {
                 String culprit = ba.getWorstSpikeCulprit();
                 if (culprit.length() > 50)
                     culprit = "..." + culprit.substring(culprit.length() - 47);
-                send(sender, "    &7Worst culprit: &e" + culprit);
+                send(sender, "    <gray>Worst culprit: <yellow>" + culprit);
             }
             if (!ba.getLastSpikeCulprit().isEmpty()) {
                 String last = ba.getLastSpikeCulprit();
                 if (last.length() > 50)
                     last = "..." + last.substring(last.length() - 47);
-                send(sender, "    &7Last culprit: &e" + last);
+                send(sender, "    <gray>Last culprit: <yellow>" + last);
                 long ago = (System.currentTimeMillis() - ba.getLastSpikeTimeMs()) / 1000;
-                send(sender, "    &7Last spike: &f" + ago + "s ago");
+                send(sender, "    <gray>Last spike: <white>" + ago + "s ago");
             }
         } else {
             send(sender, "");
-            send(sender, "  &a✔ No lag spikes detected yet.");
+            send(sender, "  <green>✔ No lag spikes detected yet.");
         }
 
         send(sender, "");
-        send(sender, "  &8The watchdog constantly monitors the main thread.");
-        send(sender, "  &8If a tick exceeds the threshold, it samples the stack trace");
-        send(sender, "  &8and identifies the exact method causing the hang.");
+        send(sender, "  <dark_gray>The watchdog constantly monitors the main thread.");
+        send(sender, "  <dark_gray>If a tick exceeds the threshold, it samples the stack trace");
+        send(sender, "  <dark_gray>and identifies the exact method causing the hang.");
         send(sender, "");
     }
 
@@ -941,25 +941,25 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("modules.entities.chunk-limiter.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Smart Chunk Limiter ≡");
+        send(sender, "<red><bold>  ≡ Smart Chunk Limiter ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
         send(sender,
-                "  &7Max entities/chunk: &f"
+                "  <gray>Max entities/chunk: <white>"
                         + plugin.getConfig().getInt("modules.entities.chunk-limiter.max-entities-per-chunk", 50));
-        send(sender, "  &7Scan interval: &f"
+        send(sender, "  <gray>Scan interval: <white>"
                 + plugin.getConfig().getInt("modules.entities.chunk-limiter.scan-interval", 30) + "s");
 
         if (cl != null && cl.getLastScanTime() > 0) {
             long ago = (System.currentTimeMillis() - cl.getLastScanTime()) / 1000;
             send(sender, "");
-            send(sender, "  &e&lLast Scan &8(" + ago + "s ago)");
+            send(sender, "  <yellow><bold>Last Scan <dark_gray>(" + ago + "s ago)");
             send(sender,
-                    "    &7Hot chunks found: " + (cl.getLastHotChunks() > 0 ? "&c" : "&a") + cl.getLastHotChunks());
-            send(sender, "    &7Entities removed: " + (cl.getLastEntitiesRemoved() > 0 ? "&e" : "&a")
+                    "    <gray>Hot chunks found: " + (cl.getLastHotChunks() > 0 ? "<red>" : "<green>") + cl.getLastHotChunks());
+            send(sender, "    <gray>Entities removed: " + (cl.getLastEntitiesRemoved() > 0 ? "<yellow>" : "<green>")
                     + cl.getLastEntitiesRemoved());
         } else {
-            send(sender, "  &8No scan data yet.");
+            send(sender, "  <dark_gray>No scan data yet.");
         }
         send(sender, "");
     }
@@ -973,32 +973,32 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("modules.redstone.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Redstone Suppressor ≡");
+        send(sender, "<red><bold>  ≡ Redstone Suppressor ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
-        send(sender, "  &7Max activations/chunk: &f"
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
+        send(sender, "  <gray>Max activations/chunk: <white>"
                 + plugin.getConfig().getInt("modules.redstone.max-activations-per-chunk", 200));
-        send(sender, "  &7Window: &f" + plugin.getConfig().getInt("modules.redstone.window-seconds", 2) + "s");
-        send(sender, "  &7Cooldown: &f" + plugin.getConfig().getInt("modules.redstone.cooldown-seconds", 10) + "s");
+        send(sender, "  <gray>Window: <white>" + plugin.getConfig().getInt("modules.redstone.window-seconds", 2) + "s");
+        send(sender, "  <gray>Cooldown: <white>" + plugin.getConfig().getInt("modules.redstone.cooldown-seconds", 10) + "s");
 
         if (rm != null) {
             send(sender, "");
-            send(sender, "  &7Total suppressions: &e" + rm.getTotalSuppressed());
+            send(sender, "  <gray>Total suppressions: <yellow>" + rm.getTotalSuppressed());
             int active = rm.getActiveSuppressedChunks();
-            send(sender, "  &7Currently suppressed: " + (active > 0 ? "&c" : "&a") + active + " chunk(s)");
+            send(sender, "  <gray>Currently suppressed: " + (active > 0 ? "<red>" : "<green>") + active + " chunk(s)");
 
             if (!rm.getSuppressedChunks().isEmpty()) {
                 send(sender, "");
-                send(sender, "  &e&lActive Suppressions:");
+                send(sender, "  <yellow><bold>Active Suppressions:");
 
                 // Advanced stats
                 if (plugin.getConfig().getBoolean("modules.redstone.advanced.enabled", true)) {
                     send(sender,
-                            "  &7Max Frequency: &f"
+                            "  <gray>Max Frequency: <white>"
                                     + plugin.getConfig().getInt("modules.redstone.advanced.max-frequency")
                                     + "/s");
                     send(sender,
-                            "  &7Piston Limit: &f"
+                            "  <gray>Piston Limit: <white>"
                                     + plugin.getConfig()
                                             .getInt("modules.redstone.advanced.piston-limit.max-pushes-per-chunk")
                                     + "/tick");
@@ -1016,7 +1016,7 @@ public class LagCommand implements CommandExecutor {
                     // Key format: "worldUID:chunkX:chunkZ"
                     String[] parts = key.split(":");
                     String chunkInfo = parts.length >= 3 ? parts[1] + ", " + parts[2] : key;
-                    send(sender, "    &8▸ &fChunk (" + chunkInfo + ") &8- &e"
+                    send(sender, "    <dark_gray>▸ <white>Chunk (" + chunkInfo + ") <dark_gray>- <yellow>"
                             + String.format("%.1f", remainMs / 1000.0) + "s remaining");
                     shown++;
                 }
@@ -1034,30 +1034,30 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("automation.predictive-optimization.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Predictive Optimizer ≡");
+        send(sender, "<red><bold>  ≡ Predictive Optimizer ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
-        send(sender, "  &7Slope threshold: &f"
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
+        send(sender, "  <gray>Slope threshold: <white>"
                 + plugin.getConfig().getDouble("automation.predictive-optimization.slope-threshold", 3.0) + " ms/s");
-        send(sender, "  &7MSPT baseline: &f"
+        send(sender, "  <gray>MSPT baseline: <white>"
                 + plugin.getConfig().getDouble("automation.predictive-optimization.mspt-baseline", 30.0) + "ms");
-        send(sender, "  &7Window: &f"
+        send(sender, "  <gray>Window: <white>"
                 + plugin.getConfig().getInt("automation.predictive-optimization.window-seconds", 10) + "s");
         send(sender,
-                "  &7Cooldown: &f" + plugin.getConfig().getInt("automation.predictive-optimization.cooldown", 60)
+                "  <gray>Cooldown: <white>" + plugin.getConfig().getInt("automation.predictive-optimization.cooldown", 60)
                         + "s");
 
         if (po != null) {
             send(sender, "");
-            send(sender, "  &e&lCurrent State");
-            send(sender, "    &7MSPT trend slope: "
-                    + (po.getLastSlope() > 0 ? "&c+" : "&a") + String.format("%.2f", po.getLastSlope()) + " ms/s");
-            send(sender, "    &7Avg MSPT: &f" + String.format("%.1f", po.getLastAvgMSPT()) + "ms");
-            send(sender, "    &7Triggered: " + (po.isPredictiveTriggered() ? "&c⚠ YES" : "&aNo"));
-            send(sender, "    &7Total triggers: &e" + po.getTriggerCount());
+            send(sender, "  <yellow><bold>Current State");
+            send(sender, "    <gray>MSPT trend slope: "
+                    + (po.getLastSlope() > 0 ? "<red>+" : "<green>") + String.format("%.2f", po.getLastSlope()) + " ms/s");
+            send(sender, "    <gray>Avg MSPT: <white>" + String.format("%.1f", po.getLastAvgMSPT()) + "ms");
+            send(sender, "    <gray>Triggered: " + (po.isPredictiveTriggered() ? "<red>⚠ YES" : "<green>No"));
+            send(sender, "    <gray>Total triggers: <yellow>" + po.getTriggerCount());
             if (po.getLastTriggerTime() > 0) {
                 long ago = (System.currentTimeMillis() - po.getLastTriggerTime()) / 1000;
-                send(sender, "    &7Last trigger: &f" + ago + "s ago");
+                send(sender, "    <gray>Last trigger: <white>" + ago + "s ago");
             }
         }
         send(sender, "");
@@ -1072,25 +1072,25 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("modules.mob-ai.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Frustum Culler ≡");
+        send(sender, "<red><bold>  ≡ Frustum Culler ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
         send(sender,
-                "  &7FOV: &f" + plugin.getConfig().getDouble("modules.mob-ai.fov-degrees", 110) + "°");
+                "  <gray>FOV: <white>" + plugin.getConfig().getDouble("modules.mob-ai.fov-degrees", 110) + "°");
         send(sender,
-                "  &7Max radius: &f" + plugin.getConfig().getDouble("modules.mob-ai.active-radius", 48) + " blocks");
-        send(sender, "  &7Behind safe radius: &f"
+                "  <gray>Max radius: <white>" + plugin.getConfig().getDouble("modules.mob-ai.active-radius", 48) + " blocks");
+        send(sender, "  <gray>Behind safe radius: <white>"
                 + plugin.getConfig().getDouble("modules.mob-ai.behind-safe-radius", 12) + " blocks");
-        send(sender, "  &7Interval: &f"
+        send(sender, "  <gray>Interval: <white>"
                 + plugin.getConfig().getInt("modules.mob-ai.update-interval", 40) + " ticks");
 
         if (fc != null) {
             send(sender, "");
-            send(sender, "  &e&lLast Cycle");
-            send(sender, "    &7Mobs processed: &f" + fc.getLastProcessed());
-            send(sender, "    &7AI culled (behind): " + (fc.getLastCulled() > 0 ? "&e" : "&a") + fc.getLastCulled());
+            send(sender, "  <yellow><bold>Last Cycle");
+            send(sender, "    <gray>Mobs processed: <white>" + fc.getLastProcessed());
+            send(sender, "    <gray>AI culled (behind): " + (fc.getLastCulled() > 0 ? "<yellow>" : "<green>") + fc.getLastCulled());
             send(sender,
-                    "    &7AI restored (in view): " + (fc.getLastRestored() > 0 ? "&e" : "&a") + fc.getLastRestored());
+                    "    <gray>AI restored (in view): " + (fc.getLastRestored() > 0 ? "<yellow>" : "<green>") + fc.getLastRestored());
         }
         send(sender, "");
     }
@@ -1104,45 +1104,45 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("modules.chunks.world-guard.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ World Chunk Guard ≡");
+        send(sender, "<red><bold>  ≡ World Chunk Guard ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
-        send(sender, "  &7Overload multiplier: &f"
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
+        send(sender, "  <gray>Overload multiplier: <white>"
                 + plugin.getConfig().getDouble("modules.chunks.world-guard.overload-multiplier", 2.0) + "x");
-        send(sender, "  &7Check interval: &f"
+        send(sender, "  <gray>Check interval: <white>"
                 + plugin.getConfig().getInt("modules.chunks.world-guard.check-interval", 10) + "s");
-        send(sender, "  &7Max retries before evacuate: &f"
+        send(sender, "  <gray>Max retries before evacuate: <white>"
                 + plugin.getConfig().getInt("modules.chunks.world-guard.max-retries", 3));
-        send(sender, "  &7Evacuate world: &f"
+        send(sender, "  <gray>Evacuate world: <white>"
                 + plugin.getConfig().getString("modules.chunks.world-guard.evacuate-world", "world"));
 
         if (wg != null && wg.getLastCheckTime() > 0) {
             long ago = (System.currentTimeMillis() - wg.getLastCheckTime()) / 1000;
             send(sender, "");
-            send(sender, "  &e&lLast Check &8(" + ago + "s ago)");
-            send(sender, "    &7Chunks unloaded: " + (wg.getLastTotalUnloaded() > 0 ? "&e" : "&a")
+            send(sender, "  <yellow><bold>Last Check <dark_gray>(" + ago + "s ago)");
+            send(sender, "    <gray>Chunks unloaded: " + (wg.getLastTotalUnloaded() > 0 ? "<yellow>" : "<green>")
                     + wg.getLastTotalUnloaded());
         }
 
         // Per-world status
         if (wg != null && !wg.getWorldStatuses().isEmpty()) {
             send(sender, "");
-            send(sender, "  &e&lWorld Status");
+            send(sender, "  <yellow><bold>World Status");
             for (WorldChunkGuard.WorldChunkStatus ws : wg.getWorldStatuses().values()) {
-                String statusColor = ws.overloaded ? "&c" : "&a";
+                String statusColor = ws.overloaded ? "<red>" : "<green>";
                 String statusIcon = ws.overloaded ? "⚠" : "✔";
-                send(sender, "    &8▸ &f" + ws.worldName
-                        + " &8| " + statusColor + statusIcon
-                        + " &8| &7C: " + (ws.overloaded ? "&c" : "&a") + ws.loadedChunks
-                        + "&8/&7" + ws.expectedMax
-                        + " &8| &7P: &e" + ws.playerCount
-                        + " &8| &7VD: &e" + ws.viewDistance);
+                send(sender, "    <dark_gray>▸ <white>" + ws.worldName
+                        + " <dark_gray>| " + statusColor + statusIcon
+                        + " <dark_gray>| <gray>C: " + (ws.overloaded ? "<red>" : "<green>") + ws.loadedChunks
+                        + "<dark_gray>/<gray>" + ws.expectedMax
+                        + " <dark_gray>| <gray>P: <yellow>" + ws.playerCount
+                        + " <dark_gray>| <gray>VD: <yellow>" + ws.viewDistance);
                 if (ws.overloaded || !"OK".equals(ws.lastAction)) {
-                    send(sender, "      &7Action: " + (ws.overloaded ? "&c" : "&7") + ws.lastAction);
+                    send(sender, "      <gray>Action: " + (ws.overloaded ? "<red>" : "<gray>") + ws.lastAction);
                 }
             }
         } else {
-            send(sender, "  &8No world data yet.");
+            send(sender, "  <dark_gray>No world data yet.");
         }
         send(sender, "");
     }
@@ -1161,44 +1161,44 @@ public class LagCommand implements CommandExecutor {
         double pct = (double) usedMB / maxMB * 100;
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Memory Leak Detector ≡");
+        send(sender, "<red><bold>  ≡ Memory Leak Detector ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
-        send(sender, "  &7Heap: &f" + usedMB + "MB &8/ &f" + maxMB + "MB &8(" + String.format("%.0f", pct) + "%)");
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
+        send(sender, "  <gray>Heap: <white>" + usedMB + "MB <dark_gray>/ <white>" + maxMB + "MB <dark_gray>(" + String.format("%.0f", pct) + "%)");
 
         if (mld != null) {
             // Leak status
-            send(sender, "  &7Leak Suspected: "
-                    + (mld.isLeakSuspected() ? "&c&lYES" : "&aNo"));
+            send(sender, "  <gray>Leak Suspected: "
+                    + (mld.isLeakSuspected() ? "<red><bold>YES" : "<green>No"));
             if (mld.getLastSlope() != 0) {
-                String slopeColor = mld.getLastSlope() > 0 ? "&c+" : "&a";
-                send(sender, "  &7Post-GC Trend: " + slopeColor
+                String slopeColor = mld.getLastSlope() > 0 ? "<red>+" : "<green>";
+                send(sender, "  <gray>Post-GC Trend: " + slopeColor
                         + String.format("%.1f", mld.getLastSlope()) + " MB/min");
             }
             if (mld.getLastPostGCBaseline() > 0) {
-                send(sender, "  &7Post-GC Baseline: &f"
+                send(sender, "  <gray>Post-GC Baseline: <white>"
                         + String.format("%.0f", mld.getLastPostGCBaseline()) + "MB");
             }
-            send(sender, "  &7GC Rate: &e" + String.format("%.1f", mld.getGcFrequency()) + " &7/min");
+            send(sender, "  <gray>GC Rate: <yellow>" + String.format("%.1f", mld.getGcFrequency()) + " <gray>/min");
 
             // Per-player memory
             int playerCount = Bukkit.getOnlinePlayers().size();
             if (playerCount > 0) {
-                send(sender, "  &7Per-Player: &f"
+                send(sender, "  <gray>Per-Player: <white>"
                         + String.format("%.0f", mld.getPerPlayerMemoryMB()) + " MB/player"
-                        + " &8(" + playerCount + " online)");
+                        + " <dark_gray>(" + playerCount + " online)");
             }
 
             // Heap Pools
             if (!mld.getHeapPools().isEmpty()) {
                 send(sender, "");
-                send(sender, "  &e&lHeap Pools");
+                send(sender, "  <yellow><bold>Heap Pools");
                 for (MemoryLeakDetector.PoolInfo pool : mld.getHeapPools().values()) {
                     String maxStr = pool.maxMB > 0 ? pool.maxMB + "MB" : "?";
-                    String postGC = pool.postGCMB >= 0 ? " &8(post-GC: &f" + pool.postGCMB + "MB&8)" : "";
-                    send(sender, "    &8▸ &f" + pool.name
-                            + " &8| &7Used: &e" + pool.usedMB + "MB"
-                            + " &8/ &7" + maxStr + postGC);
+                    String postGC = pool.postGCMB >= 0 ? " <dark_gray>(post-GC: <white>" + pool.postGCMB + "MB<dark_gray>)" : "";
+                    send(sender, "    <dark_gray>▸ <white>" + pool.name
+                            + " <dark_gray>| <gray>Used: <yellow>" + pool.usedMB + "MB"
+                            + " <dark_gray>/ <gray>" + maxStr + postGC);
                 }
             }
 
@@ -1206,8 +1206,8 @@ public class LagCommand implements CommandExecutor {
             java.util.List<MemoryLeakDetector.PostGCSample> history = mld.getBaselineHistory();
             if (!history.isEmpty()) {
                 send(sender, "");
-                send(sender, "  &e&lBaseline Trend &8(" + history.size() + " samples)");
-                StringBuilder sparkline = new StringBuilder("    &7");
+                send(sender, "  <yellow><bold>Baseline Trend <dark_gray>(" + history.size() + " samples)");
+                StringBuilder sparkline = new StringBuilder("    <gray>");
                 double min = history.stream().mapToDouble(s -> s.baselineMB).min().orElse(0);
                 double max = history.stream().mapToDouble(s -> s.baselineMB).max().orElse(1);
                 double range = max - min;
@@ -1218,29 +1218,29 @@ public class LagCommand implements CommandExecutor {
                     int idx = (int) Math.min(7, ((s.baselineMB - min) / range) * 7);
                     sparkline.append(bars[idx]);
                 }
-                sparkline.append(" &8[").append(String.format("%.0f", min))
+                sparkline.append(" <dark_gray>[").append(String.format("%.0f", min))
                         .append("-").append(String.format("%.0f", max)).append("MB]");
                 send(sender, sparkline.toString());
             }
 
             // Consecutive signals
             if (mld.getConsecutiveLeakSignals() > 0) {
-                send(sender, "  &7Leak signal streak: &c" + mld.getConsecutiveLeakSignals()
-                        + " &8(alerts at 3+)");
+                send(sender, "  <gray>Leak signal streak: <red>" + mld.getConsecutiveLeakSignals()
+                        + " <dark_gray>(alerts at 3+)");
             }
         }
 
         // Config
         send(sender, "");
-        send(sender, "  &e&lConfig");
-        send(sender, "    &7Check interval: &f"
+        send(sender, "  <yellow><bold>Config");
+        send(sender, "    <gray>Check interval: <white>"
                 + plugin.getConfig().getInt("system.memory-leak-detection.check-interval-minutes", 30) + "m");
-        send(sender, "    &7Slope threshold: &f"
+        send(sender, "    <gray>Slope threshold: <white>"
                 + plugin.getConfig().getDouble("system.memory-leak-detection.warn-slope-threshold", 5.0)
                 + " MB/min");
-        send(sender, "    &7Window size: &f"
+        send(sender, "    <gray>Window size: <white>"
                 + plugin.getConfig().getInt("system.memory-leak-detection.window-size", 20) + " samples");
-        send(sender, "    &7Notify: &f"
+        send(sender, "    <gray>Notify: <white>"
                 + plugin.getConfig().getBoolean("system.memory-leak-detection.notify", true));
         send(sender, "");
     }
@@ -1255,14 +1255,14 @@ public class LagCommand implements CommandExecutor {
 
         if (args.length >= 2 && args[1].equalsIgnoreCase("status")) {
             // Check API health
-            send(sender, plugin.getPrefix() + "&7Checking API status...");
+            send(sender, plugin.getPrefix() + "<gray>Checking API status...");
             LessLagApiClient client = new LessLagApiClient(apiUrl);
             client.isReachable().thenAccept(reachable -> {
                 SchedulerAdapter.runGlobal(plugin, () -> {
                     if (reachable) {
-                        send(sender, plugin.getPrefix() + "&aLessLag API is online!");
+                        send(sender, plugin.getPrefix() + "<green>LessLag API is online!");
                     } else {
-                        send(sender, plugin.getPrefix() + "&cAPI is unreachable at &f" + apiUrl);
+                        send(sender, plugin.getPrefix() + "<red>API is unreachable at <white>" + apiUrl);
                     }
                 });
             });
@@ -1278,7 +1278,7 @@ public class LagCommand implements CommandExecutor {
 
         if (args.length >= 2 && args[1].equalsIgnoreCase("analyze")) {
             // Send server info to API for remote analysis
-            send(sender, plugin.getPrefix() + "&7Sending server data for analysis...");
+            send(sender, plugin.getPrefix() + "<gray>Sending server data for analysis...");
             String profile = args.length >= 3 ? args[2] : "SMP";
             String tier = args.length >= 4 ? args[3] : "MID";
             String level = args.length >= 5 ? args[4] : "BALANCED";
@@ -1287,15 +1287,15 @@ public class LagCommand implements CommandExecutor {
             var payload = LessLagApiClient.buildServerPayload(plugin, profile, tier, level);
             client.evaluate(payload).thenAccept(response -> {
                 SchedulerAdapter.runGlobal(plugin, () -> {
-                    send(sender, plugin.getPrefix() + "&aAnalysis complete! Results:");
+                    send(sender, plugin.getPrefix() + "<green>Analysis complete! Results:");
                     // Show a summary (first 500 chars)
                     String preview = response.length() > 500 ? response.substring(0, 500) + "..." : response;
-                    send(sender, "&7" + preview);
-                    send(sender, plugin.getPrefix() + "&7Full results at: &b" + webUrl);
+                    send(sender, "<gray>" + preview);
+                    send(sender, plugin.getPrefix() + "<gray>Full results at: <aqua>" + webUrl);
                 });
             }).exceptionally(ex -> {
                 SchedulerAdapter.runGlobal(plugin, () -> {
-                    send(sender, plugin.getPrefix() + "&cAnalysis failed: &f" + ex.getMessage());
+                    send(sender, plugin.getPrefix() + "<red>Analysis failed: <white>" + ex.getMessage());
                 });
                 return null;
             });
@@ -1304,17 +1304,17 @@ public class LagCommand implements CommandExecutor {
 
         // Default: show web info
         send(sender, "");
-        send(sender, "&b&l  ≡ LessLag Web Optimizer ≡");
+        send(sender, "<aqua><bold>  ≡ LessLag Web Optimizer ≡");
         send(sender, "");
-        send(sender, "  &7Dashboard: &b" + webUrl);
-        send(sender, "  &7API:       &b" + apiUrl);
+        send(sender, "  <gray>Dashboard: <aqua>" + webUrl);
+        send(sender, "  <gray>API:       <aqua>" + apiUrl);
         send(sender, "");
-        send(sender, "  &fCommands:");
-        send(sender, "    &b/lg web          &8- &7Show this info");
-        send(sender, "    &b/lg web status   &8- &7Check API health");
-        send(sender, "    &b/lg web link     &8- &7Generate a shareable config link");
-        send(sender, "    &b/lg web analyze  &8- &7Send server data for optimization");
-        send(sender, "    &b/lg web analyze <profile> <tier> <level>");
+        send(sender, "  <white>Commands:");
+        send(sender, "    <aqua>/lg web          <dark_gray>- <gray>Show this info");
+        send(sender, "    <aqua>/lg web status   <dark_gray>- <gray>Check API health");
+        send(sender, "    <aqua>/lg web link     <dark_gray>- <gray>Generate a shareable config link");
+        send(sender, "    <aqua>/lg web analyze  <dark_gray>- <gray>Send server data for optimization");
+        send(sender, "    <aqua>/lg web analyze <profile> <tier> <level>");
         send(sender, "");
     }
 
@@ -1325,15 +1325,15 @@ public class LagCommand implements CommandExecutor {
     private void doRestore(CommandSender sender) {
         plugin.getLogger().info(sender.getName() + " restored default settings.");
         plugin.getActionExecutor().restoreDefaults();
-        send(sender, plugin.getPrefix() + "&aAll server settings restored to defaults.");
+        send(sender, plugin.getPrefix() + "<green>All server settings restored to defaults.");
     }
 
     private void doReload(CommandSender sender) {
         plugin.getLogger().info(sender.getName() + " reloaded the plugin configuration.");
         plugin.reloadPlugin();
-        send(sender, plugin.getPrefix() + "&aConfiguration reloaded successfully!");
+        send(sender, plugin.getPrefix() + "<green>Configuration reloaded successfully!");
         send(sender,
-                plugin.getPrefix() + "&7Loaded &f" + plugin.getTpsMonitor().getThresholds().size() + " &7thresholds.");
+                plugin.getPrefix() + "<gray>Loaded <white>" + plugin.getTpsMonitor().getThresholds().size() + " <gray>thresholds.");
     }
 
     // ══════════════════════════════════════════════════
@@ -1345,14 +1345,14 @@ public class LagCommand implements CommandExecutor {
     }
 
     private String formatTPS(double tps) {
-        return getTpsColor(tps) + String.format("%.1f", tps) + " &8(" + formatTPSBar(tps) + "&8)";
+        return getTpsColor(tps) + String.format("%.1f", tps) + " <dark_gray>(" + formatTPSBar(tps) + "<dark_gray>)";
     }
 
     private String formatTPSBar(double tps) {
         StringBuilder bar = new StringBuilder();
         int filled = (int) Math.round(tps);
         for (int i = 0; i < 20; i++) {
-            bar.append(i < filled ? "&a|" : "&8|");
+            bar.append(i < filled ? "<green>|" : "<dark_gray>|");
         }
         return bar.toString();
     }
@@ -1360,22 +1360,22 @@ public class LagCommand implements CommandExecutor {
     private String formatMSPT(double mspt) {
         String color;
         if (mspt <= 40)
-            color = "&a";
+            color = "<green>";
         else if (mspt <= 50)
-            color = "&e";
+            color = "<yellow>";
         else
-            color = "&c";
+            color = "<red>";
         return color + String.format("%.1f", mspt) + "ms";
     }
 
     private String getTpsColor(double tps) {
         if (tps >= 18)
-            return "&a";
+            return "<green>";
         if (tps >= 16)
-            return "&e";
+            return "<yellow>";
         if (tps >= 12)
-            return "&c";
-        return "&4";
+            return "<red>";
+        return "<dark_red>";
     }
 
     // ══════════════════════════════════════════════════
@@ -1387,22 +1387,22 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("modules.villager-optimizer.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Villager Optimizer ≡");
+        send(sender, "<red><bold>  ≡ Villager Optimizer ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
-        send(sender, "  &7Optimize Trapped Only: "
-                + (plugin.getConfig().getBoolean("modules.villager-optimizer.optimize-trapped", true) ? "&aYes"
-                        : "&cNo"));
-        send(sender, "  &7Check Interval: &f"
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
+        send(sender, "  <gray>Optimize Trapped Only: "
+                + (plugin.getConfig().getBoolean("modules.villager-optimizer.optimize-trapped", true) ? "<green>Yes"
+                        : "<red>No"));
+        send(sender, "  <gray>Check Interval: <white>"
                 + plugin.getConfig().getInt("modules.villager-optimizer.check-interval", 600) + " ticks");
-        send(sender, "  &7Restore Duration: &f"
+        send(sender, "  <gray>Restore Duration: <white>"
                 + plugin.getConfig().getInt("modules.villager-optimizer.ai-restore-duration", 30) + "s");
 
         if (vo != null && enabled) {
             send(sender, "");
-            send(sender, "  &7Optimized (AI Disabled): &e" + vo.getOptimizedCount());
-            send(sender, "  &7Active (Restored): &a" + vo.getActiveRestoredCount());
-            send(sender, "  &8(Villagers in trading halls are lobotomized until interaction)");
+            send(sender, "  <gray>Optimized (AI Disabled): <yellow>" + vo.getOptimizedCount());
+            send(sender, "  <gray>Active (Restored): <green>" + vo.getActiveRestoredCount());
+            send(sender, "  <dark_gray>(Villagers in trading halls are lobotomized until interaction)");
         }
         send(sender, "");
     }
@@ -1416,31 +1416,31 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("modules.density-optimizer.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Density Optimizer ≡");
+        send(sender, "<red><bold>  ≡ Density Optimizer ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
-        send(sender, "  &7Check Interval: &f"
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
+        send(sender, "  <gray>Check Interval: <white>"
                 + plugin.getConfig().getInt("modules.density-optimizer.check-interval", 40) + " ticks");
-        send(sender, "  &7Bypass: "
-                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-tamed", true) ? "&aTamed " : "")
-                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-named", true) ? "&aNamed " : "")
-                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-leashed", true) ? "&aLeashed" : ""));
+        send(sender, "  <gray>Bypass: "
+                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-tamed", true) ? "<green>Tamed " : "")
+                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-named", true) ? "<green>Named " : "")
+                + (plugin.getConfig().getBoolean("modules.density-optimizer.bypass-leashed", true) ? "<green>Leashed" : ""));
 
         if (dens != null && enabled) {
             // Show limits
             send(sender, "");
-            send(sender, "  &e&lEntity Limits");
+            send(sender, "  <yellow><bold>Entity Limits");
             for (var entry : dens.getLimits().entrySet()) {
-                send(sender, "    &8▸ &f" + entry.getKey().name() + " &8- max &e" + entry.getValue() + " &7/chunk");
+                send(sender, "    <dark_gray>▸ <white>" + entry.getKey().name() + " <dark_gray>- max <yellow>" + entry.getValue() + " <gray>/chunk");
             }
 
             // Stats
             send(sender, "");
-            send(sender, "  &e&lRuntime Statistics");
-            send(sender, "    &7Total mobs suppressed: &e" + dens.getTotalMobsOptimized());
-            send(sender, "    &7Total chunks scanned: &f" + dens.getTotalChunksScanned());
-            send(sender, "    &7Last pass: &e" + dens.getLastPassOptimized()
-                    + " mobs &7in &f" + dens.getLastPassChunks() + " chunks");
+            send(sender, "  <yellow><bold>Runtime Statistics");
+            send(sender, "    <gray>Total mobs suppressed: <yellow>" + dens.getTotalMobsOptimized());
+            send(sender, "    <gray>Total chunks scanned: <white>" + dens.getTotalChunksScanned());
+            send(sender, "    <gray>Last pass: <yellow>" + dens.getLastPassOptimized()
+                    + " mobs <gray>in <white>" + dens.getLastPassChunks() + " chunks");
         }
         send(sender, "");
     }
@@ -1454,18 +1454,18 @@ public class LagCommand implements CommandExecutor {
         boolean enabled = plugin.getConfig().getBoolean("modules.breeding-limiter.enabled", true);
 
         send(sender, "");
-        send(sender, "&c&l  ≡ Breeding Limiter ≡");
+        send(sender, "<red><bold>  ≡ Breeding Limiter ≡");
         send(sender, "");
-        send(sender, "  &7Status: " + (enabled ? "&aEnabled" : "&cDisabled"));
-        send(sender, "  &7Max animals/chunk: &f"
+        send(sender, "  <gray>Status: " + (enabled ? "<green>Enabled" : "<red>Disabled"));
+        send(sender, "  <gray>Max animals/chunk: <white>"
                 + plugin.getConfig().getInt("modules.breeding-limiter.max-animals-per-chunk", 20));
 
         if (bl != null && enabled) {
             send(sender, "");
-            send(sender, "  &7Total breeding blocked: &e" + bl.getTotalBlocked());
+            send(sender, "  <gray>Total breeding blocked: <yellow>" + bl.getTotalBlocked());
             if (!bl.getLastBlockedType().isEmpty()) {
-                send(sender, "  &7Last blocked: &f" + bl.getLastBlockedType()
-                        + " &7in &f" + bl.getLastBlockedWorld());
+                send(sender, "  <gray>Last blocked: <white>" + bl.getLastBlockedType()
+                        + " <gray>in <white>" + bl.getLastBlockedWorld());
             }
         }
         send(sender, "");

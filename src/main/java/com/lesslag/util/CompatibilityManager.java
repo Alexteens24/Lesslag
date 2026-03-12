@@ -505,9 +505,7 @@ public class CompatibilityManager {
         // ItemsAdder / Oraxen / CMI also use real stands as furniture.
         if (holographicDisplaysDetected || customItemsDetected || cmiDetected) {
             if (entity instanceof org.bukkit.entity.Display || entity instanceof org.bukkit.entity.ArmorStand) {
-                @SuppressWarnings("deprecation")
-                String customName = entity.getCustomName();
-                if (entity.isCustomNameVisible() || customName != null) {
+                if (entity.isCustomNameVisible() || entity.customName() != null) {
                     return true;
                 }
             }

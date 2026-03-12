@@ -332,8 +332,8 @@ public class RedstoneMonitor implements Listener {
 
         if (notify) {
             NotificationHelper.notifyAdmins(
-                    "&c⚠ Persistent Redstone Clock (&f" + x + "," + y + "," + z + "&c) in " + worldName
-                            + " &7(" + clock.getCount() + " acts/" + longTermWindow + "s)");
+                    "<red>⚠ Persistent Redstone Clock (<white>" + x + "," + y + "," + z + "<red>) in " + worldName
+                            + " <gray>(" + clock.getCount() + " acts/" + longTermWindow + "s)");
         }
 
         if (longTermBreak) {
@@ -414,10 +414,10 @@ public class RedstoneMonitor implements Listener {
                 Location loc = block.getLocation();
                 String world = loc.getWorld() != null ? loc.getWorld().getName() : "unknown";
                 NotificationHelper.notifyAdmins(
-                        "&e⚠ Redstone suppressed in chunk (&f"
-                                + (block.getX() >> 4) + "&8, &f" + (block.getZ() >> 4)
-                                + "&e) in &f" + world
-                                + " &8(frozen " + cooldownSeconds + "s)");
+                        "<yellow>⚠ Redstone suppressed in chunk (<white>"
+                                + (block.getX() >> 4) + "<dark_gray>, <white>" + (block.getZ() >> 4)
+                                + "<yellow>) in <white>" + world
+                                + " <dark_gray>(frozen " + cooldownSeconds + "s)");
             }
         }
 

@@ -79,7 +79,7 @@ public class ThresholdConfig {
             boolean enabled = entry.getBoolean("enabled", true);
             double tps = entry.getDouble("tps", 16.0);
             int priority = entry.getInt("priority", 0);
-            String message = entry.getString("message", "&e⚠ TPS: {tps}");
+            String message = entry.getString("message", "<yellow>⚠ TPS: {tps}");
             boolean broadcast = entry.getBoolean("broadcast", false);
             String broadcastMessage = entry.getString("broadcast-message", null);
             List<String> actions = entry.getStringList("actions");
@@ -217,16 +217,16 @@ public class ThresholdConfig {
         int maxSeverity = allThresholds.size() - 1;
 
         if (maxSeverity <= 0)
-            return "&e";
+            return "<yellow>";
 
         double ratio = (double) severity / maxSeverity;
         if (ratio >= 0.75)
-            return "&4&l"; // Most severe
+            return "<dark_red><bold>"; // Most severe
         if (ratio >= 0.5)
-            return "&c"; // High
+            return "<red>"; // High
         if (ratio >= 0.25)
-            return "&6"; // Medium
-        return "&e"; // Low
+            return "<gold>"; // Medium
+        return "<yellow>"; // Low
     }
 
     @Override

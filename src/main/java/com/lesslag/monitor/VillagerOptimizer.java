@@ -52,8 +52,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class VillagerOptimizer implements Listener {
 
-    // PDC key — persists lobotomized state across chunk unloads
+    // PDC keys — survive chunk unloads
     private final NamespacedKey LOBOTOMIZED_KEY;
+    private final NamespacedKey VILLAGER_OPTIMIZED_KEY;
+    private final NamespacedKey LAST_CHECK_KEY;
 
     private final LessLag plugin;
     private SchedulerAdapter.TaskHandle scanTask;
@@ -103,6 +105,8 @@ public class VillagerOptimizer implements Listener {
     public VillagerOptimizer(LessLag plugin) {
         this.plugin = plugin;
         this.LOBOTOMIZED_KEY = new NamespacedKey(plugin, "lobotomized");
+        this.VILLAGER_OPTIMIZED_KEY = new NamespacedKey(plugin, "villager_optimized");
+        this.LAST_CHECK_KEY = new NamespacedKey(plugin, "last_trapped_check");
         loadConfig();
     }
 
@@ -179,7 +183,7 @@ public class VillagerOptimizer implements Listener {
     // Lobotomize / Restore helpers (centralised)
     // ══════════════════════════════════════════════════
 
-    /** Disable AI + apply all side-effects (silent, PDC, counter, metadata). */
+    /** Disable AI + apply all side-effects (silent, PDC, counter). */
     private void lobotomize(Villager v) {
         plugin.setMobAwareSafe(v, false);
         if (silentWhenLobotomized)
@@ -187,8 +191,7 @@ public class VillagerOptimizer implements Listener {
         if (persistState) {
             v.getPersistentDataContainer().set(LOBOTOMIZED_KEY, PersistentDataType.BYTE, (byte) 1);
         }
-        v.setMetadata("LessLag.VillagerOptimized",
-                new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+        v.getPersistentDataContainer().set(VILLAGER_OPTIMIZED_KEY, PersistentDataType.BYTE, (byte) 1);
         optimizedVillagers.incrementAndGet();
     }
 
@@ -197,13 +200,13 @@ public class VillagerOptimizer implements Listener {
         plugin.setMobAwareSafe(v, true);
         v.setSilent(false);
         v.getPersistentDataContainer().remove(LOBOTOMIZED_KEY);
-        v.removeMetadata("LessLag.VillagerOptimized", plugin);
-        v.removeMetadata("LessLag.LastTrappedCheck", plugin);
+        v.getPersistentDataContainer().remove(VILLAGER_OPTIMIZED_KEY);
+        v.getPersistentDataContainer().remove(LAST_CHECK_KEY);
         optimizedVillagers.updateAndGet(n -> Math.max(0, n - 1));
     }
 
     private boolean isLobotomized(Villager v) {
-        return v.hasMetadata("LessLag.VillagerOptimized");
+        return v.getPersistentDataContainer().has(VILLAGER_OPTIMIZED_KEY);
     }
 
     // ══════════════════════════════════════════════════
@@ -324,9 +327,9 @@ public class VillagerOptimizer implements Listener {
 
         // Throttle re-checks for already-optimized villagers
         long now = System.nanoTime();
-        if (isLobotomized(villager) && villager.hasMetadata("LessLag.LastTrappedCheck")) {
-            long last = villager.getMetadata("LessLag.LastTrappedCheck").get(0).asLong();
-            if (now - last < 120_000_000_000L)
+        if (isLobotomized(villager) && villager.getPersistentDataContainer().has(LAST_CHECK_KEY)) {
+            Long last = villager.getPersistentDataContainer().get(LAST_CHECK_KEY, PersistentDataType.LONG);
+            if (last != null && now - last < 120_000_000_000L)
                 return;
         }
 
@@ -354,8 +357,7 @@ public class VillagerOptimizer implements Listener {
             if (plugin.isMobAwareSafe(villager)) {
                 lobotomize(villager);
             }
-            villager.setMetadata("LessLag.LastTrappedCheck",
-                    new org.bukkit.metadata.FixedMetadataValue(plugin, now));
+            villager.getPersistentDataContainer().set(LAST_CHECK_KEY, PersistentDataType.LONG, now);
         } else if (!plugin.isMobAwareSafe(villager)) {
             // No longer trapped — restore
             restore(villager);
@@ -408,13 +410,11 @@ public class VillagerOptimizer implements Listener {
             if (activeVillagers.containsKey(v.getUniqueId()))
                 continue;
             if (v.getPersistentDataContainer().has(LOBOTOMIZED_KEY, PersistentDataType.BYTE)) {
-                // Re-apply lobotomy without incrementing counter (was already counted before
-                // unload)
+                // Re-apply lobotomy without incrementing counter (was already counted before unload)
                 plugin.setMobAwareSafe(v, false);
                 if (silentWhenLobotomized)
                     v.setSilent(true);
-                v.setMetadata("LessLag.VillagerOptimized",
-                        new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                v.getPersistentDataContainer().set(VILLAGER_OPTIMIZED_KEY, PersistentDataType.BYTE, (byte) 1);
             }
         }
     }
