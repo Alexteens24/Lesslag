@@ -4,10 +4,12 @@ import com.lesslag.LessLag;
 import com.lesslag.util.SchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 import java.util.Set;
@@ -35,6 +37,11 @@ public class FrustumCuller {
     private int intervalTicks;
     private Set<String> protectedTypes = Collections.emptySet();
 
+    // PDC keys — must mirror the keys used in DensityOptimizer, VillagerOptimizer, MobFarmOptimizer
+    private final NamespacedKey DENSITY_SUPPRESSED_KEY;
+    private final NamespacedKey VILLAGER_OPTIMIZED_KEY;
+    private final NamespacedKey FARM_DUMB_KEY;
+
     // Stats
     private final AtomicInteger lastCulled = new AtomicInteger(0);
     private final AtomicInteger lastRestored = new AtomicInteger(0);
@@ -42,6 +49,10 @@ public class FrustumCuller {
 
     public FrustumCuller(LessLag plugin) {
         this.plugin = plugin;
+        // Mirror the PDC keys used by the optimizer/suppressor classes
+        DENSITY_SUPPRESSED_KEY = new NamespacedKey(plugin, "density_suppressed");
+        VILLAGER_OPTIMIZED_KEY = new NamespacedKey(plugin, "villager_optimized");
+        FARM_DUMB_KEY          = new NamespacedKey(plugin, "farm_dumb");
         loadConfig();
     }
 
@@ -183,11 +194,11 @@ public class FrustumCuller {
                                 && ((org.bukkit.entity.Llama) mob).getInventory().getDecor() != null) {
                             shouldSkip = true;
                             forceRestore = true;
-                        } else if (mob.hasMetadata("LessLag.DensitySuppressed")) {
+                        } else if (mob.getPersistentDataContainer().has(DENSITY_SUPPRESSED_KEY, PersistentDataType.BYTE)) {
                             shouldSkip = true;
-                        } else if (mob.hasMetadata("LessLag.VillagerOptimized")) {
+                        } else if (mob.getPersistentDataContainer().has(VILLAGER_OPTIMIZED_KEY, PersistentDataType.BYTE)) {
                             shouldSkip = true;
-                        } else if (mob.hasMetadata("LessLag.FarmDumb")) {
+                        } else if (mob.getPersistentDataContainer().has(FARM_DUMB_KEY, PersistentDataType.BYTE)) {
                             shouldSkip = true;
                         }
 
@@ -320,11 +331,11 @@ public class FrustumCuller {
                             && ((org.bukkit.entity.Llama) mob).getInventory().getDecor() != null) {
                         shouldSkip = true;
                         forceRestore = true;
-                    } else if (mob.hasMetadata("LessLag.DensitySuppressed")) {
+                    } else if (mob.getPersistentDataContainer().has(DENSITY_SUPPRESSED_KEY, PersistentDataType.BYTE)) {
                         shouldSkip = true;
-                    } else if (mob.hasMetadata("LessLag.VillagerOptimized")) {
+                    } else if (mob.getPersistentDataContainer().has(VILLAGER_OPTIMIZED_KEY, PersistentDataType.BYTE)) {
                         shouldSkip = true;
-                    } else if (mob.hasMetadata("LessLag.FarmDumb")) {
+                    } else if (mob.getPersistentDataContainer().has(FARM_DUMB_KEY, PersistentDataType.BYTE)) {
                         shouldSkip = true;
                     }
 

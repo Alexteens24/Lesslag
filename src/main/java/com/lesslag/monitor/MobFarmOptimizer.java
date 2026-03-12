@@ -192,8 +192,9 @@ public class MobFarmOptimizer implements Listener {
                 continue;
             }
 
-            // Check light level
-            int light = mob.getLocation().getBlock().getLightLevel();
+            // Use block-only light (sky-light excluded) so farms in caves/dark rooms
+            // are correctly identified even if the chunk has sky-light exposure above.
+            int light = mob.getLocation().getBlock().getLightFromBlocks();
             if (light <= maxLightLevel) {
                 if (!isDumbed(mob) && mob.isValid()) {
                     dumb(mob);

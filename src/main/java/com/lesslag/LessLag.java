@@ -97,6 +97,26 @@ public class LessLag extends JavaPlugin implements Listener {
             return;
         }
 
+        // ── Platform guard: Paper / Folia only ──────────────────────────────────
+        // Try to load a class that exists only in Paper 1.19+ (and Folia, which
+        // is built on top of Paper).  CraftBukkit and Spigot do NOT ship this class.
+        try {
+            Class.forName("io.papermc.paper.configuration.GlobalConfiguration");
+        } catch (ClassNotFoundException e) {
+            String bar = "═".repeat(60);
+            getLogger().severe(bar);
+            getLogger().severe("  LessLag requires Paper or Folia — Spigot/CraftBukkit");
+            getLogger().severe("  are NOT supported!");
+            getLogger().severe("");
+            getLogger().severe("  Detected server: " + Bukkit.getVersion());
+            getLogger().severe("");
+            getLogger().severe("  ➜ Download Paper: https://papermc.io/downloads/paper");
+            getLogger().severe("  ➜ Download Folia:  https://papermc.io/downloads/folia");
+            getLogger().severe(bar);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
         instance = this;
         saveDefaultConfig();
         // Auto-migrate config.yml: merge missing keys from the bundled default
@@ -708,24 +728,14 @@ public class LessLag extends JavaPlugin implements Listener {
     }
 
     public boolean isMobAwareSafe(Mob mob) {
-        if (mob == null)
-            return true;
-        try {
-            return mob.isAware();
-        } catch (IllegalStateException ignored) {
-            return true;
-        }
+        if (mob == null) return true;
+        return mob.isAware();
     }
 
     public boolean setMobAwareSafe(Mob mob, boolean aware) {
-        if (mob == null)
-            return false;
-        try {
-            mob.setAware(aware);
-            return true;
-        } catch (IllegalStateException ignored) {
-            return false;
-        }
+        if (mob == null) return false;
+        mob.setAware(aware);
+        return true;
     }
 
     /**

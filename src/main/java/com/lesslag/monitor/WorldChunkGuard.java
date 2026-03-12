@@ -532,11 +532,7 @@ public class WorldChunkGuard {
     // ══════════════════════════════════════════════════
 
     private void notifyAdmins(String message) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission("lesslag.notify")) {
-                LessLag.sendMessage(player, plugin.getPrefix() + message);
-            }
-        }
+        com.lesslag.util.NotificationHelper.notifyAdmins(message);
     }
 
     private long chunkKey(int x, int z) {
