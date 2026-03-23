@@ -23,6 +23,7 @@ import com.lesslag.monitor.SpawnerLimiter;
 import com.lesslag.monitor.MobFarmOptimizer;
 import com.lesslag.util.CompatibilityManager;
 import com.lesslag.util.ConfigUpdater;
+import com.lesslag.util.LegacyMigrator;
 import com.lesslag.util.SchedulerAdapter;
 import com.lesslag.web.LessLagApiClient;
 import net.kyori.adventure.text.Component;
@@ -121,6 +122,12 @@ public class LessLag extends JavaPlugin implements Listener {
         saveDefaultConfig();
         // Auto-migrate config.yml: merge missing keys from the bundled default
         ConfigUpdater.update(this);
+        // Auto-migrate any legacy &x / §x color codes to MiniMessage in all .yml files
+        int migrated = LegacyMigrator.migrateFolder(getDataFolder(), getLogger());
+        if (migrated > 0) {
+            getLogger().warning("[LessLag] Migrated " + migrated + " config file(s) from legacy color codes to MiniMessage.");
+            getLogger().warning("[LessLag] Backup files (.bak) saved alongside originals.");
+        }
         reloadConfig();
         saveResource("messages.yml", false);
 
@@ -739,28 +746,12 @@ public class LessLag extends JavaPlugin implements Listener {
     }
 
     /**
-     * Parse a message to a Component.
-     * <p>
-     * Native MiniMessage tags ({@code <red>}, {@code <bold>}, …) are parsed directly.
-     * Legacy Bukkit {@code &x} / {@code §x} color codes are supported for backward
-     * compatibility with config-supplied strings — they are deserialized via
-     * {@link net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer}.
-     * Internally authored strings should use MiniMessage natively.
+     * Parse a message to a Component using MiniMessage.
+     * Legacy {@code &x} / {@code §x} color codes are no longer supported —
+     * use {@link com.lesslag.util.LegacyMigrator} to convert existing configs.
      */
     public static Component colorize(String message) {
         if (message == null) return Component.empty();
-        // Normalize § prefix variant used in some configs
-        if (message.contains("§")) {
-            message = message.replace('§', '&');
-        }
-        // If any legacy &x codes remain (config-sourced strings), use legacy deserializer.
-        // Pure MiniMessage strings won't contain bare '&' followed by a hex char, so this
-        // guard is a reliable fast-path discriminator.
-        if (message.contains("&")) {
-            return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                    .legacyAmpersand()
-                    .deserialize(message);
-        }
         return MiniMessage.miniMessage().deserialize(message);
     }
 
