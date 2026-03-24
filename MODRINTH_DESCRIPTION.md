@@ -19,13 +19,14 @@ LessLag is built for production servers that need stable TPS without disruptive 
 
 - **`/lg status` dashboard** with health score, MSPT percentiles (`P50`, `P95`, `P99`), uptime, queue status, and spike counters
 - **`/lg tickmonitor` diagnostics** with MSPT distribution + avg/min/max
-- **Lag source analysis** via `/lg sources` and `/lg trace` to identify hotspots and likely culprits
 - **Entity management** with protections for named/tamed/NPC entities
 - **Redstone safeguards** (activation limits, clock detection, piston pressure control)
-- **Mob AI optimization** (frustum/distance-based)
-- **Farm optimizations** (villager optimizer, breeding limiter, density optimizer)
+- **Farm protection — Core**: breeding limiter + spawner limiter, always on, zero config required
+- **Farm optimization — Advanced** (opt-in): villager optimizer, density optimizer, mob farm optimizer
+- **Lag source analysis — Advanced** (opt-in): `/lg sources` and `/lg trace` to identify hotspots
+- **Mob AI optimization — Experimental** (opt-in): frustum/distance-based AI throttling
 - **Predictive optimization** from MSPT trend analysis
-- **Web Setup Advisor** via `/lg web link`: hardware-aware config baseline from a 191-entry benchmark database; apply-verify-drift workflow via `/lg apply`, `/lg verify`, `/lg drift`
+- **Web Setup Advisor** via `/lg web link`: hardware-aware config baseline; apply-verify-drift workflow via `/lg apply`, `/lg verify`, `/lg drift`
 
 ## What makes it practical in production?
 
@@ -63,8 +64,8 @@ LessLag is built for production servers that need stable TPS without disruptive 
 ## Tuning by server style
 
 - **SMP**: keep balanced defaults, tune entities/chunks gradually
-- **Farm-heavy/Skyblock**: prioritize density + breeding + villager modules
-- **Lobby/Minigame**: emphasize chunks/world-guard and notifications
+- **Farm-heavy/Skyblock**: enable and tune the Advanced farm modules (`villager-optimizer`, `density-optimizer`, `mob-farm-optimizer`)
+- **Lobby/Minigame**: farm modules are off by default — focus on chunks, block limits, and notifications
 
 ## Permissions
 

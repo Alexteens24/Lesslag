@@ -19,13 +19,21 @@
 [LIST]
 [*][B]Performance Dashboard[/B] via /lg status: health score, MSPT percentiles (P50/P95/P99), uptime, queue and spike counters
 [*][B]Tick Diagnostics[/B] via /lg tickmonitor: distribution, avg/min/max, spike visibility
-[*][B]Lag Source Analyzer[/B] via /lg sources and /lg trace: identify hotspots and likely culprits
 [*][B]Entity Protection + Smart Cleanup[/B]: protect named/tamed/NPC entities while targeting low-value overload sources
 [*][B]Redstone Safeguards[/B]: activation limits, clock detection, piston pressure controls
-[*][B]Mob AI Optimization[/B]: frustum/distance-based AI throttling to reduce CPU load
-[*][B]Farm Optimizations[/B]: villager optimizer, breeding limiter, density optimizer
+[*][B]Farm Protection (Core)[/B]: breeding limiter, spawner limiter — always-on, zero config required
 [*][B]Predictive Optimization[/B]: MSPT trend detection for proactive responses
 [*][B]Web Setup Advisor[/B]: [B]/lg web link[/B] encodes your hardware profile into a URL; the advisor generates a tailored config baseline; [B]/lg apply[/B], [B]/lg verify[/B], and [B]/lg drift[/B] close the apply-verify-drift loop without manual guesswork
+[/LIST]
+
+[SIZE=5][B]Advanced & Experimental Modules (opt-in)[/B][/SIZE]
+[LIST]
+[*][B]Lag Source Analyzer[/B] (Advanced): identify entity/chunk/plugin hotspots via /lg sources and /lg trace
+[*][B]Farm Optimizations[/B] (Advanced): villager optimizer, density optimizer, mob farm optimizer — enable per module for dedicated farm servers
+[*][B]Mob AI Optimization[/B] (Experimental): frustum/distance-based AI throttling — high complexity, enable only if needed
+[*][B]Memory Leak Detector[/B] (Experimental): JVM old-gen regression tracking — opt-in, prone to false positives
+[*][B]Bottleneck Analyzer[/B] (Experimental): async main-thread sampling — opt-in hint tool, not forensic proof
+[*][B]World Chunk Guard[/B] (Emergency): last-resort chunk unload + player evacuation — disabled by default
 [/LIST]
 
 [SIZE=5][B]Useful Admin Commands[/B][/SIZE]
@@ -56,8 +64,8 @@
 [SIZE=5][B]Recommended First 10 Minutes[/B][/SIZE]
 [LIST=1]
 [*]Run [B]/lg status[/B] and [B]/lg health[/B] to baseline current load
-[*]Run [B]/lg tickmonitor[/B] and [B]/lg trace[/B] during peak activity
-[*]If farms are heavy, inspect [B]/lg density[/B], [B]/lg breeding[/B], [B]/lg villager[/B]
+[*]Run [B]/lg tickmonitor[/B] during peak activity
+[*]If farms are heavy, check [B]/lg breeding[/B]; for farm-heavy servers also enable and inspect [B]/lg density[/B] and [B]/lg villager[/B] (Advanced modules)
 [*]Tune one config section at a time, then [B]/lg reload[/B]
 [*]Re-check percentiles and spike trend before changing more
 [/LIST]

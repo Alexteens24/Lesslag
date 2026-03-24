@@ -5,7 +5,7 @@
 
 # Internal config version — do NOT edit manually.
 # Used by ConfigUpdater to auto-migrate missing keys after plugin updates.
-config-version: 2
+config-version: 3
 
 core:
   # Messages prefix
@@ -45,6 +45,12 @@ workload-limit-ms: 2
 
 # =============================================================
 #  MODULES: Protection & Optimization
+#
+#  Tier guide:
+#    (no label)     Core        — enabled by default, safe for all servers
+#    [ADVANCED]      Advanced    — opt-in, recommended for specific server types
+#    [EXPERIMENTAL]  Experimental — opt-in, complex heuristics, may produce false positives
+#    [EMERGENCY]     Emergency   — disabled by default, disruptive last-resort actions
 # =============================================================
 
 modules:
@@ -137,64 +143,8 @@ modules:
         - "CAT"
 
   # -----------------------------------------------------------
-  # AI Optimization (Frustum Culling)
-  # Disables AI for mobs that are far away or out of sight.
-  # -----------------------------------------------------------
-  mob-ai:
-    enabled: true
-    # Radius around player where mobs have active AI
-    active-radius: 40
-    # Update interval in ticks (30 = 1.5s)
-    update-interval: 30
-    # Mobs that should ALWAYS have AI
-    protected:
-      - "ENDER_DRAGON"
-      - "WITHER"
-      - "VILLAGER"
-      - "Raider"
-    # Advanced Frustum Culling Settings
-    fov-degrees: 100.0
-    behind-safe-radius: 10.0
-
-  # -----------------------------------------------------------
-  # Villager Optimizer (Happy Villagers)
-  # Disables AI for trapped villagers to reduce trading hall lag.
-  # Inspired by VillagerLobotomizer & AntiVillagerLag.
-  # -----------------------------------------------------------
-  villager-optimizer:
-    enabled: true
-    # Check interval in ticks (600 = 30s)
-    check-interval: 600
-    # How long to re-enable AI after interaction (seconds)
-    ai-restore-duration: 30
-    # Only optimize trapped villagers? (1x1 cells)
-    optimize-trapped: true
-    # Make lobotomized villagers silent (reduces audio processing)
-    silent-when-lobotomized: true
-    # Persist lobotomized state in NBT/PDC across chunk unloads.
-    # Prevents re-scan lag spike when chunks reload.
-    persist-state: true
-    # Cancel zombie attacks on lobotomized villagers (they can't flee)
-    zombie-protection: true
-    # Automatically restock trades for lobotomized villagers on a schedule.
-    # Mimics the vanilla restock that would happen if they could reach workstations.
-    auto-restock:
-      enabled: true
-      # How often to restock, in ticks (24000 = 1 minecraft day)
-      interval-ticks: 24000
-    # Villagers whose name CONTAINS any of these strings will NEVER be lobotomized.
-    # Use for display/main villagers you always want active.
-    always-active-names:
-      - "alwaysbrain"
-      - "main"
-    # Villagers whose name CONTAINS any of these strings are ALWAYS lobotomized,
-    # even without a profession or 1x1 trap. Useful for creative trading halls.
-    always-inactive-names:
-      - "nobrain"
-
-  # -----------------------------------------------------------
   # Breeding Limiter (Proactive Farm Control)
-  # Prevents breeding if chunk limit is reached.
+  # Prevents breeding if the per-chunk animal cap is reached.
   # -----------------------------------------------------------
   breeding-limiter:
     enabled: true
@@ -235,24 +185,6 @@ modules:
       ENDERMAN: 12
 
   # -----------------------------------------------------------
-  # Mob Farm Optimizer (Inspired by FarmControl)
-  # Disables AI for hostile mobs in dark, player-free areas (mob grinders).
-  # CPU savings: stops random stroll/look goals when mobs are purely waiting.
-  # -----------------------------------------------------------
-  mob-farm-optimizer:
-    enabled: true
-    # Scan interval in ticks (300 = 15 seconds)
-    check-interval: 300
-    # Light level at or below which a mob is considered "in a dark farm"
-    # 0 = torch-free dark room, 7 = full darkness threshold
-    max-light-level: 0
-    # If any player is within this many blocks, keep mob AI active
-    player-activation-range: 24.0
-    # Restrict optimization to specific entity types.
-    # Leave empty to apply to ALL hostile mobs.
-    types: []
-
-  # -----------------------------------------------------------
   # Block Placement Limiter (Inspired by Insights)
   # Preventively cancels placement of lag-heavy blocks when the
   # per-chunk count exceeds the configured limit.
@@ -285,27 +217,6 @@ modules:
       REDSTONE_LAMP: 128
 
   # -----------------------------------------------------------
-  # Density Optimizer (Farm Performance)
-  # Disables AI/Collision for specific mobs in varying density.
-  # -----------------------------------------------------------
-  density-optimizer:
-    enabled: true
-    # Check interval in ticks (40 = 2s)
-    check-interval: 40
-    # Mobs to optimize (Type: Threshold)
-    # If chunk has > Threshold of Type, excess will have AI disabled.
-    limits:
-      COW: 10
-      SHEEP: 10
-      PIG: 10
-      CHICKEN: 15
-      VILLAGER: 20
-    # Always keep these mobs active (even if over limit)
-    # Useful for "pet" protection if they are in the farm
-    bypass-tamed: true
-    bypass-named: true
-    bypass-leashed: true
-  # -----------------------------------------------------------
   # Movement Speed & Chunk Load Limiter
   # Prevents players from exploring/flying too fast and crashing the server.
   # -----------------------------------------------------------
@@ -325,22 +236,24 @@ modules:
 
   # -----------------------------------------------------------
   # Chunk Management
-  # Unloads unused chunks and prevents world overload.
+  # View/simulation distance bounds used by automation actions.
   # -----------------------------------------------------------
   chunks:
     enabled: true
-    
+
     # View Distance Action Settings
     view-distance:
       min: 4
       reduce-by: 2
-      
+
     # Simulation Distance Action Settings
     simulation-distance:
       min: 4
       reduce-by: 2
 
-    # World Chunk Guard: Unloads chunks in overloaded worlds
+    # [EMERGENCY] World Chunk Guard: Unloads chunks in overloaded worlds
+    # Last-resort circuit breaker — forcibly unloads chunks and can evacuate players.
+    # Keep disabled unless you fully understand the disruptive behavior.
     world-guard:
       enabled: false
       # Notify admins when world overload handling is triggered
@@ -366,18 +279,128 @@ modules:
         - "notify-admin"
         - "reduce-view-distance"
         # - "unload-unused"
-    
+
     # General Unload Settings
     unload-unused: true
-    # Prevent unloading chunks near players (radius)
     keep-spawn-loaded: true
 
+  # ===========================================================
+  #  MODULES — Advanced Farm Optimization  [ADVANCED]
+  #  Disabled by default. Enable when farms are a confirmed lag source.
+  # ===========================================================
+
+  # -----------------------------------------------------------
+  # [ADVANCED] Villager Optimizer (Happy Villagers)
+  # Disables AI for trapped villagers to reduce trading hall lag.
+  # Recommended for servers with large trading halls.
+  # Inspired by VillagerLobotomizer & AntiVillagerLag.
+  # -----------------------------------------------------------
+  villager-optimizer:
+    enabled: false
+    # Check interval in ticks (600 = 30s)
+    check-interval: 600
+    # How long to re-enable AI after interaction (seconds)
+    ai-restore-duration: 30
+    # Only optimize trapped villagers? (1x1 cells)
+    optimize-trapped: true
+    # Make lobotomized villagers silent (reduces audio processing)
+    silent-when-lobotomized: true
+    # Persist lobotomized state in NBT/PDC across chunk unloads.
+    # Prevents re-scan lag spike when chunks reload.
+    persist-state: true
+    # Cancel zombie attacks on lobotomized villagers (they can't flee)
+    zombie-protection: true
+    # Automatically restock trades for lobotomized villagers on a schedule.
+    # Mimics the vanilla restock that would happen if they could reach workstations.
+    auto-restock:
+      enabled: true
+      # How often to restock, in ticks (24000 = 1 minecraft day)
+      interval-ticks: 24000
+    # Villagers whose name CONTAINS any of these strings will NEVER be lobotomized.
+    # Use for display/main villagers you always want active.
+    always-active-names:
+      - "alwaysbrain"
+      - "main"
+    # Villagers whose name CONTAINS any of these strings are ALWAYS lobotomized,
+    # even without a profession or 1x1 trap. Useful for creative trading halls.
+    always-inactive-names:
+      - "nobrain"
+
+  # -----------------------------------------------------------
+  # [ADVANCED] Density Optimizer (Farm Performance)
+  # Disables AI/Collision for specific mobs in varying density.
+  # Recommended for servers with high-density animal farms.
+  # -----------------------------------------------------------
+  density-optimizer:
+    enabled: false
+    # Check interval in ticks (40 = 2s)
+    check-interval: 40
+    # Mobs to optimize (Type: Threshold)
+    # If chunk has > Threshold of Type, excess will have AI disabled.
+    limits:
+      COW: 10
+      SHEEP: 10
+      PIG: 10
+      CHICKEN: 15
+      VILLAGER: 20
+    # Always keep these mobs active (even if over limit)
+    # Useful for "pet" protection if they are in the farm
+    bypass-tamed: true
+    bypass-named: true
+    bypass-leashed: true
+
+  # -----------------------------------------------------------
+  # [ADVANCED] Mob Farm Optimizer (Inspired by FarmControl)
+  # Disables AI for hostile mobs in dark, player-free areas (mob grinders).
+  # CPU savings: stops random stroll/look goals when mobs are purely waiting.
+  # Recommended for servers with dedicated mob grinders.
+  # -----------------------------------------------------------
+  mob-farm-optimizer:
+    enabled: false
+    # Scan interval in ticks (300 = 15 seconds)
+    check-interval: 300
+    # Light level at or below which a mob is considered "in a dark farm"
+    # 0 = torch-free dark room, 7 = full darkness threshold
+    max-light-level: 0
+    # If any player is within this many blocks, keep mob AI active
+    player-activation-range: 24.0
+    # Restrict optimization to specific entity types.
+    # Leave empty to apply to ALL hostile mobs.
+    types: []
+
+  # ===========================================================
+  #  MODULES — Experimental  [EXPERIMENTAL]
+  #  Complex heuristics. May produce false positives on most servers.
+  # ===========================================================
+
+  # -----------------------------------------------------------
+  # [EXPERIMENTAL] AI Optimization (Frustum Culling)
+  # Disables AI for mobs that are far away or out of sight.
+  # High complexity with marginal gains on most servers.
+  # Enable only if you understand PDC state management trade-offs.
+  # -----------------------------------------------------------
+  mob-ai:
+    enabled: false
+    # Radius around player where mobs have active AI
+    active-radius: 40
+    # Update interval in ticks (30 = 1.5s)
+    update-interval: 30
+    # Mobs that should ALWAYS have AI
+    protected:
+      - "ENDER_DRAGON"
+      - "WITHER"
+      - "VILLAGER"
+      - "Raider"
+    # Advanced Frustum Culling Settings
+    fov-degrees: 100.0
+    behind-safe-radius: 10.0
+
 # =============================================================
-#  SYSTEM: Monitoring & Diagnostics
+#  SYSTEM — Core Monitoring & Diagnostics
 # =============================================================
 
 system:
-  # TPS & MSPT Monitor
+  # TPS & MSPT Monitor — powers /lg status, /lg tps, and threshold automation
   tps-monitor:
     enabled: true
     # Interval to check TPS (in ticks)
@@ -385,29 +408,19 @@ system:
     # History length (in seconds)
     history-length: 60
 
-  # Garbage Collection Monitor
-  gc-monitor:
+  # Tick Spike Monitor — powers /lg tickmonitor
+  tick-monitor:
     enabled: true
-    # Notify if GC pause exceeds this (ms)
-    warn-threshold-ms: 300
-    # Notify online admins about long GC pauses
-    notify: true
+    # Threshold to log a tick spike (ms)
+    threshold-ms: 100
+    # Log to console?
+    log-to-console: true
 
-  # Memory Leak Detector
-  memory-leak-detection:
-    enabled: true
-    # Check interval (in minutes)
-    check-interval-minutes: 10
-    # Notify admins in-game? (Set to false for console-only logs)
-    notify: false
-    # Warn if old gen memory grows by this slope (MB/min)
-    warn-slope-threshold: 2.0
-    # Advanced tuning
-    window-size: 20
-    min-samples: 8
-    alert-cooldown: 300
+  # ===========================================================
+  #  SYSTEM — Advanced Diagnostics  [ADVANCED]
+  # ===========================================================
 
-  # Lag Source Analyzer
+  # [ADVANCED] Lag Source Analyzer — /lg sources
   lag-source-analyzer:
     enabled: true
     # Auto-analyze if TPS drops below X?
@@ -420,19 +433,40 @@ system:
       density: 50
       chunk-rate-warn: 10.0
 
-  # Tick Spike Monitor
-  tick-monitor:
+  # [ADVANCED] Garbage Collection Monitor
+  # Alerts admins to GC pauses that degrade TPS predictability.
+  gc-monitor:
     enabled: true
-    # Threshold to log a tick spike (ms)
-    threshold-ms: 100
-    # Log to console?
-    log-to-console: true
+    # Notify if GC pause exceeds this (ms)
+    warn-threshold-ms: 300
+    # Notify online admins about long GC pauses
+    notify: true
 
-  # Bottleneck Analyzer (Async Main Thread Watchdog)
+  # ===========================================================
+  #  SYSTEM — Experimental Diagnostics  [EXPERIMENTAL]
+  # ===========================================================
+
+  # [EXPERIMENTAL] Memory Leak Detector
+  # Uses statistical regression on JVM old-gen memory — prone to false positives.
+  # Only useful on servers where you suspect actual Java heap growth leaks.
+  memory-leak-detection:
+    enabled: false
+    # Check interval (in minutes)
+    check-interval-minutes: 10
+    # Notify admins in-game? (Set to false for console-only logs)
+    notify: false
+    # Warn if old gen memory grows by this slope (MB/min)
+    warn-slope-threshold: 2.0
+    # Advanced tuning
+    window-size: 20
+    min-samples: 8
+    alert-cooldown: 300
+
+  # [EXPERIMENTAL] Bottleneck Analyzer (Async Main Thread Watchdog)
   # Samples the main thread when a tick takes too long and identifies the culprit.
-  # This feature is buggy and usually cause false positives, use with caution.
+  # Prone to false positives — useful as a hint, not as forensic proof.
   bottleneck-analyzer:
-    enabled: true
+    enabled: false
     # If the main thread takes longer than this to tick, start sampling.
     # GC pauses / OS scheduling can cause ~100ms blips — keep this above 150ms.
     threshold-ms: 150

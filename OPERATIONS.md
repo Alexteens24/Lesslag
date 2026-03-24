@@ -21,7 +21,7 @@ Skip to §1 if you prefer manual tuning or are an experienced operator.
 1. Run `/lg status` for quick health/percentile view.
 2. Run `/lg health` for expanded system context.
 3. If anomalies appear, run `/lg tickmonitor` and `/lg trace`.
-4. For farm-heavy servers, also check `/lg density`, `/lg breeding`, `/lg villager`.
+4. For farm-heavy servers, check `/lg breeding`. If you have enabled the Advanced farm modules, also check `/lg density` and `/lg villager`.
 
 Use these outputs as your baseline before touching config.
 
@@ -41,7 +41,9 @@ Look for:
 
 - `/lg trace` for runtime spike/caller context
 - `/lg sources` for hotspot analysis
-- Optional module checks: `/lg redstone`, `/lg entities`, `/lg chunks`, `/lg worldguard`
+- Optional module checks: `/lg redstone`, `/lg entities`, `/lg chunks`
+  - If Advanced farm modules are enabled: `/lg density`, `/lg villager`
+  - `/lg worldguard` only if `modules.chunks.world-guard.enabled: true` (Emergency — off by default)
 
 ### Stage C — Stabilize quickly (minimal blast radius)
 
@@ -84,10 +86,21 @@ Apply only what is necessary:
 
 ### Farm & AI-specific
 
-- `/lg villager`
-- `/lg density`
+**Core (on by default)**
 - `/lg breeding`
-- `/lg frustum`
+
+**Advanced (opt-in — enable in `config.yml`)**
+- `/lg villager` — requires `modules.villager-optimizer.enabled: true`
+- `/lg density` — requires `modules.density-optimizer.enabled: true`
+- `/lg sources` — requires `system.lag-source-analyzer.enabled: true` (on by default)
+
+**Experimental (opt-in)**
+- `/lg frustum` — requires `modules.mob-ai.enabled: true`
+- `/lg trace` — requires `system.bottleneck-analyzer.enabled: true`
+- `/lg memory` — requires `system.memory-leak-detection.enabled: true`
+
+**Emergency (off by default — disruptive)**
+- `/lg worldguard` — requires `modules.chunks.world-guard.enabled: true`
 
 ### Web / Config Sync
 

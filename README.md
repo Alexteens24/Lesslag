@@ -33,19 +33,28 @@ This module provides strict control over entity populations to prevent world ove
     *   Entities with specific metadata tags
     *   Vehicles with passengers
 
-### AI Optimization (Frustum Culling)
-The AI Optimization module reduces the server-side processing overhead of mob AI, which is often the leading cause of tick lag.
+### AI Optimization — Frustum Culling *(Experimental — opt-in)*
+
+> Enable with `modules.mob-ai.enabled: true` in `config.yml`.
+
+The Frustum Culler reduces mob AI overhead by deactivating AI for mobs outside a player's view frustum or beyond a configurable radius. High complexity with marginal gains on typical servers — most installs benefit more from entity limits and farm-specific modules.
 
 *   **Frustum Culling**: Entities that are outside a player's field of view (behind them) or obstructed by blocks have their AI usage restricted.
 *   **Distance-based Deactivation**: Mobs beyond a certain range from players have their AI completely disabled until a player approaches.
 *   **Piston/Farm Safety**: The module is designed to be safe for mob farms, ensuring that gravity and collision physics remain active even when AI is disabled.
 
-### Farm & Villager Optimization
-Targeted optimizations for gameplay elements that historically cause performance issues.
+### Farm Protection — Core
 
-*   **Villager Optimizer**: Villagers trapped in trading halls (1x1 spaces) have their pathfinding AI disabled. This eliminates the heavy calculations caused by villagers trying to pathfind out of their cells. AI is temporarily restored when a player interacts for trading.
 *   **Breeding Limiter**: Prevents animal breeding if the chunk limit for that specific species is already reached, stopping exponential growth in farms.
-*   **Density Optimizer**: In high-density areas (e.g., cow crushers), the plugin selectively disables collisions and AI for excess mobs to maintain performance.
+*   **Spawner Limiter**: Caps mob-spawner output per chunk radius, with options to cancel spawns or disable AI on spawned mobs while keeping loot drops active.
+
+### Farm Optimization — Advanced *(opt-in)*
+
+> Enable these modules in `config.yml` when dedicated farms are a confirmed lag source.
+
+*   **Villager Optimizer** (`modules.villager-optimizer.enabled: true`): Villagers in trading halls have their pathfinding AI disabled. AI is temporarily restored when a player interacts for trading.
+*   **Density Optimizer** (`modules.density-optimizer.enabled: true`): In high-density areas (e.g., cow crushers), the plugin selectively disables collisions and AI for excess mobs.
+*   **Mob Farm Optimizer** (`modules.mob-farm-optimizer.enabled: true`): Disables AI for hostile mobs in dark, player-free rooms (mob grinders), reducing CPU waste while mobs wait.
 
 ### System Monitoring & Diagnostics
 LessLag provides real-time insights into server health, helping administrators identify the root cause of lag.
@@ -55,7 +64,8 @@ LessLag provides real-time insights into server health, helping administrators i
     *   **Chunk Loading**: Worlds with excessive chunk loading rates (exploration lag).
     *   **Plugin Load**: Other plugins consuming excessive tick time.
 *   **Predictive Optimization**: Analyzes MSPT (Milliseconds Per Tick) trends to detect performance degradation *before* it affects TPS, triggering proactive cleanup measures.
-*   **Garbage Collection Monitor**: Alerts administrators to frequent or prolonged Java Garbage Collection pauses, which often indicate memory leaks or insufficient RAM.
+*   **Garbage Collection Monitor** *(Advanced — opt-in)*: Alerts administrators to frequent or prolonged Java Garbage Collection pauses. Enable with `system.gc-monitor.enabled: true`.
+*   **Memory Leak Detector** *(Experimental — opt-in)*: Uses statistical regression on JVM old-gen memory to detect persistent heap growth. Prone to false positives on typical Minecraft servers. Enable with `system.memory-leak-detection.enabled: true`.
 
 ### Web Setup Advisor
 LessLag ships a companion web app at **https://lesslag-web.vercel.app** that transforms a hardware-encoded plugin link into a complete, opinionated config baseline.
@@ -82,7 +92,7 @@ If this is your first deployment, use this sequence to baseline safely:
 1. Start server and run `/lg status` to confirm all core modules are loaded.
 2. Run `/lg health` to capture a pre-change snapshot (TPS/MSPT/memory/world load).
 3. Run `/lg tickmonitor` and `/lg trace` during your busiest period.
-4. If farms are your hotspot, check `/lg density`, `/lg breeding`, `/lg villager`.
+4. If farms are your hotspot, check `/lg breeding`. For servers with dedicated farms enable the Advanced farm modules (`villager-optimizer`, `density-optimizer`, `mob-farm-optimizer`) and then check `/lg breeding`, `/lg villager`, `/lg density`.
 5. Tune only one section at a time in `config.yml`, then use `/lg reload`.
 6. Re-check `/lg status` and `/lg tickmonitor` after 10-15 minutes.
 
@@ -158,8 +168,9 @@ These are suggested starting points before custom tuning:
     - Lower `density-optimizer.limits` for known farm species first
     - Keep `breeding-limiter.max-animals-per-chunk` conservative (`10-20`)
 - **Minigame / Lobby network**
-    - Disable modules you do not need (e.g. farm-focused modules)
-    - Focus on `chunks.world-guard`, thresholds, and notifications
+    - Farm-focused modules (villager, density, mob-farm) are already off by default — leave them disabled
+    - Focus on `chunks`, block placement limits, thresholds, and notifications
+    - `chunks.world-guard` is an Emergency module — only enable if you see extreme chunk flooding
 
 Apply changes incrementally and compare metrics before/after each change window.
 

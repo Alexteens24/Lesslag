@@ -28,6 +28,17 @@ These settings control the basic behavior of the plugin.
 
 The plugin is divided into several modules, each targeting a specific area of performance. You can enable or disable modules individually based on your server's needs.
 
+### Module Tiers
+
+| Tier | Default | Description |
+| :--- | :--- | :--- |
+| **Core** | On | Safe for all servers. No tuning needed on installation. |
+| **Advanced** | Off | Recommended for specific server types (trading halls, mob grinders, dense farms). Enable when you have confirmed the relevant lag source. |
+| **Experimental** | Off | Complex heuristics that may produce false positives. Enable with caution and monitor after each change. |
+| **Emergency** | Off | Disruptive last-resort actions. Enable only if you understand and accept the behavior. |
+
+Advanced and Experimental modules are available via their respective config keys and `/lg` commands. See `config.yml` for tier labels on each section.
+
 ### Redstone Control (`modules.redstone`)
 
 Prevents lag machines and optimizes redstone circuits by limiting activation frequency.
