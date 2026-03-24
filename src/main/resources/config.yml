@@ -5,7 +5,7 @@
 
 # Internal config version — do NOT edit manually.
 # Used by ConfigUpdater to auto-migrate missing keys after plugin updates.
-config-version: 3
+config-version: 4
 
 core:
   # Messages prefix
@@ -680,6 +680,32 @@ notifications:
   cooldown: 10
   # Broadcast to all players when an action (like clearing items) finishes
   broadcast-actions: false
+
+# =============================================================
+#  RECOVERY
+#  Automatically restores server settings once TPS stabilizes.
+# =============================================================
+recovery:
+  enabled: true
+  # TPS value at which the server is considered recovered
+  tps-threshold: 18.0
+  # Seconds TPS must remain above threshold before restoring defaults
+  delay-seconds: 30
+
+# =============================================================
+#  MESSAGES
+#  Player-visible alerts sent by the monitoring system.
+#  Uses MiniMessage formatting. Available placeholders noted inline.
+# =============================================================
+messages:
+  # Sent to online admins when lag triggers an automated action. {tps} available.
+  broadcast-emergency: "<red><bold>[!] <white>Server is experiencing lag, auto-fix in progress..."
+  # Sent to admins when TPS recovers and settings are restored. {tps} = current TPS.
+  recovery: "<green>\u2714 TPS stabilized: {tps}"
+  # Sent to admins when a tick spike is detected. {duration} = ms.
+  tick-spike: "<yellow>\u26a0 Tick spike: <white>{duration}ms <gray>(normal: 50ms)"
+  # Sent to admins during bottleneck profiling. {duration}ms, {method}, {percent}%.
+  bottleneck-detected: "<red><bold>LAG SPIKE! <gray>({duration}ms) Caused by: <yellow>{method} <gray>({percent}%)"
 
 # =============================================================
 #  SETUP ADVISOR

@@ -2,12 +2,9 @@ prefix: "<dark_gray>[<red><bold>LessLag</bold><dark_gray>] <reset>"
 
 action:
   scheduled: "<green>Scheduled cleanup task: %action%"
-  entity-limits-enforced: "<green>Entity limits enforced — removed %count% excess entities."
-  unloaded-chunks: "<green>Unloaded %count% excess chunks."
-  cleaned-chunks: "<green>Cleaned %count% chunks."
-  restored-defaults: "<green>Restored server settings and re-enabled AI for %count% mobs."
 
 messages:
+  # Command feedback — sent to the executing player
   items-cleared: "<green>Scheduled clearing of ground items."
   xp-cleared: "<green>Scheduled clearing of XP orbs."
   mobs-cleared: "<green>Scheduled removal of excess mobs."
@@ -15,9 +12,15 @@ messages:
   ai-disabled: "<green>Scheduled AI disable task."
   all-cleared: "<green>Scheduled clearing of all entities (items, xp, mobs)."
 
-analysis:
-  top-entities: "<yellow><bold>TOP ENTITIES</bold>"
-  loaded-chunks: "<yellow><bold>LOADED CHUNKS</bold>"
-  plugin-tasks: "<yellow><bold>PLUGIN TASKS</bold>"
-  entity-hotspots: "<yellow><bold>ENTITY HOTSPOTS</bold>"
-  more-issues: "<dark_gray>... and %count% more issues"
+  # Broadcast messages — sent to all players when notifications.broadcast-actions: true
+  # %count% = number of entities/chunks affected
+  broadcast-view-distance-reduced: "<green>Reduced view distance to save performance."
+  broadcast-simulation-distance-reduced: "<green>Reduced simulation distance to save performance."
+  broadcast-chunks-unloaded: "<green>Unloaded <yellow>%count% <green>excess chunks."
+  broadcast-items-cleared: "<green>Removed <yellow>%count% <green>ground items."
+  broadcast-xp-cleared: "<green>Removed <yellow>%count% <green>XP orbs."
+  broadcast-mobs-cleared: "<green>Removed <yellow>%count% <green>excess mobs."
+  broadcast-hostile-killed: "<green>Removed <yellow>%count% <green>hostile mobs."
+  broadcast-ai-disabled: "<green>Disabled AI for <yellow>%count% <green>mobs."
+  broadcast-ai-restored: "<green>Restored AI for <yellow>%count% <green>mobs."
+  broadcast-entity-limits: "<green>Removed <yellow>%count% <green>excess entities for server limits."
