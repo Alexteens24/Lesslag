@@ -5,7 +5,7 @@
 
 # Internal config version — do NOT edit manually.
 # Used by ConfigUpdater to auto-migrate missing keys after plugin updates.
-config-version: 5
+config-version: 6
 
 core:
   # Messages prefix
@@ -52,6 +52,12 @@ workload-limit-ms: 2
 workload-emergency-mspt: 45
 # Budget (ms) used during emergency throttle. Fractional values (e.g. 0.5) are allowed.
 workload-emergency-budget-ms: 0.5
+# Max items in the low-priority (background) workload queue before oldest items are replaced.
+workload-queue-usage-limit: 2000
+# Max items in the high-priority (user commands/restores) workload queue before drops occur.
+workload-queue-high-limit: 5000
+# Warn if a single workload task takes longer than this (ms).
+workload-task-warn-ms: 50
 
 # =============================================================
 #  MODULES: Protection & Optimization
@@ -425,6 +431,8 @@ system:
     threshold-ms: 100
     # Log to console?
     log-to-console: true
+    # Minimum gap between consecutive spike notifications (ms). Prevents chat spam.
+    spike-cooldown-ms: 1000
 
   # ===========================================================
   #  SYSTEM — Advanced Diagnostics  [ADVANCED]

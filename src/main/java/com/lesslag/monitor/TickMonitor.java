@@ -24,7 +24,7 @@ public class TickMonitor {
     private volatile double worstTickMs = 0;
 
     private long lastNotifyTime = 0;
-    private static final long NOTIFY_COOLDOWN_MS = 1000;
+    private long spikeCooldownMs = 1000;
 
     public TickMonitor(LessLag plugin) {
         this.plugin = plugin;
@@ -58,6 +58,7 @@ public class TickMonitor {
         // `log-to-console: true`.
         // I will change `notifyEnabled` to use `log-to-console` for this variable.
         notifyEnabled = plugin.getConfig().getBoolean("system.tick-monitor.log-to-console", true);
+        spikeCooldownMs = plugin.getConfig().getLong("system.tick-monitor.spike-cooldown-ms", 1000L);
     }
 
     public void start() {
@@ -89,7 +90,7 @@ public class TickMonitor {
 
             if (notifyEnabled) {
                 long currentTime = System.currentTimeMillis();
-                if (currentTime - lastNotifyTime >= NOTIFY_COOLDOWN_MS) {
+                if (currentTime - lastNotifyTime >= spikeCooldownMs) {
                     lastNotifyTime = currentTime;
                     final double duration = tickMs;
                     // Send notification ASYNC to avoid blocking the main thread

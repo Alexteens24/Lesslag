@@ -32,8 +32,9 @@ public class WorkloadDistributor {
     private long maxNanosPerTick = 2_000_000; // Default 2ms
     private volatile double emergencyMsptThreshold = 45.0;
     private volatile long emergencyBudgetNanos = 500_000L; // 0.5ms
-    private static final int MAX_USAGE_QUEUE_SIZE = 2000;
-    private static final int MAX_HIGH_QUEUE_SIZE = 5000;
+    private volatile int maxUsageQueueSize = 2000;
+    private volatile int maxHighQueueSize = 5000;
+    private volatile long taskWarnNanos = 50_000_000L; // 50ms
 
     public WorkloadDistributor() {
         // Delay config loading until onEnable
@@ -65,6 +66,9 @@ public class WorkloadDistributor {
             this.emergencyMsptThreshold = LessLag.getInstance().getConfig().getDouble("workload-emergency-mspt", 45.0);
             double emergencyMs = LessLag.getInstance().getConfig().getDouble("workload-emergency-budget-ms", 0.5);
             this.emergencyBudgetNanos = (long) (emergencyMs * 1_000_000);
+            this.maxUsageQueueSize = LessLag.getInstance().getConfig().getInt("workload-queue-usage-limit", 2000);
+            this.maxHighQueueSize = LessLag.getInstance().getConfig().getInt("workload-queue-high-limit", 5000);
+            this.taskWarnNanos = LessLag.getInstance().getConfig().getLong("workload-task-warn-ms", 50L) * 1_000_000L;
         }
     }
 
@@ -89,9 +93,9 @@ public class WorkloadDistributor {
             return false;
 
         if (priority == WorkloadPriority.HIGH) {
-            if (highQueueSize.get() >= MAX_HIGH_QUEUE_SIZE) {
+            if (highQueueSize.get() >= maxHighQueueSize) {
                 highQueueDropped.incrementAndGet();
-                getLogger().warning("[WorkloadDistributor] HIGH queue full (" + MAX_HIGH_QUEUE_SIZE
+                getLogger().warning("[WorkloadDistributor] HIGH queue full (" + maxHighQueueSize
                         + " items). Dropping workload to prevent memory pressure.");
                 return false;
             }
@@ -101,7 +105,7 @@ public class WorkloadDistributor {
             // Optimistic check. If we are slightly over limit due to race condition, it is
             // fine.
             // Strict counting is less important than throughput.
-            if (usageQueueSize.get() >= MAX_USAGE_QUEUE_SIZE) {
+            if (usageQueueSize.get() >= maxUsageQueueSize) {
                 // Drop oldest to make space?
                 // In a lock-free concurrent deque, polling specific elements (head) while
                 // adding to tail is safe but
@@ -172,7 +176,7 @@ public class WorkloadDistributor {
                     long start = System.nanoTime();
                     work.run();
                     long duration = System.nanoTime() - start;
-                    if (duration > 50_000_000L) { // Warn if single task > 50ms
+                    if (duration > taskWarnNanos) { // Warn if single task > configured ms
                         getLogger().warning(
                                 "[WorkloadDistributor] Slow task detected: " + (duration / 1_000_000.0) + "ms");
                     }
