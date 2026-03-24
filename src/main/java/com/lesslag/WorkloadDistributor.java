@@ -30,6 +30,8 @@ public class WorkloadDistributor {
     private Logger logger;
 
     private long maxNanosPerTick = 2_000_000; // Default 2ms
+    private volatile double emergencyMsptThreshold = 45.0;
+    private volatile long emergencyBudgetNanos = 500_000L; // 0.5ms
     private static final int MAX_USAGE_QUEUE_SIZE = 2000;
     private static final int MAX_HIGH_QUEUE_SIZE = 5000;
 
@@ -60,6 +62,9 @@ public class WorkloadDistributor {
         if (LessLag.getInstance() != null) {
             int maxMillis = LessLag.getInstance().getConfig().getInt("workload-limit-ms", 2);
             this.maxNanosPerTick = maxMillis * 1_000_000L;
+            this.emergencyMsptThreshold = LessLag.getInstance().getConfig().getDouble("workload-emergency-mspt", 45.0);
+            double emergencyMs = LessLag.getInstance().getConfig().getDouble("workload-emergency-budget-ms", 0.5);
+            this.emergencyBudgetNanos = (long) (emergencyMs * 1_000_000);
         }
     }
 
@@ -137,12 +142,11 @@ public class WorkloadDistributor {
         task = scheduleTimerTask(() -> {
             long budget = maxNanosPerTick;
 
-            // Emergency Throttle: If server is struggling (MSPT > 45ms), reduce budget to
-            // 0.5ms
+// Emergency Throttle: If server is struggling (MSPT > threshold), reduce budget
             if (LessLag.getInstance() != null && LessLag.getInstance().getTpsMonitor() != null) {
                 double mspt = LessLag.getInstance().getTpsMonitor().getCurrentMSPT();
-                if (mspt > 45.0) {
-                    budget = 500_000L; // 0.5ms
+                if (mspt > emergencyMsptThreshold) {
+                    budget = emergencyBudgetNanos;
                 }
             }
 

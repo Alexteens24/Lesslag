@@ -5,7 +5,7 @@
 
 # Internal config version — do NOT edit manually.
 # Used by ConfigUpdater to auto-migrate missing keys after plugin updates.
-config-version: 4
+config-version: 5
 
 core:
   # Messages prefix
@@ -16,6 +16,9 @@ core:
   language: en
   # Print debug messages to console
   debug: false
+  # Number of threads for async background tasks (monitoring, analysis, web)
+  # Increase on high-core servers (8+ cores) if you notice monitoring delays.
+  async-threads: 4
 
 # =============================================================
 #  WEB OPTIMIZER
@@ -26,6 +29,8 @@ web:
   api-url: "https://lesslag-api.daucatmoitu.workers.dev"
   # Web dashboard URL
   dashboard-url: "https://lesslag-web.vercel.app"
+  # Timeout (seconds) for all outbound HTTP requests to the LessLag API
+  http-timeout-seconds: 10
   # Server identity — populated automatically on first startup via /lg web register
   server-id: ""
   server-secret: ""
@@ -42,6 +47,11 @@ web:
 
 # Max time (ms) per tick for heavy tasks (WorkloadDistributor)
 workload-limit-ms: 2
+# If MSPT exceeds this threshold, WorkloadDistributor reduces its budget to
+# workload-emergency-budget-ms to give the server room to recover.
+workload-emergency-mspt: 45
+# Budget (ms) used during emergency throttle. Fractional values (e.g. 0.5) are allowed.
+workload-emergency-budget-ms: 0.5
 
 # =============================================================
 #  MODULES: Protection & Optimization
@@ -441,6 +451,8 @@ system:
     warn-threshold-ms: 300
     # Notify online admins about long GC pauses
     notify: true
+    # How often to poll GC stats (milliseconds). Lower = more responsive, higher = less overhead.
+    check-interval-ms: 2000
 
   # ===========================================================
   #  SYSTEM — Experimental Diagnostics  [EXPERIMENTAL]
@@ -453,6 +465,9 @@ system:
     enabled: false
     # Check interval (in minutes)
     check-interval-minutes: 10
+    # Number of consecutive rising-slope signals required before alerting.
+    # Higher = fewer false positives; lower = faster detection.
+    consecutive-signals: 3
     # Notify admins in-game? (Set to false for console-only logs)
     notify: false
     # Warn if old gen memory grows by this slope (MB/min)

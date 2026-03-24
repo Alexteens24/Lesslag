@@ -28,25 +28,31 @@ import org.bukkit.plugin.Plugin;
 public class LessLagApiClient {
 
     private static final Gson GSON = new Gson();
-    private static final Duration TIMEOUT = Duration.ofSeconds(10);
+    private static final int DEFAULT_TIMEOUT_SECONDS = 10;
 
     private final HttpClient httpClient;
     private final String baseUrl;
+    private final Duration requestTimeout;
 
     /** Server identity — set after registration. May be null before first registration. */
     private volatile String serverId;
     private volatile String serverSecret;
 
     public LessLagApiClient(String baseUrl) {
-        this(baseUrl, null, null);
+        this(baseUrl, null, null, DEFAULT_TIMEOUT_SECONDS);
     }
 
     public LessLagApiClient(String baseUrl, String serverId, String serverSecret) {
+        this(baseUrl, serverId, serverSecret, DEFAULT_TIMEOUT_SECONDS);
+    }
+
+    public LessLagApiClient(String baseUrl, String serverId, String serverSecret, int timeoutSeconds) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.serverId = serverId;
         this.serverSecret = serverSecret;
+        this.requestTimeout = Duration.ofSeconds(timeoutSeconds);
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(TIMEOUT)
+                .connectTimeout(this.requestTimeout)
                 .build();
     }
 
@@ -214,7 +220,7 @@ public class LessLagApiClient {
     public CompletableFuture<String> health() {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/api/health"))
-                .timeout(TIMEOUT)
+                .timeout(requestTimeout)
                 .GET()
                 .build();
 
@@ -435,7 +441,7 @@ public class LessLagApiClient {
     private CompletableFuture<String> postRawJson(String path, String jsonBody) {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
-                .timeout(TIMEOUT)
+                .timeout(requestTimeout)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
@@ -445,7 +451,7 @@ public class LessLagApiClient {
     private CompletableFuture<String> postAuthRawJson(String path, String jsonBody) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
-                .timeout(TIMEOUT)
+                .timeout(requestTimeout)
                 .header("Content-Type", "application/json");
         if (serverId != null)     builder.header("X-Server-Id",     serverId);
         if (serverSecret != null) builder.header("X-Server-Secret", serverSecret);
@@ -456,7 +462,7 @@ public class LessLagApiClient {
     private CompletableFuture<String> getAuth(String path) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
-                .timeout(TIMEOUT)
+                .timeout(requestTimeout)
                 .GET();
         if (serverId != null)     builder.header("X-Server-Id",     serverId);
         if (serverSecret != null) builder.header("X-Server-Secret", serverSecret);
@@ -466,7 +472,7 @@ public class LessLagApiClient {
     private CompletableFuture<String> deleteAuthJson(String path, Map<String, Object> body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
-                .timeout(TIMEOUT)
+                .timeout(requestTimeout)
                 .header("Content-Type", "application/json");
         if (serverId != null)     builder.header("X-Server-Id",     serverId);
         if (serverSecret != null) builder.header("X-Server-Secret", serverSecret);

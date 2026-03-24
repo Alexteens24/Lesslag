@@ -57,6 +57,10 @@ public class GCMonitor {
                                                                                          // true
     }
 
+    private long loadCheckIntervalMs() {
+        return plugin.getConfig().getLong("system.gc-monitor.check-interval-ms", 2000L);
+    }
+
     public void start() {
         if (!plugin.getConfig().getBoolean("system.gc-monitor.enabled", true))
             return;
@@ -77,12 +81,13 @@ public class GCMonitor {
 
         // Use a Timer (not Bukkit scheduler) since GC can freeze the server
         timer = new Timer("LessLag-GCMonitor", true);
+        long checkIntervalMs = loadCheckIntervalMs();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 checkGC();
             }
-        }, 2000, 2000); // Check every 2 seconds
+        }, checkIntervalMs, checkIntervalMs);
 
         plugin.getLogger().info("GC Monitor started (overhead tracking enabled)");
     }

@@ -163,7 +163,7 @@ public class MemoryLeakDetector {
             leakSuspected = true;
 
             // Only alert if we have sustained signal AND cooldown passed
-            if (consecutiveLeakSignals >= 3 && notify) {
+            if (consecutiveLeakSignals >= plugin.getConfig().getInt("system.memory-leak-detection.consecutive-signals", 3) && notify) {
                 if (now - lastAlertTime > alertCooldownSec * 1000L) {
                     lastAlertTime = now;
                     alertLeakDetected(slopeMBPerMin, postGCMB, samples);

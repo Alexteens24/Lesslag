@@ -155,8 +155,9 @@ public class LessLag extends JavaPlugin implements Listener {
 
         getServer().getPluginManager().registerEvents(this, this);
 
-        // Create async executor (4 threads: monitoring + analysis)
-        asyncExecutor = Executors.newFixedThreadPool(4, r -> {
+        // Create async executor (thread count from config)
+        int asyncThreads = getConfig().getInt("core.async-threads", 4);
+        asyncExecutor = Executors.newFixedThreadPool(asyncThreads, r -> {
             Thread t = new Thread(r, "LessLag-Async");
             t.setDaemon(true);
             return t;
@@ -444,9 +445,11 @@ public class LessLag extends JavaPlugin implements Listener {
 
         boolean hasCredentials = storedId != null && !storedId.isBlank()
                 && storedSecret != null && !storedSecret.isBlank();
+        int httpTimeout = getConfig().getInt("web.http-timeout-seconds", 10);
         apiClient = new LessLagApiClient(apiUrl,
                 hasCredentials ? storedId : null,
-                hasCredentials ? storedSecret : null);
+                hasCredentials ? storedSecret : null,
+                httpTimeout);
 
         // Warn on rules version drift (non-blocking)
         apiClient.warnOnRulesVersionDrift(this);
